@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backups
+backups/
+src_backup/
+src_backup_phase1/
+*.backup
+*.save
+hihihi
+hihihi.save
+mock-data.before-account-type.ts
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

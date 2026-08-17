@@ -1,0 +1,260 @@
+export type DepartmentType =
+  | 'admin'
+  | 'marketing'
+  | 'admissions'
+  | 'counseling'
+  | 'data_applications'
+  | 'operations'
+  | 'finance'
+  | 'country_directors'
+  | 'it_support'
+  | 'legal_compliance'
+  | 'alumni_success';
+
+export type ApplicationStatus =
+  | 'draft'
+  | 'submitted'
+  | 'under_review'
+  | 'documents_missing'
+  | 'documents_verified'
+  | 'admissions_review'
+  | 'ready_for_processing'
+  | 'submitted_to_institution'
+  | 'decision_pending'
+  | 'approved'
+  | 'rejected';
+
+export type CommunicationType =
+  | 'notification'
+  | 'task'
+  | 'alert'
+  | 'message'
+  | 'escalation';
+
+export type PriorityLevel = 'low' | 'medium' | 'high' | 'critical';
+
+export type DocType =
+  | 'passport'
+  | 'academic_transcript'
+  | 'english_proficiency'
+  | 'recommendation_letter'
+  | 'financial_statement'
+  | 'personal_statement'
+  | 'other';
+
+export interface Profile {
+  id: string;
+  email: string;
+  full_name: string;
+  avatar_url?: string;
+  department: DepartmentType;
+  is_admin: boolean;
+  account_type: 'staff' | 'student';
+  phone?: string;
+  first_name?: string;
+  last_name?: string;
+  country_of_residence?: string;
+  passport_number?: string;
+  created_at: string;
+}
+
+export interface DepartmentPermission {
+  department: DepartmentType;
+  resource: string;
+  can_view: boolean;
+  can_create: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
+  can_approve: boolean;
+  can_assign: boolean;
+  can_comment: boolean;
+  can_export: boolean;
+}
+
+export interface CountryDirectorAssignment {
+  id: string;
+  director_id: string;
+  country_code: string;
+  country_name: string;
+}
+
+export interface Student {
+  id: string;
+  profile_id?: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  country_of_residence: string;
+  passport_number?: string;
+  gpa: number;
+  lead_source?: string;
+  assigned_counselor_id?: string;
+  assigned_counselor_name?: string;
+  registration_fee_paid: boolean;
+  created_at: string;
+}
+
+export interface Application {
+  id: string;
+  application_number: string;
+  student_id: string;
+  student_name: string;
+  student_email: string;
+  status: ApplicationStatus;
+  target_country: string;
+  target_university: string;
+  degree_program: string;
+  intake_period: string;
+  scholarship_requested?: string;
+  missing_documents_count: number;
+  admissions_decision?: 'conditional_offer' | 'unconditional_offer' | 'rejected' | 'pending';
+  admissions_notes?: string;
+  handed_off_to_admissions: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DocumentVersion {
+  id: string;
+  document_id: string;
+  version_number: number;
+  storage_path: string;
+  uploaded_by_name: string;
+  uploaded_at: string;
+  change_summary: string;
+}
+
+export interface ApplicationDocument {
+  id: string;
+  application_id: string;
+  document_type: DocType;
+  file_name: string;
+  storage_path: string;
+  file_size: number;
+  mime_type: string;
+  current_version: number;
+  is_missing: boolean;
+  is_verified: boolean;
+  verified_by_name?: string;
+  verified_at?: string;
+  notes?: string;
+  signed_url?: string;
+  versions: DocumentVersion[];
+  created_at: string;
+}
+
+export interface ApplicationStatusHistory {
+  id: string;
+  application_id: string;
+  from_status: ApplicationStatus | null;
+  to_status: ApplicationStatus;
+  changed_by_name: string;
+  department: DepartmentType;
+  note: string;
+  created_at: string;
+}
+
+export interface CounselingSession {
+  id: string;
+  student_id: string;
+  student_name: string;
+  counselor_id: string;
+  counselor_name: string;
+  scheduled_at: string;
+  duration_minutes: number;
+  google_meet_link: string;
+  status: 'scheduled' | 'completed' | 'cancelled';
+  session_notes: string; // Restricted from Finance
+  scholarship_recommendations: string[];
+  created_at: string;
+}
+
+export interface AdmissionWindow {
+  id: string;
+  title: string;
+  target_country: string;
+  intake_period: string;
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
+  created_by_name: string;
+}
+
+export interface InstitutionTask {
+  id: string;
+  application_id: string;
+  application_number: string;
+  title: string;
+  description: string;
+  assigned_to_name: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'escalated';
+  deadline: string;
+  created_at: string;
+}
+
+export interface FinancialRecord {
+  id: string;
+  application_id: string;
+  application_number: string;
+  student_id: string;
+  student_name: string;
+  record_type: 'registration_fee' | 'scholarship_disbursement' | 'refund' | 'operational_spend';
+  amount: number;
+  currency: string;
+  status: 'pending' | 'paid' | 'approved' | 'rejected';
+  payment_reference?: string;
+  approved_by_name?: string;
+  notes?: string;
+  created_at: string;
+}
+
+export interface PartnerUniversity {
+  id: string;
+  name: string;
+  country: string;
+  contact_email: string;
+  scholarships_offered: number;
+  active_agreement: boolean;
+  agreements: PartnerAgreement[];
+}
+
+export interface PartnerAgreement {
+  id: string;
+  partner_id: string;
+  partner_name: string;
+  document_name: string;
+  storage_path: string;
+  effective_date: string;
+  expiry_date: string;
+  status: 'active' | 'expired' | 'under_renegotiation';
+}
+
+export interface Communication {
+  id: string;
+  type: CommunicationType;
+  sender_name: string;
+  recipient_name?: string;
+  department?: DepartmentType;
+  related_student_name?: string;
+  related_application_number?: string;
+  title: string;
+  body: string;
+  priority: PriorityLevel;
+  is_read: boolean;
+  parent_id?: string;
+  created_at: string;
+  replies?: Communication[];
+}
+
+export interface AuditLog {
+  id: string;
+  actor_name: string;
+  department: DepartmentType;
+  action: string;
+  entity_type: string;
+  entity_id: string;
+  before_state?: any;
+  after_state?: any;
+  created_at: string;
+}

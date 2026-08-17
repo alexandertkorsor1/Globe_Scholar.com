@@ -1,0 +1,365 @@
+import React, { useState } from 'react';
+import { useApplication } from '../../context/ApplicationContext';
+import { useAuth } from '../../context/AuthContext';
+import {
+  Building2,
+  Users,
+  FileCheck,
+  TrendingUp,
+  AlertOctagon,
+  Award,
+  Globe,
+  Plus,
+  ChevronRight,
+  Send,
+  FileText
+} from 'lucide-react';
+
+export const AdminWorkspace: React.FC = () => {
+  const {
+    applications,
+    students,
+    financialRecords,
+    partnerUniversities,
+    addCommunication,
+    statusHistory
+  } = useApplication();
+  const { availableProfiles } = useAuth();
+
+  const [activeTab, setActiveTab] = useState<'kpis' | 'drilldown' | 'partnerships' | 'staff'>('kpis');
+  const [selectedDeptDrill, setSelectedDeptDrill] = useState<string>('admissions');
+  const [showAddPartnerModal, setShowAddPartnerModal] = useState(false);
+  const [showGlobalNotifyModal, setShowGlobalNotifyModal] = useState(false);
+
+  // New partner state
+  const [pName, setPName] = useState('');
+  const [pCountry, setPCountry] = useState('United Kingdom');
+  const [pEmail, setPEmail] = useState('');
+  const [pScholarships, setPScholarships] = useState(10);
+
+  // Global notice state
+  const [noticeTitle, setNoticeTitle] = useState('');
+  const [noticeBody, setNoticeBody] = useState('');
+
+  // Key KPI Calculations
+  const totalApps = applications.length;
+  const activeStudents = students.length;
+  const pendingApps = applications.filter(a => ['submitted', 'under_review', 'documents_missing', 'admissions_review'].includes(a.status)).length;
+  const missingDocsCount = applications.reduce((acc, a) => acc + a.missing_documents_count, 0);
+  const approvedCount = applications.filter(a => a.status === 'approved').length;
+  const rejectedCount = applications.filter(a => a.status === 'rejected').length;
+
+  const urgentItems = [
+    ...applications.filter(a => a.missing_documents_count > 0).map(a => `Application ${a.application_number} (${a.student_name}) has ${a.missing_documents_count} missing document(s)`),
+    ...financialRecords.filter(f => f.status === 'pending').map(f => `Pending financial disbursement approval: ${f.application_number} ($${f.amount})`)
+  ];
+
+  const handleAddPartner = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pName) return;
+    partnerUniversities.push({
+      id: `part-${Date.now()}`,
+      name: pName,
+      country: pCountry,
+      contact_email: pEmail,
+      scholarships_offered: pScholarships,
+      active_agreement: true,
+      agreements: [
+        {
+          id: `agr-${Date.now()}`,
+          partner_id: `part-${Date.now()}`,
+          partner_name: pName,
+          document_name: `${pName.replace(/\s+/g, '_')}_MOU_2026.pdf`,
+          storage_path: `agreements/${pName}_2026.pdf`,
+          effective_date: '2026-01-01',
+          expiry_date: '2029-12-31',
+          status: 'active'
+        }
+      ]
+    });
+    setShowAddPartnerModal(false);
+  };
+
+  const handleGlobalNotify = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!noticeTitle || !noticeBody) return;
+    addCommunication('alert', noticeTitle, noticeBody, 'high');
+    setShowGlobalNotifyModal(false);
+    setNoticeTitle('');
+    setNoticeBody('');
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      
+      {/* Header Banner */}
+      <div className="glass-panel" style={{ padding: '20px 24px', background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(18, 26, 43, 0.9) 100%)', borderColor: 'rgba(239, 68, 68, 0.3)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Building2 style={{ color: '#ef4444' }} />
+              <h2 style={{ fontSize: '1.25rem', color: '#fff' }}>Admin System Oversight & Executive Platform</h2>
+            </div>
+            <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
+              Full cross-department oversight, performance analytics, partner university listings, and global staff communications.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button onClick={() => setShowGlobalNotifyModal(true)} className="btn btn-secondary btn-sm" style={{ color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.4)' }}>
+              <Send style={{ width: '14px', height: '14px' }} />
+              Broadcast Global Staff Notice
+            </button>
+            <button onClick={() => setShowAddPartnerModal(true)} className="btn btn-primary btn-sm">
+              <Plus style={{ width: '14px', height: '14px' }} />
+              Add Partner University
+            </button>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div style={{ display: 'flex', gap: '8px', marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '12px' }}>
+          {[
+            { id: 'kpis', label: 'Executive Dashboard' },
+            { id: 'drilldown', label: 'Department Drill-Down' },
+            { id: 'partnerships', label: 'Partner Universities & Agreements' },
+            { id: 'staff', label: 'Staff Accounts & RBAC' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`btn btn-sm ${activeTab === tab.id ? 'btn-primary' : 'btn-secondary'}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tab 1: Executive KPI Dashboard */}
+      {activeTab === 'kpis' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          
+          {/* Executive Stat Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+            <div className="glass-panel" style={{ padding: '18px' }}>
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Total Applications</span>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#6366f1', marginTop: '4px' }}>{totalApps}</div>
+              <span style={{ fontSize: '0.7rem', color: '#34d399' }}>Across 8 departments</span>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '18px' }}>
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Active Students</span>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#06b6d4', marginTop: '4px' }}>{activeStudents}</div>
+              <span style={{ fontSize: '0.7rem', color: '#38bdf8' }}>Registered on Portal</span>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '18px' }}>
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Pending Reviews</span>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#f59e0b', marginTop: '4px' }}>{pendingApps}</div>
+              <span style={{ fontSize: '0.7rem', color: '#fbbf24' }}>Requires Department Action</span>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '18px' }}>
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Approved / Rejected</span>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#10b981', marginTop: '4px' }}>
+                {approvedCount} <span style={{ fontSize: '1rem', color: '#f43f5e' }}>/ {rejectedCount}</span>
+              </div>
+              <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Final Decisions Rendered</span>
+            </div>
+          </div>
+
+          {/* Urgent Items & Operational Alert Panel */}
+          <div className="glass-panel" style={{ padding: '20px', borderLeft: '4px solid #f59e0b' }}>
+            <h3 style={{ fontSize: '0.95rem', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <AlertOctagon style={{ width: '18px', height: '18px' }} />
+              Admin Urgent Attention Items ({urgentItems.length})
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {urgentItems.map((item, idx) => (
+                <div key={idx} style={{ padding: '10px 14px', borderRadius: '8px', background: 'rgba(245, 158, 11, 0.1)', color: '#fbbf24', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>•</span>
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* Tab 2: Department Drill-Down */}
+      {activeTab === 'drilldown' && (
+        <div className="glass-panel" style={{ padding: '20px' }}>
+          <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '14px' }}>
+            Multi-Department Drill-Down Engine (Department → Staff → Student → Application → Activity)
+          </h3>
+
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', overflowX: 'auto' }}>
+            {['marketing', 'counseling', 'admissions', 'data_applications', 'operations', 'country_directors', 'finance'].map(dept => (
+              <button
+                key={dept}
+                onClick={() => setSelectedDeptDrill(dept)}
+                className={`btn btn-sm ${selectedDeptDrill === dept ? 'btn-primary' : 'btn-secondary'}`}
+              >
+                {dept.toUpperCase().replace('_', ' ')}
+              </button>
+            ))}
+          </div>
+
+          <div className="custom-table-container">
+            <table className="custom-table">
+              <thead>
+                <tr>
+                  <th>Application #</th>
+                  <th>Student Name</th>
+                  <th>Target Institution</th>
+                  <th>Status</th>
+                  <th>Last Handled By</th>
+                  <th>Activity History Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                {applications.map(app => {
+                  const lastHist = statusHistory.find(h => h.application_id === app.id);
+                  return (
+                    <tr key={app.id}>
+                      <td><strong style={{ color: '#6366f1' }}>{app.application_number}</strong></td>
+                      <td>{app.student_name}</td>
+                      <td>{app.target_university} ({app.target_country})</td>
+                      <td><span className={`badge badge-${app.status}`}>{app.status}</span></td>
+                      <td>{lastHist?.changed_by_name || 'System Engine'}</td>
+                      <td style={{ fontSize: '0.78rem', color: '#94a3b8' }}>{lastHist?.note || 'Initial record registered.'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 3: Partner Universities & Agreements File */}
+      {activeTab === 'partnerships' && (
+        <div className="glass-panel" style={{ padding: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ fontSize: '1rem', color: '#fff' }}>Partner Universities & Agreement Files Directory</h3>
+            <button onClick={() => setShowAddPartnerModal(true)} className="btn btn-primary btn-sm">
+              <Plus style={{ width: '14px', height: '14px' }} />
+              Add Partner
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+            {partnerUniversities.map(p => (
+              <div key={p.id} className="glass-panel" style={{ padding: '16px', background: 'rgba(18, 26, 43, 0.8)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                  <div>
+                    <h4 style={{ fontSize: '0.95rem', color: '#fff' }}>{p.name}</h4>
+                    <span style={{ fontSize: '0.75rem', color: '#06b6d4' }}>{p.country} • {p.contact_email}</span>
+                  </div>
+                  <span className="badge badge-documents_verified">{p.scholarships_offered} Scholarships</span>
+                </div>
+
+                <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Active Agreement Files:</span>
+                  {p.agreements.map(a => (
+                    <div key={a.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', background: 'rgba(255,255,255,0.03)', padding: '6px 10px', borderRadius: '6px' }}>
+                      <span style={{ color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <FileText style={{ width: '12px', height: '12px', color: '#6366f1' }} />
+                        {a.document_name}
+                      </span>
+                      <span style={{ color: '#34d399', fontWeight: 600 }}>Expires: {a.expiry_date}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tab 4: Staff Accounts & RBAC Matrix */}
+      {activeTab === 'staff' && (
+        <div className="glass-panel" style={{ padding: '20px' }}>
+          <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '14px' }}>Staff Accounts & Department Role Assignments</h3>
+          <div className="custom-table-container">
+            <table className="custom-table">
+              <thead>
+                <tr>
+                  <th>Staff Name</th>
+                  <th>Email</th>
+                  <th>Department Scope</th>
+                  <th>System Role</th>
+                  <th>Account Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {availableProfiles.map(p => (
+                  <tr key={p.id}>
+                    <td style={{ fontWeight: 600, color: '#fff' }}>{p.full_name}</td>
+                    <td>{p.email}</td>
+                    <td><span className="badge badge-under_review">{p.department}</span></td>
+                    <td>{p.is_admin ? <span style={{ color: '#ef4444', fontWeight: 700 }}>Admin (Oversight)</span> : 'Staff Member'}</td>
+                    <td><span className="badge badge-documents_verified">Active</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Add Partner University */}
+      {showAddPartnerModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="glass-panel animate-fade-in" style={{ width: '440px', padding: '24px', background: '#0f172a' }}>
+            <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '16px' }}>Add New Partner University</h3>
+            <form onSubmit={handleAddPartner} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>University Name</label>
+                <input type="text" required placeholder="e.g. Stanford University" value={pName} onChange={e => setPName(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Country</label>
+                <input type="text" required value={pCountry} onChange={e => setPCountry(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Contact Email</label>
+                <input type="email" required placeholder="admissions@stanford.edu" value={pEmail} onChange={e => setPEmail(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                <button type="button" onClick={() => setShowAddPartnerModal(false)} className="btn btn-secondary btn-sm">Cancel</button>
+                <button type="submit" className="btn btn-primary btn-sm">Add Partner</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Global Staff Notice */}
+      {showGlobalNotifyModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="glass-panel animate-fade-in" style={{ width: '460px', padding: '24px', background: '#0f172a' }}>
+            <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '16px' }}>Broadcast Global Staff Notice</h3>
+            <form onSubmit={handleGlobalNotify} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Subject</label>
+                <input type="text" required placeholder="e.g. Q3 Admission Deadline Policy Update" value={noticeTitle} onChange={e => setNoticeTitle(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Message Body</label>
+                <textarea required rows={4} placeholder="Announcement text for all department staff..." value={noticeBody} onChange={e => setNoticeBody(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                <button type="button" onClick={() => setShowGlobalNotifyModal(false)} className="btn btn-secondary btn-sm">Cancel</button>
+                <button type="submit" className="btn btn-primary btn-sm">Broadcast Notice</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+};
