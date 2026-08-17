@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useApplication } from '../../context/ApplicationContext';
-import { Briefcase, CheckSquare, Clock, Plus, AlertTriangle, Send } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { DashboardLayout } from '../dashboard/DashboardLayout';
+import { Briefcase, CheckSquare, Clock, Plus, AlertTriangle, Send, ListTodo } from 'lucide-react';
 
 export const OperationsWorkspace: React.FC = () => {
   const {
@@ -9,6 +11,7 @@ export const OperationsWorkspace: React.FC = () => {
     createInstitutionTask,
     addCommunication
   } = useApplication();
+  const { currentProfile, logout } = useAuth();
 
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [taskAppId, setTaskAppId] = useState(applications[0]?.id || '');
@@ -31,7 +34,21 @@ export const OperationsWorkspace: React.FC = () => {
     alert(`Escalation raised for task: ${taskTitleStr}`);
   };
 
+  const sidebarNav = [
+    { label: 'Tasks', icon: <ListTodo style={{ width: 18, height: 18 }} />, active: true },
+    { label: 'Submissions', icon: <Send style={{ width: 18, height: 18 }} /> },
+  ];
+
   return (
+    <DashboardLayout
+      department="Operations"
+      title="Operations & Institution Submissions"
+      subtitle="Task management, deadline tracking, and institution coordination"
+      userName={currentProfile.full_name}
+      userRole="Operations"
+      navigation={sidebarNav}
+      onLogout={logout}
+    >
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
       {/* Banner */}
@@ -135,5 +152,6 @@ export const OperationsWorkspace: React.FC = () => {
       )}
 
     </div>
+    </DashboardLayout>
   );
 };

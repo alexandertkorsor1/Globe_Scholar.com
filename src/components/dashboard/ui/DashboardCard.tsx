@@ -5,6 +5,7 @@ interface DashboardCardProps {
   subtitle?: string;
   children: React.ReactNode;
   action?: React.ReactNode;
+  noPadding?: boolean;
 }
 
 export const DashboardCard: React.FC<DashboardCardProps> = ({
@@ -12,14 +13,16 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
   subtitle,
   children,
   action,
+  noPadding = false,
 }) => {
   return (
     <section
       style={{
         background: '#ffffff',
         border: '1px solid #e5e7eb',
-        borderRadius: '18px',
+        borderRadius: '16px',
         overflow: 'hidden',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06)',
       }}
     >
       <div
@@ -60,10 +63,13 @@ export const DashboardCard: React.FC<DashboardCardProps> = ({
         {action}
       </div>
 
-      <div style={{ padding: '22px' }}>
+      <div
+        style={
+          noPadding ? {} : { padding: '22px' }
+        }
+      >
         {children}
       </div>
     </section>
   );
 };
-

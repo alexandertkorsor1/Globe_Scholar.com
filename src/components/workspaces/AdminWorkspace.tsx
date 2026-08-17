@@ -2,8 +2,13 @@ import React, { useState } from 'react';
 import type { Application } from '../../types/database';
 import { useApplication } from '../../context/ApplicationContext';
 import { useAuth } from '../../context/AuthContext';
+import { DashboardLayout } from '../dashboard/DashboardLayout';
 import {
   Building2,
+  LayoutDashboard,
+  Users2,
+  GraduationCap,
+  Briefcase,
   Users,
   FileCheck,
   TrendingUp,
@@ -190,18 +195,35 @@ export const AdminWorkspace: React.FC = () => {
     setNoticeBody('');
   };
 
+  const sidebarNav = [
+    { label: 'Overview', icon: <LayoutDashboard style={{ width: 18, height: 18 }} />, active: activeTab === 'kpis', onClick: () => setActiveTab('kpis') },
+    { label: 'Departments', icon: <Building2 style={{ width: 18, height: 18 }} />, active: activeTab === 'drilldown', onClick: () => setActiveTab('drilldown') },
+    { label: 'Partnerships', icon: <GraduationCap style={{ width: 18, height: 18 }} />, active: activeTab === 'partnerships', onClick: () => setActiveTab('partnerships') },
+    { label: 'Staff & RBAC', icon: <Users2 style={{ width: 18, height: 18 }} />, active: activeTab === 'staff', onClick: () => setActiveTab('staff') },
+  ];
+
   return (
+    <DashboardLayout
+      department="Admin"
+      title="Dashboard"
+      subtitle="Full cross-department oversight and executive analytics"
+      userName={currentProfile.full_name}
+      userRole="Admin"
+      notificationCount={urgentItems.length}
+      navigation={sidebarNav}
+      onLogout={logout}
+    >
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
       {/* Header Banner */}
-      <div className="glass-panel" style={{ padding: '20px 24px', background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(18, 26, 43, 0.9) 100%)', borderColor: 'rgba(239, 68, 68, 0.3)' }}>
+      <div className="glass-panel" style={{ padding: '20px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Building2 style={{ color: '#ef4444' }} />
-              <h2 style={{ fontSize: '1.25rem', color: '#fff' }}>Admin System Oversight & Executive Platform</h2>
+              <Building2 style={{ color: '#3366FF' }} />
+              <h2 style={{ fontSize: '1.25rem', color: '#111827' }}>Admin System Oversight & Executive Platform</h2>
             </div>
-            <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
+            <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '4px' }}>
               Full cross-department oversight, performance analytics, partner university listings, and global staff communications.
             </p>
           </div>
@@ -212,8 +234,8 @@ export const AdminWorkspace: React.FC = () => {
     onClick={() => setShowGlobalNotifyModal(true)}
     className="btn btn-secondary btn-sm"
     style={{
-      color: '#f87171',
-      borderColor: 'rgba(248, 113, 113, 0.4)'
+      color: '#dc2626',
+      borderColor: '#fecaca'
     }}
   >
     <Send style={{ width: '14px', height: '14px' }} />
@@ -233,7 +255,7 @@ export const AdminWorkspace: React.FC = () => {
         </div>
 
         {/* Tab Navigation */}
-        <div style={{ display: 'flex', gap: '8px', marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '12px' }}>
+        <div style={{ display: 'flex', gap: '8px', marginTop: '16px', borderTop: '1px solid #f3f4f6', paddingTop: '12px' }}>
           {[
             { id: 'kpis', label: 'Executive Dashboard' },
             { id: 'drilldown', label: 'Department Drill-Down' },
@@ -1006,5 +1028,6 @@ export const AdminWorkspace: React.FC = () => {
       )}
 
     </div>
+    </DashboardLayout>
   );
 };

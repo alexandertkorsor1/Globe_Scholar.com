@@ -1,26 +1,65 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Bell, ChevronDown, LogOut, Settings, User } from 'lucide-react';
 
 interface DashboardTopbarProps {
   title: string;
   subtitle?: string;
   userName?: string;
+  userRole?: string;
+  notificationCount?: number;
   onNotifications?: () => void;
   onMessages?: () => void;
   onLogout?: () => void;
+  onSettings?: () => void;
 }
 
-export const DashboardTopbar: React.FC<DashboardTopbarProps> = ({
+export const DashboardTopbar: React.FC<
+  DashboardTopbarProps
+> = ({
   title,
   subtitle,
   userName,
+  userRole = 'Staff',
+  notificationCount = 0,
   onNotifications,
   onMessages,
   onLogout,
+  onSettings,
 }) => {
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close user menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node)
+      ) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () =>
+      document.removeEventListener(
+        'mousedown',
+        handleClickOutside
+      );
+  }, []);
+
+  const initials = userName
+    ? userName
+        .split(' ')
+        .map((name) => name[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase()
+    : 'U';
+
   return (
     <header
       style={{
-        height: '78px',
+        height: '72px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -35,7 +74,7 @@ export const DashboardTopbar: React.FC<DashboardTopbarProps> = ({
         <h1
           style={{
             margin: 0,
-            fontSize: '24px',
+            fontSize: '22px',
             fontWeight: 700,
             color: '#111827',
           }}
@@ -46,7 +85,7 @@ export const DashboardTopbar: React.FC<DashboardTopbarProps> = ({
         {subtitle && (
           <p
             style={{
-              margin: '4px 0 0',
+              margin: '2px 0 0',
               color: '#9ca3af',
               fontSize: '13px',
             }}
@@ -61,106 +100,231 @@ export const DashboardTopbar: React.FC<DashboardTopbarProps> = ({
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '18px',
+          gap: '16px',
         }}
       >
-        {/* Search */}
-        <div
-          style={{
-            width: '220px',
-            height: '38px',
-            borderRadius: '10px',
-            background: '#f9fafb',
-            border: '1px solid #e5e7eb',
-            display: 'flex',
-            alignItems: 'center',
-            padding: '0 13px',
-            color: '#9ca3af',
-            fontSize: '13px',
-          }}
-        >
-          Search...
-        </div>
-
-        {/* Messages */}
-        <button
-          type="button"
-          onClick={onMessages}
-          style={{
-            border: 'none',
-            background: 'transparent',
-            cursor: 'pointer',
-            fontSize: '18px',
-          }}
-          aria-label="Messages"
-        >
-          💬
-        </button>
-
-        {/* Notifications */}
+        {/* Notification Bell */}
         <button
           type="button"
           onClick={onNotifications}
           style={{
+            position: 'relative',
             border: 'none',
             background: 'transparent',
             cursor: 'pointer',
-            fontSize: '18px',
+            padding: '8px',
+            borderRadius: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
           aria-label="Notifications"
         >
-          🔔
+          <Bell
+            style={{
+              width: '20px',
+              height: '20px',
+              color: '#6b7280',
+            }}
+          />
+
+          {notificationCount > 0 && (
+            <span
+              style={{
+                position: 'absolute',
+                top: '4px',
+                right: '4px',
+                width: '18px',
+                height: '18px',
+                borderRadius: '50%',
+                background: '#ef4444',
+                color: '#fff',
+                fontSize: '10px',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '2px solid #fff',
+              }}
+            >
+              {notificationCount > 9
+                ? '9+'
+                : notificationCount}
+            </span>
+          )}
         </button>
 
-        {/* User profile */}
+        {/* User Profile + Dropdown */}
         <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-          }}
+          ref={menuRef}
+          style={{ position: 'relative' }}
         >
-          <div
-            style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '50%',
-              background: '#111827',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '13px',
-              fontWeight: 700,
-            }}
-          >
-            {userName
-              ? userName
-                  .split(' ')
-                  .map((name) => name[0])
-                  .slice(0, 2)
-                  .join('')
-                  .toUpperCase()
-              : 'U'}
-          </div>
-
-          {/* Logout */}
           <button
             type="button"
-            onClick={onLogout}
+            onClick={() =>
+              setShowUserMenu(!showUserMenu)
+            }
             style={{
-              border: '1px solid #e5e7eb',
-              background: '#ffffff',
-              color: '#374151',
-              borderRadius: '8px',
-              padding: '9px 13px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              border: 'none',
+              background: 'transparent',
               cursor: 'pointer',
-              fontSize: '13px',
-              fontWeight: 600,
+              padding: '6px 8px',
+              borderRadius: '10px',
             }}
           >
-            Logout
+            {/* Avatar */}
+            <div
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '50%',
+                background:
+                  'linear-gradient(135deg, #3366FF, #6366f1)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '13px',
+                fontWeight: 700,
+                flexShrink: 0,
+              }}
+            >
+              {initials}
+            </div>
+
+            {/* Name + Role */}
+            <div
+              style={{
+                textAlign: 'left',
+                lineHeight: 1.3,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: '#111827',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {userName || 'User'}
+              </div>
+              <div
+                style={{
+                  fontSize: '12px',
+                  color: '#9ca3af',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {userRole}
+              </div>
+            </div>
+
+            <ChevronDown
+              style={{
+                width: '16px',
+                height: '16px',
+                color: '#9ca3af',
+                transition: 'transform 0.2s',
+                transform: showUserMenu
+                  ? 'rotate(180deg)'
+                  : 'rotate(0)',
+              }}
+            />
           </button>
+
+          {/* Dropdown Menu */}
+          {showUserMenu && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 8px)',
+                right: 0,
+                width: '200px',
+                background: '#ffffff',
+                border: '1px solid #e5e7eb',
+                borderRadius: '12px',
+                boxShadow:
+                  '0 10px 32px rgba(0, 0, 0, 0.12)',
+                zIndex: 1000,
+                overflow: 'hidden',
+                animation: 'fadeIn 0.15s ease',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setShowUserMenu(false);
+                  onSettings?.();
+                }}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '12px 16px',
+                  border: 'none',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  color: '#374151',
+                  fontFamily: 'var(--font-body)',
+                }}
+              >
+                <Settings
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    color: '#9ca3af',
+                  }}
+                />
+                Settings
+              </button>
+
+              <div
+                style={{
+                  height: '1px',
+                  background: '#f3f4f6',
+                }}
+              />
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowUserMenu(false);
+                  const confirmed = window.confirm(
+                    'Are you sure you want to sign out?'
+                  );
+                  if (!confirmed) return;
+                  onLogout?.();
+                }}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '12px 16px',
+                  border: 'none',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  color: '#dc2626',
+                  fontFamily: 'var(--font-body)',
+                }}
+              >
+                <LogOut
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                  }}
+                />
+                Sign out
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>

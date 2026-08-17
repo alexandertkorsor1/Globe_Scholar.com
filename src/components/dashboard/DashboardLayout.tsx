@@ -10,11 +10,14 @@ interface DashboardLayoutProps {
   title: string;
   subtitle?: string;
   userName?: string;
+  userRole?: string;
+  notificationCount?: number;
   navigation: DashboardNavigationItem[];
   children: React.ReactNode;
   onNotifications?: () => void;
   onMessages?: () => void;
   onLogout?: () => void;
+  onSettings?: () => void;
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
@@ -22,11 +25,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   title,
   subtitle,
   userName,
+  userRole,
+  notificationCount,
   navigation,
   children,
   onNotifications,
   onMessages,
   onLogout,
+  onSettings,
 }) => {
 
   return (
@@ -56,9 +62,12 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   	title={title}
   	subtitle={subtitle}
   	userName={userName}
+  	userRole={userRole}
+  	notificationCount={notificationCount}
   	onNotifications={onNotifications}
   	onMessages={onMessages}
   	onLogout={onLogout}
+  	onSettings={onSettings}
 	/>
         <main
           style={{

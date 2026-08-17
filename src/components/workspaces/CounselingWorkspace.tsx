@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useApplication } from '../../context/ApplicationContext';
-import { Video, Calendar, Clock, Plus, Award, AlertTriangle, FileText, CheckCircle } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { DashboardLayout } from '../dashboard/DashboardLayout';
+import { Video, Calendar, Clock, Plus, Award, AlertTriangle, FileText, CheckCircle, Users } from 'lucide-react';
 import { Student } from '../../types/database';
 
 export const CounselingWorkspace: React.FC = () => {
@@ -11,6 +13,7 @@ export const CounselingWorkspace: React.FC = () => {
     addCommunication,
     getScopedCounselingSessions
   } = useApplication();
+  const { currentProfile, logout } = useAuth();
 
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -42,18 +45,32 @@ export const CounselingWorkspace: React.FC = () => {
     alert(`Escalation triggered for ${stdName}. Communication dispatched to Operations & Admin.`);
   };
 
+  const sidebarNav = [
+    { label: 'Sessions', icon: <Video style={{ width: 18, height: 18 }} />, active: true },
+    { label: 'Students', icon: <Users style={{ width: 18, height: 18 }} /> },
+  ];
+
   return (
+    <DashboardLayout
+      department="Counseling"
+      title="Student Counseling & Advising"
+      subtitle="Session scheduling, academic advising, and scholarship tracking"
+      userName={currentProfile.full_name}
+      userRole="Counseling"
+      navigation={sidebarNav}
+      onLogout={logout}
+    >
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
       {/* Banner */}
-      <div className="glass-panel" style={{ padding: '20px 24px', background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(18, 26, 43, 0.9) 100%)', borderColor: 'rgba(59, 130, 246, 0.3)' }}>
+      <div className="glass-panel" style={{ padding: '20px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Video style={{ color: '#60a5fa' }} />
-              <h2 style={{ fontSize: '1.25rem', color: '#fff' }}>Student Counseling & Advising Platform</h2>
+              <Video style={{ color: '#3366FF' }} />
+              <h2 style={{ fontSize: '1.25rem', color: '#111827' }}>Student Counseling & Advising Platform</h2>
             </div>
-            <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
+            <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '4px' }}>
               Academic advising, Google Meet session scheduling, meeting timelines per student, and scholarship recommendation tracking.
             </p>
           </div>
@@ -218,5 +235,6 @@ export const CounselingWorkspace: React.FC = () => {
       )}
 
     </div>
+    </DashboardLayout>
   );
 };

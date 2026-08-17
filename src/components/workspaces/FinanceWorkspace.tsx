@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useApplication } from '../../context/ApplicationContext';
-import { DollarSign, ShieldAlert, CheckCircle2, Lock, FileSpreadsheet, Plus } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { DashboardLayout } from '../dashboard/DashboardLayout';
+import { DollarSign, ShieldAlert, CheckCircle2, Lock, FileSpreadsheet, Plus, Receipt } from 'lucide-react';
 
 export const FinanceWorkspace: React.FC = () => {
   const {
@@ -9,6 +11,7 @@ export const FinanceWorkspace: React.FC = () => {
     financialRecords,
     addCommunication
   } = useApplication();
+  const { currentProfile, logout } = useAuth();
 
   const [showDisburseModal, setShowDisburseModal] = useState(false);
   const [dAppName, setDAppName] = useState('GS-2026-1023 (Arjun Patel)');
@@ -44,18 +47,32 @@ export const FinanceWorkspace: React.FC = () => {
     setShowDisburseModal(false);
   };
 
+  const sidebarNav = [
+    { label: 'Ledger', icon: <DollarSign style={{ width: 18, height: 18 }} />, active: true },
+    { label: 'Disbursements', icon: <Receipt style={{ width: 18, height: 18 }} /> },
+  ];
+
   return (
+    <DashboardLayout
+      department="Finance"
+      title="Finance & Scholarship Disbursement"
+      subtitle="Fee verification, scholarship tranches, and financial audit"
+      userName={currentProfile.full_name}
+      userRole="Finance"
+      navigation={sidebarNav}
+      onLogout={logout}
+    >
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
       {/* Banner */}
-      <div className="glass-panel" style={{ padding: '20px 24px', background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(18, 26, 43, 0.9) 100%)', borderColor: 'rgba(16, 185, 129, 0.3)' }}>
+      <div className="glass-panel" style={{ padding: '20px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <DollarSign style={{ color: '#34d399' }} />
-              <h2 style={{ fontSize: '1.25rem', color: '#fff' }}>Finance & Scholarship Disbursement Platform</h2>
+              <DollarSign style={{ color: '#3366FF' }} />
+              <h2 style={{ fontSize: '1.25rem', color: '#111827' }}>Finance & Scholarship Disbursement Platform</h2>
             </div>
-            <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
+            <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '4px' }}>
               On-platform student registration fee verification, scholarship tranches, refunds, and financial audit reports.
             </p>
           </div>
@@ -183,5 +200,6 @@ export const FinanceWorkspace: React.FC = () => {
       )}
 
     </div>
+    </DashboardLayout>
   );
 };

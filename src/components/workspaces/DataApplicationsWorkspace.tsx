@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { useApplication } from '../../context/ApplicationContext';
-import { Layers, FileCheck, AlertTriangle, Eye, CheckCircle2, RefreshCw } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { DashboardLayout } from '../dashboard/DashboardLayout';
+import { Layers, FileCheck, AlertTriangle, Eye, CheckCircle2, RefreshCw, Kanban } from 'lucide-react';
 import { DocumentManager } from '../documents/DocumentManager';
 import { ApplicationStatus, Application } from '../../types/database';
 
 export const DataApplicationsWorkspace: React.FC = () => {
   const { applications, updateApplicationStatus } = useApplication();
+  const { currentProfile, logout } = useAuth();
 
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
@@ -19,18 +22,32 @@ export const DataApplicationsWorkspace: React.FC = () => {
     { status: 'approved', title: 'Approved & Finalized', color: '#4ade80' }
   ];
 
+  const sidebarNav = [
+    { label: 'Pipeline', icon: <Layers style={{ width: 18, height: 18 }} />, active: true },
+    { label: 'Kanban', icon: <Kanban style={{ width: 18, height: 18 }} /> },
+  ];
+
   return (
+    <DashboardLayout
+      department="Data & Applications"
+      title="Data & Applications Pipeline"
+      subtitle="Application processing, document verification, and status tracking"
+      userName={currentProfile.full_name}
+      userRole="Data & Applications"
+      navigation={sidebarNav}
+      onLogout={logout}
+    >
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
       {/* Banner */}
-      <div className="glass-panel" style={{ padding: '20px 24px', background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(18, 26, 43, 0.9) 100%)', borderColor: 'rgba(6, 182, 212, 0.3)' }}>
+      <div className="glass-panel" style={{ padding: '20px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Layers style={{ color: '#06b6d4' }} />
-              <h2 style={{ fontSize: '1.25rem', color: '#fff' }}>Data & Applications Operational Backbone</h2>
+              <Layers style={{ color: '#3366FF' }} />
+              <h2 style={{ fontSize: '1.25rem', color: '#111827' }}>Data & Applications Processing Pipeline</h2>
             </div>
-            <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
+            <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '4px' }}>
               Application tracking backbone, document collection, verification hub, Kanban lifecycle, and volume analytics.
             </p>
           </div>
@@ -176,5 +193,6 @@ export const DataApplicationsWorkspace: React.FC = () => {
       )}
 
     </div>
+    </DashboardLayout>
   );
 };

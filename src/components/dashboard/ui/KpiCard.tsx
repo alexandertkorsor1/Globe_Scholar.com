@@ -1,95 +1,106 @@
 import React from 'react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 
 interface KpiCardProps {
   title: string;
   value: string | number;
   change?: string;
+  changeDirection?: 'up' | 'down';
+  secondaryChange?: string;
+  secondaryDirection?: 'up' | 'down';
   description?: string;
   icon?: React.ReactNode;
+  chart?: React.ReactNode;
 }
 
 export const KpiCard: React.FC<KpiCardProps> = ({
   title,
   value,
   change,
+  changeDirection = 'up',
+  secondaryChange,
+  secondaryDirection = 'down',
   description,
   icon,
+  chart,
 }) => {
   return (
-    <div
-      style={{
-        background: '#ffffff',
-        border: '1px solid #e5e7eb',
-        borderRadius: '18px',
-        padding: '22px',
-        minHeight: '145px',
-        boxSizing: 'border-box',
-      }}
-    >
+    <div className="stat-card">
+      <div className="stat-card-title">{title}</div>
+
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: '18px',
+          gap: '12px',
         }}
       >
-        <span
-          style={{
-            fontSize: '14px',
-            color: '#6b7280',
-            fontWeight: 500,
-          }}
-        >
-          {title}
-        </span>
+        <div className="stat-card-value">{value}</div>
 
         {icon && (
           <div
             style={{
-              width: '34px',
-              height: '34px',
-              borderRadius: '10px',
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
               background: '#f3f4f6',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              flexShrink: 0,
             }}
           >
             {icon}
           </div>
         )}
-      </div>
 
-      <div
-        style={{
-          fontSize: '30px',
-          fontWeight: 700,
-          color: '#111827',
-          lineHeight: 1.1,
-        }}
-      >
-        {value}
+        {chart && (
+          <div style={{ flexShrink: 0 }}>{chart}</div>
+        )}
       </div>
 
       {(change || description) && (
-        <div
-          style={{
-            marginTop: '12px',
-            display: 'flex',
-            gap: '8px',
-            alignItems: 'center',
-            fontSize: '12px',
-          }}
-        >
+        <div className="stat-card-footer">
           {change && (
             <span
-              style={{
-                color: '#059669',
-                fontWeight: 600,
-              }}
+              className={
+                changeDirection === 'up'
+                  ? 'stat-change-up'
+                  : 'stat-change-down'
+              }
             >
+              {changeDirection === 'up' ? (
+                <TrendingUp
+                  style={{ width: '14px', height: '14px' }}
+                />
+              ) : (
+                <TrendingDown
+                  style={{ width: '14px', height: '14px' }}
+                />
+              )}
               {change}
+            </span>
+          )}
+
+          {secondaryChange && (
+            <span
+              className={
+                secondaryDirection === 'up'
+                  ? 'stat-change-up'
+                  : 'stat-change-down'
+              }
+            >
+              {secondaryDirection === 'up' ? (
+                <TrendingUp
+                  style={{ width: '14px', height: '14px' }}
+                />
+              ) : (
+                <TrendingDown
+                  style={{ width: '14px', height: '14px' }}
+                />
+              )}
+              {secondaryChange}
             </span>
           )}
 

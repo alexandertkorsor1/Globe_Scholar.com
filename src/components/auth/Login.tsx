@@ -106,6 +106,29 @@ export const Login: React.FC = () => {
     setConfirmPassword('');
   };
 
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    boxSizing: 'border-box',
+    padding: '12px 14px',
+    marginBottom: '18px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '10px',
+    fontSize: '14px',
+    outline: 'none',
+    fontFamily: 'var(--font-body)',
+    color: '#111827',
+    background: '#f9fafb',
+    transition: 'border-color 0.2s, box-shadow 0.2s',
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    marginBottom: '6px',
+    fontSize: '13px',
+    fontWeight: 600,
+    color: '#374151',
+  };
+
   return (
     <div
       style={{
@@ -114,8 +137,7 @@ export const Login: React.FC = () => {
         alignItems: 'center',
         justifyContent: 'center',
         padding: '24px',
-        background:
-          'linear-gradient(135deg, #0b1020 0%, #111827 50%, #172033 100%)',
+        background: '#f6f7f9',
       }}
     >
       <div
@@ -123,23 +145,52 @@ export const Login: React.FC = () => {
           width: '100%',
           maxWidth: '430px',
           background: '#ffffff',
-          borderRadius: '18px',
-          padding: '40px',
-          boxShadow: '0 25px 80px rgba(0, 0, 0, 0.35)',
+          borderRadius: '20px',
+          padding: '44px 40px',
+          boxShadow:
+            '0 4px 24px rgba(0, 0, 0, 0.06), 0 1px 4px rgba(0, 0, 0, 0.04)',
+          border: '1px solid #e5e7eb',
         }}
       >
+        {/* Logo */}
         <div
           style={{
             textAlign: 'center',
-            marginBottom: '28px',
+            marginBottom: '32px',
           }}
         >
+          <div
+            style={{
+              width: '52px',
+              height: '52px',
+              borderRadius: '14px',
+              background:
+                'linear-gradient(135deg, #3366FF, #6366f1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px',
+            }}
+          >
+            <span
+              style={{
+                color: '#fff',
+                fontSize: '22px',
+                fontWeight: 800,
+                fontFamily: 'var(--font-heading)',
+              }}
+            >
+              R
+            </span>
+          </div>
+
           <h1
             style={{
               margin: 0,
-              fontSize: '32px',
+              fontSize: '28px',
               fontWeight: 800,
               color: '#111827',
+              fontFamily: 'var(--font-heading)',
             }}
           >
             Report.com
@@ -147,10 +198,10 @@ export const Login: React.FC = () => {
 
           <p
             style={{
-              marginTop: '8px',
+              marginTop: '6px',
               marginBottom: 0,
               color: '#6b7280',
-              fontSize: '15px',
+              fontSize: '14px',
             }}
           >
             {mode === 'login'
@@ -161,16 +212,7 @@ export const Login: React.FC = () => {
 
         {mode === 'login' ? (
           <form onSubmit={handleLogin}>
-            <label
-              htmlFor="email"
-              style={{
-                display: 'block',
-                marginBottom: '8px',
-                fontSize: '14px',
-                fontWeight: 600,
-                color: '#374151',
-              }}
-            >
+            <label htmlFor="email" style={labelStyle}>
               Email address
             </label>
 
@@ -184,27 +226,21 @@ export const Login: React.FC = () => {
               placeholder="admin@report.com"
               autoComplete="email"
               required
-              style={{
-                width: '100%',
-                boxSizing: 'border-box',
-                padding: '13px 14px',
-                marginBottom: '20px',
-                border: '1px solid #d1d5db',
-                borderRadius: '9px',
-                fontSize: '15px',
-                outline: 'none',
+              style={inputStyle}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#3366FF';
+                e.target.style.boxShadow =
+                  '0 0 0 3px rgba(51, 102, 255, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e5e7eb';
+                e.target.style.boxShadow = 'none';
               }}
             />
 
             <label
               htmlFor="password"
-              style={{
-                display: 'block',
-                marginBottom: '8px',
-                fontSize: '14px',
-                fontWeight: 600,
-                color: '#374151',
-              }}
+              style={labelStyle}
             >
               Password
             </label>
@@ -219,15 +255,15 @@ export const Login: React.FC = () => {
               placeholder="Enter your password"
               autoComplete="current-password"
               required
-              style={{
-                width: '100%',
-                boxSizing: 'border-box',
-                padding: '13px 14px',
-                marginBottom: '20px',
-                border: '1px solid #d1d5db',
-                borderRadius: '9px',
-                fontSize: '15px',
-                outline: 'none',
+              style={inputStyle}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#3366FF';
+                e.target.style.boxShadow =
+                  '0 0 0 3px rgba(51, 102, 255, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e5e7eb';
+                e.target.style.boxShadow = 'none';
               }}
             />
 
@@ -235,13 +271,13 @@ export const Login: React.FC = () => {
               <div
                 role="alert"
                 style={{
-                  marginBottom: '20px',
+                  marginBottom: '18px',
                   padding: '12px 14px',
-                  borderRadius: '8px',
+                  borderRadius: '10px',
                   background: '#fef2f2',
                   border: '1px solid #fecaca',
                   color: '#b91c1c',
-                  fontSize: '14px',
+                  fontSize: '13px',
                 }}
               >
                 {error}
@@ -252,13 +288,13 @@ export const Login: React.FC = () => {
               <div
                 role="status"
                 style={{
-                  marginBottom: '20px',
+                  marginBottom: '18px',
                   padding: '12px 14px',
-                  borderRadius: '8px',
+                  borderRadius: '10px',
                   background: '#ecfdf5',
                   border: '1px solid #a7f3d0',
                   color: '#047857',
-                  fontSize: '14px',
+                  fontSize: '13px',
                 }}
               >
                 {success}
@@ -270,18 +306,23 @@ export const Login: React.FC = () => {
               disabled={loading}
               style={{
                 width: '100%',
-                padding: '14px',
+                padding: '13px',
                 border: 'none',
-                borderRadius: '9px',
+                borderRadius: '10px',
                 background: loading
-                  ? '#9ca3af'
-                  : '#111827',
+                  ? '#93c5fd'
+                  : '#3366FF',
                 color: '#ffffff',
-                fontSize: '16px',
+                fontSize: '15px',
                 fontWeight: 700,
                 cursor: loading
                   ? 'not-allowed'
                   : 'pointer',
+                fontFamily: 'var(--font-body)',
+                boxShadow:
+                  '0 2px 8px rgba(51, 102, 255, 0.25)',
+                transition:
+                  'background 0.2s, box-shadow 0.2s',
               }}
             >
               {loading
@@ -297,14 +338,16 @@ export const Login: React.FC = () => {
               style={{
                 width: '100%',
                 marginTop: '12px',
-                padding: '13px',
-                border: '1px solid #d1d5db',
-                borderRadius: '9px',
+                padding: '12px',
+                border: '1px solid #e5e7eb',
+                borderRadius: '10px',
                 background: '#ffffff',
-                color: '#111827',
-                fontSize: '15px',
+                color: '#374151',
+                fontSize: '14px',
                 fontWeight: 600,
                 cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
+                transition: 'background 0.15s',
               }}
             >
               Create Student Account
@@ -314,13 +357,7 @@ export const Login: React.FC = () => {
           <form onSubmit={handleStudentSignup}>
             <label
               htmlFor="fullName"
-              style={{
-                display: 'block',
-                marginBottom: '8px',
-                fontSize: '14px',
-                fontWeight: 600,
-                color: '#374151',
-              }}
+              style={labelStyle}
             >
               Full name
             </label>
@@ -335,27 +372,21 @@ export const Login: React.FC = () => {
               placeholder="Enter your full name"
               autoComplete="name"
               required
-              style={{
-                width: '100%',
-                boxSizing: 'border-box',
-                padding: '13px 14px',
-                marginBottom: '18px',
-                border: '1px solid #d1d5db',
-                borderRadius: '9px',
-                fontSize: '15px',
-                outline: 'none',
+              style={inputStyle}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#3366FF';
+                e.target.style.boxShadow =
+                  '0 0 0 3px rgba(51, 102, 255, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e5e7eb';
+                e.target.style.boxShadow = 'none';
               }}
             />
 
             <label
               htmlFor="student-email"
-              style={{
-                display: 'block',
-                marginBottom: '8px',
-                fontSize: '14px',
-                fontWeight: 600,
-                color: '#374151',
-              }}
+              style={labelStyle}
             >
               Email address
             </label>
@@ -370,27 +401,21 @@ export const Login: React.FC = () => {
               placeholder="student@example.com"
               autoComplete="email"
               required
-              style={{
-                width: '100%',
-                boxSizing: 'border-box',
-                padding: '13px 14px',
-                marginBottom: '18px',
-                border: '1px solid #d1d5db',
-                borderRadius: '9px',
-                fontSize: '15px',
-                outline: 'none',
+              style={inputStyle}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#3366FF';
+                e.target.style.boxShadow =
+                  '0 0 0 3px rgba(51, 102, 255, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e5e7eb';
+                e.target.style.boxShadow = 'none';
               }}
             />
 
             <label
               htmlFor="student-password"
-              style={{
-                display: 'block',
-                marginBottom: '8px',
-                fontSize: '14px',
-                fontWeight: 600,
-                color: '#374151',
-              }}
+              style={labelStyle}
             >
               Password
             </label>
@@ -405,27 +430,21 @@ export const Login: React.FC = () => {
               placeholder="Create a password"
               autoComplete="new-password"
               required
-              style={{
-                width: '100%',
-                boxSizing: 'border-box',
-                padding: '13px 14px',
-                marginBottom: '18px',
-                border: '1px solid #d1d5db',
-                borderRadius: '9px',
-                fontSize: '15px',
-                outline: 'none',
+              style={inputStyle}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#3366FF';
+                e.target.style.boxShadow =
+                  '0 0 0 3px rgba(51, 102, 255, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e5e7eb';
+                e.target.style.boxShadow = 'none';
               }}
             />
 
             <label
               htmlFor="confirm-password"
-              style={{
-                display: 'block',
-                marginBottom: '8px',
-                fontSize: '14px',
-                fontWeight: 600,
-                color: '#374151',
-              }}
+              style={labelStyle}
             >
               Confirm password
             </label>
@@ -440,15 +459,15 @@ export const Login: React.FC = () => {
               placeholder="Confirm your password"
               autoComplete="new-password"
               required
-              style={{
-                width: '100%',
-                boxSizing: 'border-box',
-                padding: '13px 14px',
-                marginBottom: '20px',
-                border: '1px solid #d1d5db',
-                borderRadius: '9px',
-                fontSize: '15px',
-                outline: 'none',
+              style={inputStyle}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#3366FF';
+                e.target.style.boxShadow =
+                  '0 0 0 3px rgba(51, 102, 255, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e5e7eb';
+                e.target.style.boxShadow = 'none';
               }}
             />
 
@@ -456,13 +475,13 @@ export const Login: React.FC = () => {
               <div
                 role="alert"
                 style={{
-                  marginBottom: '20px',
+                  marginBottom: '18px',
                   padding: '12px 14px',
-                  borderRadius: '8px',
+                  borderRadius: '10px',
                   background: '#fef2f2',
                   border: '1px solid #fecaca',
                   color: '#b91c1c',
-                  fontSize: '14px',
+                  fontSize: '13px',
                 }}
               >
                 {error}
@@ -473,13 +492,13 @@ export const Login: React.FC = () => {
               <div
                 role="status"
                 style={{
-                  marginBottom: '20px',
+                  marginBottom: '18px',
                   padding: '12px 14px',
-                  borderRadius: '8px',
+                  borderRadius: '10px',
                   background: '#ecfdf5',
                   border: '1px solid #a7f3d0',
                   color: '#047857',
-                  fontSize: '14px',
+                  fontSize: '13px',
                 }}
               >
                 {success}
@@ -491,18 +510,21 @@ export const Login: React.FC = () => {
               disabled={loading}
               style={{
                 width: '100%',
-                padding: '14px',
+                padding: '13px',
                 border: 'none',
-                borderRadius: '9px',
+                borderRadius: '10px',
                 background: loading
-                  ? '#9ca3af'
-                  : '#111827',
+                  ? '#93c5fd'
+                  : '#3366FF',
                 color: '#ffffff',
-                fontSize: '16px',
+                fontSize: '15px',
                 fontWeight: 700,
                 cursor: loading
                   ? 'not-allowed'
                   : 'pointer',
+                fontFamily: 'var(--font-body)',
+                boxShadow:
+                  '0 2px 8px rgba(51, 102, 255, 0.25)',
               }}
             >
               {loading
@@ -516,14 +538,15 @@ export const Login: React.FC = () => {
               style={{
                 width: '100%',
                 marginTop: '12px',
-                padding: '13px',
-                border: '1px solid #d1d5db',
-                borderRadius: '9px',
+                padding: '12px',
+                border: '1px solid #e5e7eb',
+                borderRadius: '10px',
                 background: '#ffffff',
-                color: '#111827',
-                fontSize: '15px',
+                color: '#374151',
+                fontSize: '14px',
                 fontWeight: 600,
                 cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
               }}
             >
               Back to Sign In
@@ -536,7 +559,7 @@ export const Login: React.FC = () => {
             marginTop: '28px',
             textAlign: 'center',
             color: '#9ca3af',
-            fontSize: '13px',
+            fontSize: '12px',
           }}
         >
           {mode === 'login'

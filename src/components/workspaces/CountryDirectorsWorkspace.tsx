@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { useApplication } from '../../context/ApplicationContext';
-import { Globe, MapPin, ShieldCheck, Filter } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { DashboardLayout } from '../dashboard/DashboardLayout';
+import { Globe, MapPin, ShieldCheck, Filter, BarChart3 } from 'lucide-react';
 
 export const CountryDirectorsWorkspace: React.FC = () => {
   const { getScopedApplications, getScopedStudents, partnerUniversities } = useApplication();
+  const { currentProfile, logout } = useAuth();
 
   const [selectedCountry, setSelectedCountry] = useState<string>('United Kingdom');
 
@@ -15,18 +18,32 @@ export const CountryDirectorsWorkspace: React.FC = () => {
 
   const regionPartners = partnerUniversities.filter(p => p.country === selectedCountry);
 
+  const sidebarNav = [
+    { label: 'Regional View', icon: <Globe style={{ width: 18, height: 18 }} />, active: true },
+    { label: 'Analytics', icon: <BarChart3 style={{ width: 18, height: 18 }} /> },
+  ];
+
   return (
+    <DashboardLayout
+      department="Country Directors"
+      title="Regional Oversight"
+      subtitle="Country-specific application metrics and partner management"
+      userName={currentProfile.full_name}
+      userRole="Country Director"
+      navigation={sidebarNav}
+      onLogout={logout}
+    >
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
       {/* Banner */}
-      <div className="glass-panel" style={{ padding: '20px 24px', background: 'linear-gradient(135deg, rgba(20, 184, 166, 0.15) 0%, rgba(18, 26, 43, 0.9) 100%)', borderColor: 'rgba(20, 184, 166, 0.3)' }}>
+      <div className="glass-panel" style={{ padding: '20px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Globe style={{ color: '#2dd4bf' }} />
-              <h2 style={{ fontSize: '1.25rem', color: '#fff' }}>Country Directors Regional Oversight</h2>
+              <Globe style={{ color: '#3366FF' }} />
+              <h2 style={{ fontSize: '1.25rem', color: '#111827' }}>Country Directors Regional Oversight</h2>
             </div>
-            <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
+            <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '4px' }}>
               Mechanically enforced regional Row-Level Security filtering metrics, partner universities, and applicant data strictly by country.
             </p>
           </div>
@@ -113,5 +130,6 @@ export const CountryDirectorsWorkspace: React.FC = () => {
       </div>
 
     </div>
+    </DashboardLayout>
   );
 };

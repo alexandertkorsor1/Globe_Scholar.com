@@ -21,14 +21,14 @@ import { FinanceWorkspace } from './components/workspaces/FinanceWorkspace';
 import { StudentPortal } from './components/student/StudentPortal';
 
 const WorkspaceContainer: React.FC = () => {
-const {
-  activeDepartment,
-  isStudentMode,
-  user,
-  currentProfile,
-  loading,
-  logout,
-} = useAuth();
+  const {
+    activeDepartment,
+    isStudentMode,
+    user,
+    currentProfile,
+    loading,
+    logout,
+  } = useAuth();
   const [showComms, setShowComms] = useState(false);
   const [showRLSAudit, setShowRLSAudit] = useState(false);
   const [showAuditLogs, setShowAuditLogs] = useState(false);
@@ -47,7 +47,27 @@ const {
           fontSize: '18px',
         }}
       >
-        Loading Globe Scholar Pathways...
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '16px',
+          }}
+        >
+          <div
+            style={{
+              width: '40px',
+              height: '40px',
+              border: '3px solid #e5e7eb',
+              borderTopColor: '#3366FF',
+              borderRadius: '50%',
+              animation: 'spin 0.8s linear infinite',
+            }}
+          />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          Loading Globe Scholar Pathways...
+        </div>
       </div>
     );
   }
@@ -96,18 +116,18 @@ default:
         justifyContent: 'center',
         flexDirection: 'column',
         gap: '12px',
-        color: '#fff',
+        color: '#111827',
         textAlign: 'center',
         padding: '40px',
       }}
     >
       <h2>Access Restricted</h2>
 
-      <p style={{ color: '#94a3b8' }}>
+      <p style={{ color: '#6b7280' }}>
         Your account is not assigned to a valid department.
       </p>
 
-      <p style={{ color: '#64748b', fontSize: '13px' }}>
+      <p style={{ color: '#9ca3af', fontSize: '13px' }}>
         Please contact the administrator.
       </p>
     </div>
@@ -118,65 +138,6 @@ default:
 
 return (
   <>
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '12px 24px',
-        background: '#0f172a',
-        borderBottom: '1px solid rgba(255,255,255,0.1)',
-        color: '#fff',
-        position: 'sticky',
-        top: 0,
-        zIndex: 1000,
-      }}
-    >
-      <div>
-        <div
-          style={{
-            fontSize: '16px',
-            fontWeight: 700,
-          }}
-        >
-          Report.com
-        </div>
-
-        <div
-          style={{
-            fontSize: '12px',
-            color: '#94a3b8',
-            marginTop: '2px',
-          }}
-        >
-          {currentProfile.full_name} · {currentProfile.department}
-        </div>
-      </div>
-
-      <button
-        onClick={async () => {
-          const confirmed = window.confirm(
-            'Are you sure you want to sign out?'
-          );
-
-          if (!confirmed) return;
-
-          await logout();
-        }}
-        style={{
-          padding: '9px 16px',
-          borderRadius: '8px',
-          border: '1px solid rgba(239,68,68,0.5)',
-          background: 'rgba(239,68,68,0.1)',
-          color: '#f87171',
-          fontWeight: 600,
-          cursor: 'pointer',
-        }}
-      >
-        Logout
-      </button>
-    </div>
-
     {renderActiveWorkspace()}
 
     <CommunicationHub  	

@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { useApplication } from '../../context/ApplicationContext';
-import { Award, Calendar, CheckCircle2, XCircle, Plus, Eye, FileText, Filter } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { DashboardLayout } from '../dashboard/DashboardLayout';
+import { Award, Calendar, CheckCircle2, XCircle, Plus, Eye, FileText, Filter, LayoutDashboard, ClipboardList } from 'lucide-react';
 import { DocumentManager } from '../documents/DocumentManager';
 import { Application } from '../../types/database';
 
 export const AdmissionsWorkspace: React.FC = () => {
   const { applications, makeAdmissionsDecision } = useApplication();
+  const { currentProfile, logout } = useAuth();
 
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
   const [showDecisionModal, setShowDecisionModal] = useState(false);
@@ -49,18 +52,32 @@ export const AdmissionsWorkspace: React.FC = () => {
     setShowNewWindowModal(false);
   };
 
+  const sidebarNav = [
+    { label: 'Applications', icon: <ClipboardList style={{ width: 18, height: 18 }} />, active: true },
+    { label: 'Admission Windows', icon: <Calendar style={{ width: 18, height: 18 }} /> },
+  ];
+
   return (
+    <DashboardLayout
+      department="Admissions"
+      title="Admissions & Eligibility"
+      subtitle="Admission windows, eligibility screening, and offer decisions"
+      userName={currentProfile.full_name}
+      userRole="Admissions"
+      navigation={sidebarNav}
+      onLogout={logout}
+    >
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
       {/* Banner */}
-      <div className="glass-panel" style={{ padding: '20px 24px', background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(18, 26, 43, 0.9) 100%)', borderColor: 'rgba(168, 85, 247, 0.3)' }}>
+      <div className="glass-panel" style={{ padding: '20px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Award style={{ color: '#c084fc' }} />
-              <h2 style={{ fontSize: '1.25rem', color: '#fff' }}>Admissions & Eligibility Workspace</h2>
+              <Award style={{ color: '#3366FF' }} />
+              <h2 style={{ fontSize: '1.25rem', color: '#111827' }}>Admissions & Eligibility Workspace</h2>
             </div>
-            <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
+            <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '4px' }}>
               Admission windows setup, eligibility screening, document review, and formal offer decisions.
             </p>
           </div>
@@ -256,5 +273,6 @@ export const AdmissionsWorkspace: React.FC = () => {
       )}
 
     </div>
+    </DashboardLayout>
   );
 };
