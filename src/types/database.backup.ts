@@ -33,35 +33,14 @@ export type CommunicationType =
 
 export type PriorityLevel = 'low' | 'medium' | 'high' | 'critical';
 
-export type DepartmentReportStatus =
-  | 'draft'
-  | 'submitted'
-  | 'under_review'
-  | 'needs_revision'
-  | 'resubmitted'
-  | 'approved'
-  | 'archived';
-
 export type DocType =
   | 'passport'
-  | 'secondary_school_certificate'
   | 'academic_transcript'
-  | 'degree_certificate'
   | 'english_proficiency'
   | 'recommendation_letter'
-  | 'recommendation_letter_1'
-  | 'recommendation_letter_2'
   | 'financial_statement'
   | 'personal_statement'
-  | 'research_proposal'
-  | 'curriculum_vitae'
   | 'other';
-
-export type StudyLevel =
-  | 'foundation'
-  | 'undergraduate'
-  | 'postgraduate'
-  | 'doctoral';
 
 export interface Profile {
   id: string;
@@ -70,7 +49,7 @@ export interface Profile {
   avatar_url?: string;
   department: DepartmentType;
   is_admin: boolean;
-  account_type: 'staff' | 'student' | 'unassigned';
+  account_type: 'staff' | 'student';
   phone?: string;
   first_name?: string;
   last_name?: string;
@@ -125,7 +104,6 @@ export interface Application {
   status: ApplicationStatus;
   target_country: string;
   target_university: string;
-  study_level?: StudyLevel;
   degree_program: string;
   intake_period: string;
   scholarship_requested?: string;
@@ -250,55 +228,6 @@ export interface PartnerAgreement {
   effective_date: string;
   expiry_date: string;
   status: 'active' | 'expired' | 'under_renegotiation';
-}
-
-export interface DepartmentReport {
-  id: string;
-  department: DepartmentType;
-  submitted_by: string;
-  report_type: string;
-  title: string;
-  reporting_period_start: string;
-  reporting_period_end: string;
-  executive_summary?: string;
-  key_activities?: string;
-  achievements?: string;
-  challenges?: string;
-  recommendations?: string;
-  metrics: Record<string, unknown>;
-  status: DepartmentReportStatus;
-  submitted_at?: string;
-  review_comment?: string;
-  reviewed_by?: string;
-  reviewed_at?: string;
-  revision_count: number;
-  created_at: string;
-  updated_at: string;
-  submitted_by_name?: string;
-  reviewed_by_name?: string;
-  attachments: DepartmentReportAttachment[];
-}
-
-export interface DepartmentReportAttachment {
-  id: string;
-  report_id: string;
-  uploaded_by: string;
-  file_name: string;
-  storage_path: string;
-  file_size?: number;
-  mime_type?: string;
-  created_at: string;
-}
-
-export interface DepartmentReportSubmission {
-  title: string;
-  reporting_period_start: string;
-  reporting_period_end: string;
-  executive_summary: string;
-  key_activities: string;
-  achievements: string;
-  challenges: string;
-  recommendations: string;
 }
 
 export interface Communication {

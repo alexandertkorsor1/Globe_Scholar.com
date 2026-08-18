@@ -14,10 +14,7 @@ import {
   ApplicationStatus,
   DocType,
   CommunicationType,
-  PriorityLevel,
-  DepartmentReport,
-  DepartmentReportStatus,
-  DepartmentReportSubmission
+  PriorityLevel
 } from '../types/database';
 import {
   INITIAL_APPLICATIONS,
@@ -42,11 +39,9 @@ interface ApplicationContextType {
   institutionTasks: InstitutionTask[];
   financialRecords: FinancialRecord[];
   partnerUniversities: PartnerUniversity[];
-  departmentReports: DepartmentReport[];
   communications: Communication[];
   auditLogs: AuditLog[];
   statusHistory: ApplicationStatusHistory[];
-  studentApplicationsLoading: boolean;
   
   // RLS-scoped getters
   getScopedApplications: () => RLSPermissionResult<Application>;
@@ -80,19 +75,6 @@ uploadPartnerAgreement: (
   file: File,
   expiryDate: string
 ) => Promise<any>;
-deletePartnerUniversity: (partnerId: string) => Promise<void>;
-submitDepartmentReport: (
-  report: DepartmentReportSubmission,
-  file: File
-) => Promise<DepartmentReport>;
-reviewDepartmentReport: (
-  reportId: string,
-  status: DepartmentReportStatus,
-  adminNote: string
-) => Promise<DepartmentReport>;
-getDepartmentReportDownloadUrl: (
-  report: DepartmentReport
-) => Promise<string>;
 }
 
 const ApplicationContext = createContext<ApplicationContextType | undefined>(undefined);
@@ -121,9 +103,6 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [partnerUniversities, setPartnerUniversities] =
     useState<PartnerUniversity[]>(INITIAL_PARTNER_UNIVERSITIES);
 
-  const [departmentReports, setDepartmentReports] =
-    useState<DepartmentReport[]>([]);
-
   const [communications, setCommunications] =
     useState<Communication[]>(INITIAL_COMMUNICATIONS);
 
@@ -133,87 +112,26 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [statusHistory, setStatusHistory] =
     useState<ApplicationStatusHistory[]>(INITIAL_STATUS_HISTORY);
 
-  const [studentApplicationsLoading, setStudentApplicationsLoading] =
-    useState(false);
-
   useEffect(() => {
     if (loading) return;
 
     const loadStudentApplications = async () => {
       if (currentProfile?.account_type !== 'student' || !currentProfile?.id) {
-        setStudentApplicationsLoading(false);
         return;
       }
 
-      setStudentApplicationsLoading(true);
+      const { data, error } = await supabase
+        .from('applications')
+        .select('*')
+        .eq('student_id', currentProfile.id)
+        .order('created_at', { ascending: false });
 
-      try {
-        const { data, error } = await supabase
-          .from('applications')
-          .select('*')
-          .eq('student_id', currentProfile.id)
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          console.error('Error loading student applications:', error);
-          return;
-        }
-
-        const studentApplications = (data || []) as Application[];
-        setApplications(studentApplications);
-
-        if (studentApplications.length === 0) {
-          setDocuments([]);
-          return;
-        }
-
-        const { data: documentRows, error: documentsError } = await supabase
-          .from('application_documents')
-          .select('*')
-          .in(
-            'application_id',
-            studentApplications.map((application) => application.id)
-          )
-          .order('created_at', { ascending: false });
-
-        if (documentsError) {
-          console.error('Error loading student documents:', documentsError);
-          return;
-        }
-
-        setDocuments(
-          (documentRows || []).map((document) => ({
-            ...document,
-            document_type: document.document_type as DocType,
-            file_size: Number(document.file_size),
-            versions: [],
-          })) as ApplicationDocument[]
-        );
-
-        const { data: historyRows, error: historyError } = await supabase
-          .from('application_status_history')
-          .select('*')
-          .in(
-            'application_id',
-            studentApplications.map((application) => application.id)
-          )
-          .order('created_at', { ascending: false });
-
-        if (historyError) {
-          console.error('Error loading student application history:', historyError);
-          return;
-        }
-
-        setStatusHistory(
-          (historyRows || []).map((history) => ({
-            ...history,
-            from_status: history.from_status as ApplicationStatus | null,
-            to_status: history.to_status as ApplicationStatus,
-          })) as ApplicationStatusHistory[]
-        );
-      } finally {
-        setStudentApplicationsLoading(false);
+      if (error) {
+        console.error('Error loading student applications:', error);
+        return;
       }
+
+      setApplications((data || []) as Application[]);
     };
 
     loadStudentApplications();
@@ -249,101 +167,8 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       setPartnerUniversities(partners);
     };
 
-    const loadDepartmentReports = async () => {
-      if (
-        !currentProfile?.id ||
-        currentProfile.account_type === 'student' ||
-        currentProfile.account_type === 'unassigned'
-      ) {
-        setDepartmentReports([]);
-        return;
-      }
-
-      let query = supabase
-        .from('department_reports')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (!currentProfile.is_admin) {
-        query = query.eq('department', currentProfile.department);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Error loading department reports:', error);
-        return;
-      }
-
-      const reportRows = data || [];
-      const reportIds = reportRows.map((report) => report.id);
-
-      const { data: attachmentRows, error: attachmentsError } = reportIds.length
-        ? await supabase
-            .from('report_attachments')
-            .select('*')
-            .in('report_id', reportIds)
-            .order('created_at', { ascending: true })
-        : { data: [], error: null };
-
-      if (attachmentsError) {
-        console.error('Error loading department report attachments:', attachmentsError);
-        return;
-      }
-
-      const profileIds = currentProfile.is_admin
-        ? [...new Set(reportRows.flatMap((report) => [report.submitted_by, report.reviewed_by]).filter(Boolean))]
-        : [currentProfile.id];
-      const profileNames = new Map<string, string>([
-        [currentProfile.id, currentProfile.full_name],
-      ]);
-
-      if (currentProfile.is_admin && profileIds.length > 0) {
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, full_name')
-          .in('id', profileIds);
-
-        if (profilesError) {
-          console.error('Error loading department report authors:', profilesError);
-        } else {
-          (profiles || []).forEach((profile) => {
-            profileNames.set(profile.id, profile.full_name);
-          });
-        }
-      }
-
-      setDepartmentReports(
-        reportRows.map((report) => ({
-          ...report,
-          department: report.department as DepartmentReport['department'],
-          status: report.status as DepartmentReportStatus,
-          revision_count: Number(report.revision_count || 0),
-          submitted_by_name: profileNames.get(report.submitted_by) || 'Department staff',
-          reviewed_by_name: report.reviewed_by
-            ? profileNames.get(report.reviewed_by)
-            : undefined,
-          attachments: (attachmentRows || [])
-            .filter((attachment) => attachment.report_id === report.id)
-            .map((attachment) => ({
-              ...attachment,
-              file_size: attachment.file_size == null
-                ? undefined
-                : Number(attachment.file_size),
-            })),
-        })) as DepartmentReport[]
-      );
-    };
-
     loadPartnerUniversities();
-    loadDepartmentReports();
-  }, [
-    loading,
-    currentProfile?.id,
-    currentProfile?.account_type,
-    currentProfile?.department,
-    currentProfile?.is_admin,
-  ]);
+  }, [loading]);
 
   if (loading) {
     return (
@@ -418,76 +243,36 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   // Update Status
   const updateApplicationStatus = (appId: string, newStatus: ApplicationStatus, note: string) => {
-    const currentApplication = applications.find(
-      (application) => application.id === appId
+    setApplications(prev =>
+      prev.map(app => {
+        if (app.id === appId) {
+          const oldStatus = app.status;
+          
+          // Add status history entry
+          const historyEntry: ApplicationStatusHistory = {
+            id: `his-${Date.now()}`,
+            application_id: appId,
+            from_status: oldStatus,
+            to_status: newStatus,
+            changed_by_name: currentProfile.full_name,
+            department: currentProfile.department,
+            note: note || `Status updated from ${oldStatus} to ${newStatus}`,
+            created_at: new Date().toISOString()
+          };
+          setStatusHistory(h => [historyEntry, ...h]);
+
+          // Audit log
+          logAudit('UPDATE_APPLICATION_STATUS', 'applications', appId, { status: oldStatus }, { status: newStatus });
+
+          return {
+            ...app,
+            status: newStatus,
+            updated_at: new Date().toISOString()
+          };
+        }
+        return app;
+      })
     );
-
-    if (!currentApplication) return;
-
-    const oldStatus = currentApplication.status;
-    const updatedAt = new Date().toISOString();
-    // Student profiles use an internal default department for access control;
-    // submission is therefore recorded as intake rather than a staff sign-off.
-    const actingDepartment =
-      currentProfile.account_type === 'student'
-        ? 'marketing'
-        : currentProfile.department;
-    const historyEntry: ApplicationStatusHistory = {
-      id: `his-${Date.now()}`,
-      application_id: appId,
-      from_status: oldStatus,
-      to_status: newStatus,
-      changed_by_name: currentProfile.full_name,
-      department: actingDepartment,
-      note: note || `Status updated from ${oldStatus} to ${newStatus}`,
-      created_at: updatedAt,
-    };
-
-    // Update the dashboard optimistically, then retain the same audit trail
-    // in Supabase so the student's department journey survives a refresh.
-    setApplications((previous) =>
-      previous.map((application) =>
-        application.id === appId
-          ? { ...application, status: newStatus, updated_at: updatedAt }
-          : application
-      )
-    );
-    setStatusHistory((previous) => [historyEntry, ...previous]);
-    logAudit(
-      'UPDATE_APPLICATION_STATUS',
-      'applications',
-      appId,
-      { status: oldStatus },
-      { status: newStatus }
-    );
-
-    void (async () => {
-      const { error: applicationError } = await supabase
-        .from('applications')
-        .update({ status: newStatus })
-        .eq('id', appId);
-
-      if (applicationError) {
-        console.error('Unable to save application status:', applicationError);
-        return;
-      }
-
-      const { error: historyError } = await supabase
-        .from('application_status_history')
-        .insert({
-          application_id: appId,
-          from_status: oldStatus,
-          to_status: newStatus,
-          changed_by_name: currentProfile.full_name,
-          department: actingDepartment,
-          note: historyEntry.note,
-          created_at: updatedAt,
-        });
-
-      if (historyError) {
-        console.error('Unable to save application status history:', historyError);
-      }
-    })();
   };
 
   // Hand off Lead/Draft Application from Marketing to Admissions
@@ -888,151 +673,76 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     return newStudent;
   };
 
+  // Create Application - persisted in Supabase
+  const createApplication = async (
+    appData: Partial<Application>
+  ): Promise<Application> => {
+    if (!currentProfile?.id) {
+      throw new Error('No authenticated user profile found.');
+    }
 
-// Create Application - PERSISTED TO SUPABASE
-const createApplication = async (
-  appData: Partial<Application>
-): Promise<Application> => {
-  if (!currentProfile?.id) {
-    throw new Error('Student profile is not available.');
-  }
+    const applicationNumber =
+      appData.application_number ||
+      `GS-2026-${Math.floor(1000 + Math.random() * 9000)}`;
 
-  const studentId = appData.student_id || currentProfile.id;
-  const studentEmail = appData.student_email || currentProfile.email;
-  const studentName = appData.student_name || currentProfile.full_name;
+    const applicationToInsert = {
+      application_number: applicationNumber,
+      student_id: currentProfile.id,
+      student_name: appData.student_name || currentProfile.full_name,
+      student_email: appData.student_email || currentProfile.email,
+      status: appData.status || 'draft',
+      target_country: appData.target_country || 'United Kingdom',
+      target_university:
+        appData.target_university || 'University of Oxford',
+      degree_program:
+        appData.degree_program || 'MSc Data Science',
+      intake_period:
+        appData.intake_period || 'Fall 2026',
+      scholarship_requested:
+        appData.scholarship_requested || 'GSP Excellence Scholarship',
+      missing_documents_count:
+        appData.missing_documents_count ?? 0,
+      admissions_decision:
+        appData.admissions_decision ?? null,
+      admissions_notes:
+        appData.admissions_notes ?? null,
+      handed_off_to_admissions:
+        appData.handed_off_to_admissions ?? false
+    };
 
-  if (!studentEmail) {
-    throw new Error('Student email is required.');
-  }
+    const { data, error } = await supabase
+      .from('applications')
+      .insert(applicationToInsert)
+      .select()
+      .single();
 
-  if (!studentName) {
-    throw new Error('Student name is required.');
-  }
+    if (error) {
+      console.error('Error creating application in Supabase:', error);
+      throw error;
+    }
 
-  const applicationNumber =
-    appData.application_number ||
-    `GS-2026-${Math.floor(100000 + Math.random() * 900000)}`;
+    const newApplication = data as Application;
 
-  const now = new Date().toISOString();
+    setApplications(prev => [
+      newApplication,
+      ...prev.filter(app => app.id !== newApplication.id)
+    ]);
 
-  const applicationPayload = {
-    application_number: applicationNumber,
-    student_id: studentId,
-    student_name: studentName,
-    student_email: studentEmail,
-    status: appData.status || 'draft',
-    target_country: appData.target_country || 'United Kingdom',
-    target_university:
-      appData.target_university || 'University of Oxford',
-    study_level: appData.study_level || 'postgraduate',
-    degree_program:
-      appData.degree_program || 'MSc Data Science',
-    intake_period:
-      appData.intake_period || 'Fall 2026',
-    scholarship_requested:
-      appData.scholarship_requested ||
-      'GSP Excellence Scholarship',
-    missing_documents_count:
-      appData.missing_documents_count ?? 0,
-    admissions_decision:
-      appData.admissions_decision || null,
-    admissions_notes:
-      appData.admissions_notes || null,
-    handed_off_to_admissions:
-      appData.handed_off_to_admissions ?? false,
-    created_at: now,
-    updated_at: now
-  };
-
-  console.log(
-    'CREATING APPLICATION IN SUPABASE:',
-    applicationPayload
-  );
-
-  const { data, error } = await supabase
-    .from('applications')
-    .insert(applicationPayload)
-    .select('*')
-    .single();
-
-  if (error) {
-    console.error(
-      'SUPABASE APPLICATION INSERT ERROR:',
-      error
-    );
-
-    throw new Error(
-      `Failed to create application: ${error.message}`
-    );
-  }
-
-  const newApplication: Application = {
-    id: data.id,
-    application_number: data.application_number,
-    student_id: data.student_id,
-    student_name: data.student_name,
-    student_email: data.student_email,
-    status: data.status as ApplicationStatus,
-    target_country: data.target_country,
-    target_university: data.target_university,
-    study_level: data.study_level,
-    degree_program: data.degree_program,
-    intake_period: data.intake_period,
-    scholarship_requested:
-      data.scholarship_requested || undefined,
-    missing_documents_count:
-      data.missing_documents_count,
-    admissions_decision:
-      data.admissions_decision || undefined,
-    admissions_notes:
-      data.admissions_notes || undefined,
-    handed_off_to_admissions:
-      data.handed_off_to_admissions,
-    created_at: data.created_at,
-    updated_at: data.updated_at
-  };
-
-  // Update local React state
-  setApplications(prev => [
-    newApplication,
-    ...prev.filter(app => app.id !== newApplication.id)
-  ]);
-
-  // Create status history
-  const { error: historyError } = await supabase
-    .from('application_status_history')
-    .insert({
+    const historyEntry: ApplicationStatusHistory = {
+      id: `his-${Date.now()}`,
       application_id: newApplication.id,
       from_status: null,
       to_status: newApplication.status,
       changed_by_name: currentProfile.full_name,
-      department: currentProfile.department || 'data_applications',
+      department: currentProfile.department,
       note: 'Application draft created.',
-      created_at: now
-    });
+      created_at: new Date().toISOString()
+    };
 
-  if (historyError) {
-    console.warn(
-      'Application created but status history failed:',
-      historyError
-    );
-  }
+    setStatusHistory(prev => [historyEntry, ...prev]);
 
-  logAudit(
-    'CREATE_APPLICATION_DRAFT',
-    'applications',
-    newApplication.id,
-    null,
-    {
-      application_number:
-        newApplication.application_number,
-      student_id: newApplication.student_id
-    }
-  );
-
-  return newApplication;
-};
-
+    return newApplication;
+  };
 
   // Add Partner University
   const addPartnerUniversity = async (
@@ -1055,9 +765,35 @@ const createApplication = async (
       throw new Error(error.message);
     }
 
+    const { data: agreement, error: agreementError } = await supabase
+      .from('partner_agreements')
+      .insert({
+        partner_id: data.id,
+        partner_name: data.name,
+        document_name: `${data.name.replace(/\s+/g, '_')}_MOU_2026.pdf`,
+        storage_path: `agreements/${data.name.replace(/\s+/g, '_')}_MOU_2026.pdf`,
+        effective_date: '2026-01-01',
+        expiry_date: '2029-12-31',
+        status: 'active'
+      })
+      .select()
+      .single();
+
+    if (agreementError) {
+      console.error('Error adding partner agreement:', agreementError);
+
+      // Remove the university if its agreement could not be created.
+      await supabase
+        .from('partner_universities')
+        .delete()
+        .eq('id', data.id);
+
+      throw new Error(agreementError.message);
+    }
+
     const newPartner: PartnerUniversity = {
       ...data,
-      agreements: []
+      agreements: [agreement]
     };
 
     setPartnerUniversities(prev => [newPartner, ...prev]);
@@ -1073,53 +809,9 @@ const createApplication = async (
     return newPartner;
   };
 
-  const deletePartnerUniversity = async (partnerId: string) => {
-    if (!currentProfile?.is_admin) {
-      throw new Error('Only administrators can remove partner universities.');
-    }
 
-    const partner = partnerUniversities.find(
-      (item) => item.id === partnerId
-    );
 
-    const storagePaths = (partner?.agreements || [])
-      .map((agreement) => agreement.storage_path)
-      .filter(Boolean);
 
-    if (storagePaths.length > 0) {
-      const { error: storageError } = await supabase.storage
-        .from('partner-agreements')
-        .remove(storagePaths);
-
-      if (storageError) {
-        // A missing historical file must not prevent the admin from removing
-        // the partner record and its related agreement records.
-        console.warn('Some agreement files could not be removed:', storageError);
-      }
-    }
-
-    const { error } = await supabase
-      .from('partner_universities')
-      .delete()
-      .eq('id', partnerId);
-
-    if (error) {
-      console.error('Error deleting partner university:', error);
-      throw new Error(error.message);
-    }
-
-    setPartnerUniversities((previous) =>
-      previous.filter((partnerUniversity) => partnerUniversity.id !== partnerId)
-    );
-
-    logAudit(
-      'DELETE_PARTNER_UNIVERSITY',
-      'partner_universities',
-      partnerId,
-      partner || null,
-      null
-    );
-  };
 
   // Upload Partner Agreement
   const uploadPartnerAgreement = async (
@@ -1207,199 +899,6 @@ const createApplication = async (
 
     return data;
   };
-
-  const submitDepartmentReport = async (
-    report: DepartmentReportSubmission,
-    file: File
-  ): Promise<DepartmentReport> => {
-    if (
-      !currentProfile ||
-      currentProfile.account_type !== 'staff' ||
-      currentProfile.is_admin
-    ) {
-      throw new Error('Only department staff can submit a department report.');
-    }
-
-    if (!file || file.size === 0) {
-      throw new Error('Attach the completed report file before submitting.');
-    }
-
-    if (file.size > 15 * 1024 * 1024) {
-      throw new Error('Report files must be 15 MB or smaller.');
-    }
-
-    // Create the report as a draft first. This permits exactly one initial
-    // attachment to be associated before the trusted status function submits it.
-    const { data: draftReport, error: draftError } = await supabase
-      .from('department_reports')
-      .insert({
-        department: currentProfile.department,
-        title: report.title.trim(),
-        report_type: 'monthly',
-        reporting_period_start: report.reporting_period_start,
-        reporting_period_end: report.reporting_period_end,
-        executive_summary: report.executive_summary.trim(),
-        key_activities: report.key_activities.trim(),
-        achievements: report.achievements.trim(),
-        challenges: report.challenges.trim(),
-        recommendations: report.recommendations.trim(),
-        metrics: {},
-        status: 'draft',
-        submitted_by: currentProfile.id,
-      })
-      .select('*')
-      .single();
-
-    if (draftError || !draftReport) {
-      console.error('Department report draft creation failed:', draftError);
-      throw new Error(draftError?.message || 'The report draft could not be created.');
-    }
-
-    const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const storagePath = `${currentProfile.department}/${currentProfile.id}/${draftReport.id}/${Date.now()}-${safeFileName}`;
-
-    const cleanUpDraft = async () => {
-      await supabase.from('department_reports').delete().eq('id', draftReport.id);
-    };
-
-    const { error: uploadError } = await supabase.storage
-      .from('department-reports')
-      .upload(storagePath, file, {
-        cacheControl: '3600',
-        upsert: false,
-        contentType: file.type || 'application/octet-stream',
-      });
-
-    if (uploadError) {
-      await cleanUpDraft();
-      console.error('Department report upload failed:', uploadError);
-      throw new Error(uploadError.message);
-    }
-
-    const { data: attachment, error: attachmentError } = await supabase
-      .from('report_attachments')
-      .insert({
-        report_id: draftReport.id,
-        uploaded_by: currentProfile.id,
-        file_name: file.name,
-        storage_path: storagePath,
-        file_size: file.size,
-        mime_type: file.type || 'application/octet-stream',
-      })
-      .select('*')
-      .single();
-
-    if (attachmentError || !attachment) {
-      await supabase.storage.from('department-reports').remove([storagePath]);
-      await cleanUpDraft();
-      console.error('Department report attachment creation failed:', attachmentError);
-      throw new Error(attachmentError?.message || 'The report attachment could not be saved.');
-    }
-
-    const { data: submittedReport, error: submissionError } = await supabase.rpc(
-      'update_department_report_status',
-      {
-        p_report_id: draftReport.id,
-        p_new_status: 'submitted',
-        p_comment: 'Initial department report submitted with supporting file.',
-      }
-    );
-
-    if (submissionError || !submittedReport) {
-      console.error('Department report submission failed:', submissionError);
-      throw new Error(submissionError?.message || 'The report could not be submitted for review.');
-    }
-
-    const newReport: DepartmentReport = {
-      ...submittedReport,
-      department: submittedReport.department as DepartmentReport['department'],
-      status: submittedReport.status as DepartmentReportStatus,
-      revision_count: Number(submittedReport.revision_count || 0),
-      submitted_by_name: currentProfile.full_name,
-      attachments: [{
-        ...attachment,
-        file_size: attachment.file_size == null
-          ? undefined
-          : Number(attachment.file_size),
-      }],
-    };
-
-    setDepartmentReports((previous) => [newReport, ...previous]);
-    logAudit('SUBMIT_DEPARTMENT_REPORT', 'department_reports', newReport.id, null, {
-      department: newReport.department,
-      title: newReport.title,
-      file_name: file.name,
-    });
-
-    return newReport;
-  };
-
-  const reviewDepartmentReport = async (
-    reportId: string,
-    status: DepartmentReportStatus,
-    adminNote: string
-  ): Promise<DepartmentReport> => {
-    if (!currentProfile?.is_admin) {
-      throw new Error('Only administrators can review department reports.');
-    }
-
-    const { data, error } = await supabase.rpc(
-      'update_department_report_status',
-      {
-        p_report_id: reportId,
-        p_new_status: status,
-        p_comment: adminNote.trim() || null,
-      }
-    );
-
-    if (error) {
-      console.error('Department report review failed:', error);
-      throw new Error(error.message);
-    }
-
-    const priorReport = departmentReports.find((report) => report.id === reportId);
-    const reviewedReport: DepartmentReport = {
-      ...(priorReport || {}),
-      ...data,
-      department: data.department as DepartmentReport['department'],
-      status: data.status as DepartmentReportStatus,
-      revision_count: Number(data.revision_count || 0),
-      reviewed_by_name: currentProfile.full_name,
-      attachments: priorReport?.attachments || [],
-    };
-
-    setDepartmentReports((previous) =>
-      previous.map((report) =>
-        report.id === reportId ? reviewedReport : report
-      )
-    );
-    logAudit('REVIEW_DEPARTMENT_REPORT', 'department_reports', reportId, null, {
-      status,
-    });
-
-    return reviewedReport;
-  };
-
-  const getDepartmentReportDownloadUrl = async (
-    report: DepartmentReport
-  ): Promise<string> => {
-    const attachment = report.attachments[0];
-
-    if (!attachment) {
-      throw new Error('This report does not have an attached file.');
-    }
-
-    const { data, error } = await supabase.storage
-      .from('department-reports')
-      .createSignedUrl(attachment.storage_path, 60 * 30);
-
-    if (error || !data?.signedUrl) {
-      throw new Error(error?.message || 'The report file could not be opened.');
-    }
-
-    return data.signedUrl;
-  };
-
   return (
     <ApplicationContext.Provider
       value={{
@@ -1410,11 +909,9 @@ const createApplication = async (
         institutionTasks,
         financialRecords,
         partnerUniversities,
-        departmentReports,
         communications,
         auditLogs,
         statusHistory,
-        studentApplicationsLoading,
         getScopedApplications,
         getScopedCounselingSessions,
         getScopedFinancialRecords,
@@ -1432,12 +929,8 @@ const createApplication = async (
         makeAdmissionsDecision,
         addStudent,
         createApplication,
-        addPartnerUniversity,
-        deletePartnerUniversity,
-        uploadPartnerAgreement,
-        submitDepartmentReport,
-        reviewDepartmentReport,
-        getDepartmentReportDownloadUrl,
+	addPartnerUniversity,
+   	uploadPartnerAgreement  
   }}
     >
       {children}
@@ -1452,3 +945,4 @@ export const useApplication = () => {
   }
   return context;
 };
+

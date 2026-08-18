@@ -85,8 +85,32 @@ export const Login: React.FC = () => {
 
     console.log('Student registration successful:', data);
 
+    // When email confirmation is disabled in Supabase, signUp returns an
+    // authenticated session and AuthContext will route the student directly
+    // to their portal. If it is enabled, make one automatic sign-in attempt
+    // so installations that allow it still get the same seamless flow.
+    let hasSession = Boolean(data.session);
+
+    if (!hasSession) {
+      const { data: signInData, error: signInError } =
+        await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+
+      hasSession = Boolean(signInData.session);
+
+      if (signInError || !hasSession) {
+        setError(
+          'Your account was created, but email confirmation is enabled. Turn off "Confirm email" in Supabase Auth settings to sign students in immediately after registration.'
+        );
+        setLoading(false);
+        return;
+      }
+    }
+
     setSuccess(
-      'Student account created successfully. You can now sign in.'
+      'Student account created. Opening your dashboard...'
     );
 
     setFullName('');
@@ -94,7 +118,6 @@ export const Login: React.FC = () => {
     setPassword('');
     setConfirmPassword('');
 
-    setMode('login');
     setLoading(false);
   };
 

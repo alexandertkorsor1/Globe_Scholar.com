@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import type { Application } from '../../types/database';
+import type { Application, DepartmentType, PartnerUniversity } from '../../types/database';
 import { useApplication } from '../../context/ApplicationContext';
 import { useAuth } from '../../context/AuthContext';
 import { DashboardLayout } from '../dashboard/DashboardLayout';
+import { AdminDepartmentReports } from '../reports/AdminDepartmentReports';
 import {
   Building2,
   LayoutDashboard,
@@ -21,7 +22,8 @@ import {
   FileText,
   X,
   Upload,
-  Eye
+  Eye,
+  Trash2
 } from 'lucide-react';
 
 export const AdminWorkspace: React.FC = () => {
@@ -35,7 +37,11 @@ export const AdminWorkspace: React.FC = () => {
   financialRecords,
   partnerUniversities,
   addPartnerUniversity,
+  deletePartnerUniversity,
   uploadPartnerAgreement,
+  departmentReports,
+  getDepartmentReportDownloadUrl,
+  reviewDepartmentReport,
   addCommunication,
   updateApplicationStatus,
   statusHistory
@@ -43,11 +49,14 @@ export const AdminWorkspace: React.FC = () => {
   const { availableProfiles } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'kpis' | 'drilldown' | 'partnerships' | 'staff'>('kpis');
-  const [selectedDeptDrill, setSelectedDeptDrill] = useState<string>('admissions');
+  const [selectedDeptDrill, setSelectedDeptDrill] = useState<DepartmentType>('admissions');
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [reviewNote, setReviewNote] = useState('');
   const [showAddPartnerModal, setShowAddPartnerModal] = useState(false);
   const [showGlobalNotifyModal, setShowGlobalNotifyModal] = useState(false);
+  const [partnerPendingDelete, setPartnerPendingDelete] =
+    useState<PartnerUniversity | null>(null);
+  const [deletingPartner, setDeletingPartner] = useState(false);
 
   // New partner state
   const [pName, setPName] = useState('');
@@ -70,6 +79,14 @@ export const AdminWorkspace: React.FC = () => {
   const missingDocsCount = applications.reduce((acc, a) => acc + a.missing_documents_count, 0);
   const approvedCount = applications.filter(a => a.status === 'approved').length;
   const rejectedCount = applications.filter(a => a.status === 'rejected').length;
+  const selectedDepartmentReports = departmentReports.filter(
+    (report) => report.department === selectedDeptDrill
+  );
+  const selectedDepartmentStaff = availableProfiles.filter(
+    (profile) =>
+      profile.department === selectedDeptDrill &&
+      profile.account_type === 'staff'
+  );
 
   const urgentItems = [
     ...applications.filter(a => a.missing_documents_count > 0).map(a => `Application ${a.application_number} (${a.student_name}) has ${a.missing_documents_count} missing document(s)`),
@@ -193,6 +210,25 @@ export const AdminWorkspace: React.FC = () => {
     setShowGlobalNotifyModal(false);
     setNoticeTitle('');
     setNoticeBody('');
+  };
+
+  const handleDeletePartner = async () => {
+    if (!partnerPendingDelete) return;
+
+    try {
+      setDeletingPartner(true);
+      await deletePartnerUniversity(partnerPendingDelete.id);
+      setPartnerPendingDelete(null);
+    } catch (error) {
+      console.error('Failed to remove partner university:', error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : 'Failed to remove the partner university.'
+      );
+    } finally {
+      setDeletingPartner(false);
+    }
   };
 
   const sidebarNav = [
@@ -414,7 +450,7 @@ export const AdminWorkspace: React.FC = () => {
           </h3>
 
           <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', overflowX: 'auto' }}>
-            {['marketing', 'counseling', 'admissions', 'data_applications', 'operations', 'country_directors', 'finance'].map(dept => (
+            {(['marketing', 'counseling', 'admissions', 'data_applications', 'operations', 'country_directors', 'finance'] as DepartmentType[]).map(dept => (
               <button
                 key={dept}
                 onClick={() => setSelectedDeptDrill(dept)}
@@ -424,6 +460,14 @@ export const AdminWorkspace: React.FC = () => {
               </button>
             ))}
           </div>
+
+          <AdminDepartmentReports
+            department={selectedDeptDrill}
+            reports={selectedDepartmentReports}
+            staffCount={selectedDepartmentStaff.length}
+            onOpenFile={getDepartmentReportDownloadUrl}
+            onReview={reviewDepartmentReport}
+          />
 
           <div className="custom-table-container">
             <table className="custom-table">
@@ -815,7 +859,19 @@ export const AdminWorkspace: React.FC = () => {
                     <h4 style={{ fontSize: '0.95rem', color: '#fff' }}>{p.name}</h4>
                     <span style={{ fontSize: '0.75rem', color: '#06b6d4' }}>{p.country} • {p.contact_email}</span>
                   </div>
-                  <span className="badge badge-documents_verified">{p.scholarships_offered} Scholarships</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="badge badge-documents_verified">{p.scholarships_offered} Scholarships</span>
+                    <button
+                      type="button"
+                      onClick={() => setPartnerPendingDelete(p)}
+                      className="btn btn-secondary btn-sm"
+                      title={`Remove ${p.name}`}
+                      style={{ color: '#fecaca', borderColor: 'rgba(248, 113, 113, 0.45)' }}
+                    >
+                      <Trash2 style={{ width: '13px', height: '13px' }} />
+                      Remove
+                    </button>
+                  </div>
                 </div>
 
                 <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
@@ -977,6 +1033,31 @@ export const AdminWorkspace: React.FC = () => {
         </div>
       )}
 
+      {/* Modal: Confirm Partner Removal */}
+      {partnerPendingDelete && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', zIndex: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+          <div className="glass-panel animate-fade-in" style={{ width: '100%', maxWidth: '440px', padding: '24px', background: '#0f172a' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#fca5a5', marginBottom: '12px' }}>
+              <Trash2 style={{ width: '20px', height: '20px' }} />
+              <h3 style={{ margin: 0, fontSize: '1rem', color: '#fff' }}>Remove partner university</h3>
+            </div>
+            <p style={{ margin: 0, color: '#cbd5e1', lineHeight: 1.55, fontSize: '0.88rem' }}>
+              Remove <strong style={{ color: '#fff' }}>{partnerPendingDelete.name}</strong> from the partnership directory? Its agreement records and stored agreement files will also be removed.
+            </p>
+            <p style={{ margin: '10px 0 0', color: '#fbbf24', fontSize: '0.78rem' }}>
+              This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+              <button type="button" onClick={() => setPartnerPendingDelete(null)} disabled={deletingPartner} className="btn btn-secondary btn-sm">Cancel</button>
+              <button type="button" onClick={handleDeletePartner} disabled={deletingPartner} className="btn btn-primary btn-sm" style={{ background: '#dc2626' }}>
+                <Trash2 style={{ width: '14px', height: '14px' }} />
+                {deletingPartner ? 'Removing…' : 'Remove partner'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal: Add Partner University */}
       {showAddPartnerModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -994,6 +1075,10 @@ export const AdminWorkspace: React.FC = () => {
               <div>
                 <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Contact Email</label>
                 <input type="email" required placeholder="admissions@stanford.edu" value={pEmail} onChange={e => setPEmail(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Scholarships Available</label>
+                <input type="number" min="0" required value={pScholarships} onChange={e => setPScholarships(Math.max(0, Number(e.target.value)))} style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
                 <button type="button" onClick={() => setShowAddPartnerModal(false)} className="btn btn-secondary btn-sm">Cancel</button>

@@ -11,6 +11,11 @@ interface DashboardTopbarProps {
   onMessages?: () => void;
   onLogout?: () => void;
   onSettings?: () => void;
+  primaryAction?: {
+    label: string;
+    icon?: React.ReactNode;
+    onClick: () => void;
+  };
 }
 
 export const DashboardTopbar: React.FC<
@@ -25,6 +30,7 @@ export const DashboardTopbar: React.FC<
   onMessages,
   onLogout,
   onSettings,
+  primaryAction,
 }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -103,6 +109,30 @@ export const DashboardTopbar: React.FC<
           gap: '16px',
         }}
       >
+        {primaryAction && (
+          <button
+            type="button"
+            onClick={primaryAction.onClick}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '7px',
+              border: 'none',
+              borderRadius: '9px',
+              padding: '10px 13px',
+              background: '#1d4ed8',
+              color: '#ffffff',
+              fontWeight: 700,
+              fontSize: '13px',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(29, 78, 216, 0.2)',
+            }}
+          >
+            {primaryAction.icon}
+            {primaryAction.label}
+          </button>
+        )}
+
         {/* Notification Bell */}
         <button
           type="button"

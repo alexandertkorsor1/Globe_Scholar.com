@@ -1,0 +1,17 @@
+
+> globe-scholar-pathways@1.0.0 dev
+> vite
+
+Port 5173 is in use, trying another one...
+
+  VITE v5.4.21  ready in 120 ms
+
+  ➜  Local:   http://127.0.0.1:5174/
+  ➜  press h + enter to show help
+
+  Shortcuts
+  press r + enter to restart the server
+  press u + enter to show server url
+  press o + enter to open in browser
+  press c + enter to clear console
+  press q + enter to quit

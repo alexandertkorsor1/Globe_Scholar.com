@@ -76,6 +76,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
     const profile = data as Profile;
 
+    console.log('REPORT.COM PROFILE LOADED:', profile);
+    console.log('REPORT.COM ACCOUNT TYPE:', profile.account_type);
+    console.log(
+      'REPORT.COM STUDENT MODE:',
+      profile.account_type === 'student'
+    );
+
     setCurrentProfile(profile);
     setIsStudentMode(profile.account_type === 'student');
   };

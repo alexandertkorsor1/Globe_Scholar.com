@@ -121,10 +121,16 @@ default:
         padding: '40px',
       }}
     >
-      <h2>Access Restricted</h2>
+      <h2>
+        {currentProfile.account_type === 'unassigned'
+          ? 'Account setup in progress'
+          : 'Access Restricted'}
+      </h2>
 
       <p style={{ color: '#6b7280' }}>
-        Your account is not assigned to a valid department.
+        {currentProfile.account_type === 'unassigned'
+          ? 'Your sign-in has been created, but an administrator still needs to assign your department and access level.'
+          : 'Your account is not assigned to a valid department.'}
       </p>
 
       <p style={{ color: '#9ca3af', fontSize: '13px' }}>
