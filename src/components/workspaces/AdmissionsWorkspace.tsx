@@ -110,7 +110,7 @@ export const AdmissionsWorkspace: React.FC = () => {
           <Calendar style={{ color: '#c084fc', width: '16px', height: '16px' }} />
           Active Admission Windows & Eligibility Thresholds
         </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+        <div className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
           {admissionWindows.map(w => (
             <div key={w.id} style={{ background: 'rgba(18, 26, 43, 0.8)', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -288,7 +288,7 @@ export const AdmissionsWorkspace: React.FC = () => {
                 <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Target Country</label>
                 <input type="text" required value={wCountry} onChange={e => setWCountry(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
                   <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Start Date</label>
                   <input type="date" value={wStart} onChange={e => setWStart(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }} />

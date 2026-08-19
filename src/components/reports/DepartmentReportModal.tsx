@@ -246,7 +246,7 @@ export const DepartmentReportModal: React.FC<DepartmentReportModalProps> = ({
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 160px 160px', gap: '14px', marginBottom: '16px' }}>
+          <div className="dashboard-responsive-grid department-report-form-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 160px 160px', gap: '14px', marginBottom: '16px' }}>
             <div>
               <label style={labelStyle} htmlFor="report-title">Report title</label>
               <input id="report-title" required maxLength={160} value={draft.title} onChange={(event) => updateDraft('title', event.target.value)} style={inputStyle} />
@@ -271,7 +271,7 @@ export const DepartmentReportModal: React.FC<DepartmentReportModalProps> = ({
             <textarea id="key-activities" rows={3} maxLength={3000} value={draft.key_activities} onChange={(event) => updateDraft('key_activities', event.target.value)} placeholder="Major work completed, meetings held, cases processed, or partner activity…" style={{ ...inputStyle, resize: 'vertical' }} />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '14px', marginBottom: '18px' }}>
+          <div className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '14px', marginBottom: '18px' }}>
             <div>
               <label style={labelStyle} htmlFor="achievements">Key achievements</label>
               <textarea id="achievements" rows={4} maxLength={3000} value={draft.achievements} onChange={(event) => updateDraft('achievements', event.target.value)} placeholder="Outcomes delivered, targets achieved…" style={{ ...inputStyle, resize: 'vertical' }} />

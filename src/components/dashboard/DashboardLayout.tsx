@@ -116,6 +116,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       />
 
       <div
+        className="workspace-main-shell"
         style={{
           flex: 1,
           minWidth: 0,
@@ -153,14 +154,15 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               : undefined
           }
         />
-        <div style={{ margin: '14px 28px 0', padding: '11px 14px', border: '1px solid #dbe5fa', borderRadius: '10px', background: '#f8fbff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
+        <div className="dashboard-workflow-banner" style={{ margin: '14px 28px 0', padding: '11px 14px', border: '1px solid #dbe5fa', borderRadius: '10px', background: '#f8fbff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+          <div className="dashboard-workflow-banner-copy" style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
             <MessageSquare size={17} color="#2f62e8" />
             <span style={{ color: '#465675', fontSize: '12px' }}><strong style={{ color: '#193572' }}>Connected workflow:</strong> {department} works next with {nextWorkflowTeam}.</span>
           </div>
           <button type="button" onClick={() => setShowCommunications(true)} style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '5px', border: 0, background: 'transparent', color: '#2858c5', fontSize: '12px', fontWeight: 750, cursor: 'pointer' }}>Open team inbox <ArrowRight size={14} /></button>
         </div>
         <main
+          className="workspace-content"
           style={{
             flex: 1,
             padding: '28px',

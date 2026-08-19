@@ -433,7 +433,7 @@ export const StudentPortal: React.FC = () => {
       
       {/* Student Portal Header Banner */}
       <div className="glass-panel student-portal-hero" style={{ padding: '24px 32px', background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(6, 182, 212, 0.1) 100%)', borderColor: 'rgba(99, 102, 241, 0.4)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="student-portal-hero-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <GraduationCap style={{ color: '#6366f1', width: '28px', height: '28px' }} />
@@ -487,7 +487,7 @@ export const StudentPortal: React.FC = () => {
           Live Application Progress Milestones
         </h3>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
+        <div className="student-progress-steps" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
           {[
             { num: 1, title: 'Drafting' },
             { num: 2, title: 'Submission' },
@@ -532,7 +532,7 @@ export const StudentPortal: React.FC = () => {
       />
 
       {/* Multi-Step Form Navigation Tabs */}
-      <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
+      <div className="student-portal-step-tabs" style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
         {[
           { step: 1, label: '1. Program & Profile' },
           { step: 2, label: '2. Document Uploads' },
@@ -555,7 +555,7 @@ export const StudentPortal: React.FC = () => {
         <div className="glass-panel" style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
           <h3 style={{ fontSize: '1.05rem', color: '#fff' }}>Target Institution & Degree Choice</h3>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '16px' }}>
+          <div className="student-program-fields" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '16px' }}>
             <div>
               <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>Study Level</label>
               <select
@@ -606,7 +606,7 @@ export const StudentPortal: React.FC = () => {
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+          <div className="student-form-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
             <span style={{ fontSize: '0.78rem', color: '#34d399' }}>{saveDraftMessage}</span>
             <div style={{ display: 'flex', gap: '10px' }}>
               <button onClick={() => void handleSaveDraft()} disabled={isSavingDraft} className="btn btn-secondary">
@@ -630,7 +630,7 @@ export const StudentPortal: React.FC = () => {
       {/* Step 2: Document Upload Step */}
       {activeStep === 2 && (
         <div className="glass-panel" style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px' }}>
+          <div className="student-document-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px' }}>
             <div>
               <h3 style={{ fontSize: '1.05rem', color: '#fff' }}>Required Documents</h3>
               <p style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
@@ -776,7 +776,7 @@ export const StudentPortal: React.FC = () => {
             </table>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <div className="student-form-actions student-form-actions-end" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
             <button
               onClick={() => {
                 if (allRequiredDocumentsUploaded) {
@@ -849,7 +849,7 @@ export const StudentPortal: React.FC = () => {
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+          <div className="student-form-actions student-form-actions-end" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
             <button onClick={() => setActiveStep(4)} disabled={!hasPaymentConfirmation} className="btn btn-primary">
               Next: Review & Submit →
             </button>
@@ -863,7 +863,7 @@ export const StudentPortal: React.FC = () => {
           <h3 style={{ fontSize: '1.05rem', color: '#fff' }}>Final Application Review & Authorization</h3>
 
           <div className="student-review-card" style={{ background: 'rgba(18, 26, 43, 0.8)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.85rem' }}>
+            <div className="student-review-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.85rem' }}>
               <div><span style={{ color: '#94a3b8' }}>Student Name:</span> <strong>{myApp.student_name}</strong></div>
               <div><span style={{ color: '#94a3b8' }}>Target Institution:</span> <strong>{myApp.target_university}</strong></div>
               <div><span style={{ color: '#94a3b8' }}>Degree Program:</span> <strong>{myApp.degree_program}</strong></div>
@@ -871,7 +871,7 @@ export const StudentPortal: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+          <div className="student-form-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
             <button onClick={() => void handleSaveDraft()} disabled={isSavingDraft} className="btn btn-secondary">
               <Save style={{ width: '14px', height: '14px' }} />
               Save Draft

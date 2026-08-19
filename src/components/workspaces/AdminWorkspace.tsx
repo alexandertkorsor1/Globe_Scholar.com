@@ -318,7 +318,7 @@ export const AdminWorkspace: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
           {/* Executive Stat Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+          <div className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
             <div className="glass-panel" style={{ padding: '18px' }}>
               <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Total Applications</span>
               <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#6366f1', marginTop: '4px' }}>{totalApps}</div>

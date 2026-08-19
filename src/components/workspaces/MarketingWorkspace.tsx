@@ -181,7 +181,7 @@ export const MarketingWorkspace: React.FC = () => {
           <div className="modal-content animate-fade-in">
             <h3 style={{ fontSize: '1rem', color: '#111827', marginBottom: '16px' }}>Capture New Prospective Student Lead</h3>
             <form onSubmit={handleAddLead} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
                   <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>First Name</label>
                   <input type="text" required value={fName} onChange={e => setFName(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }} />

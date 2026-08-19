@@ -92,7 +92,7 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ isOpen, onCl
   };
 
   return (
-    <div style={{
+    <div className="department-communications-overlay" style={{
       position: 'fixed',
       top: 0,
       left: 0,
@@ -104,7 +104,7 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ isOpen, onCl
       display: 'flex',
       justifyContent: 'flex-end'
     }}>
-      <div className="glass-panel animate-fade-in" style={{
+      <div className="glass-panel animate-fade-in department-communications-drawer" style={{
         width: '520px',
         height: '100%',
         borderRadius: 0,
@@ -115,7 +115,7 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ isOpen, onCl
       }}>
         
         {/* Hub Header */}
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="department-communications-header" style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <h2 style={{ fontSize: '1.15rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Bell style={{ color: '#6366f1' }} />
@@ -131,7 +131,7 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ isOpen, onCl
         </div>
 
         {/* Category Tabs */}
-        <div style={{ display: 'flex', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', padding: '0 16px', gap: '4px', overflowX: 'auto' }}>
+        <div className="department-communications-tabs" style={{ display: 'flex', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', padding: '0 16px', gap: '4px', overflowX: 'auto' }}>
           {[
             { id: 'all', label: 'All', icon: <Bell style={{ width: '14px', height: '14px' }} /> },
             { id: 'notification', label: 'Notifications', icon: <Bell style={{ width: '14px', height: '14px' }} /> },
@@ -165,7 +165,7 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ isOpen, onCl
         </div>
 
         {/* Action Toolbar */}
-        <div style={{ padding: '12px 24px', background: 'rgba(18, 26, 43, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="department-communications-toolbar" style={{ padding: '12px 24px', background: 'rgba(18, 26, 43, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
             Showing {filteredComms.length} items
           </span>
@@ -179,7 +179,7 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ isOpen, onCl
         </div>
 
         {/* List of Communications */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px' }}>
+        <div className="department-communications-list" style={{ flex: 1, overflowY: 'auto', padding: '16px 24px' }}>
           {filteredComms.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748b' }}>
               <CheckCheck style={{ width: '36px', height: '36px', margin: '0 auto 12px auto', opacity: 0.4 }} />
@@ -250,7 +250,7 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ isOpen, onCl
           alignItems: 'center',
           justifyContent: 'center'
         }}>
-          <div className="glass-panel animate-fade-in" style={{ width: '480px', padding: '24px', background: '#0f172a' }}>
+          <div className="glass-panel animate-fade-in department-communication-compose-modal" style={{ width: '480px', padding: '24px', background: '#0f172a' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '1rem', color: '#ffffff' }}>Create Cross-Department Communication</h3>
               <button onClick={() => setShowNewMsgModal(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>

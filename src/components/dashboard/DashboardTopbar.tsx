@@ -64,6 +64,7 @@ export const DashboardTopbar: React.FC<
 
   return (
     <header
+      className="dashboard-topbar"
       style={{
         height: '72px',
         display: 'flex',
@@ -76,7 +77,7 @@ export const DashboardTopbar: React.FC<
       }}
     >
       {/* Page title */}
-      <div>
+      <div className="dashboard-topbar-title">
         <h1
           style={{
             margin: 0,
@@ -103,6 +104,7 @@ export const DashboardTopbar: React.FC<
 
       {/* Right side */}
       <div
+        className="dashboard-topbar-actions"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -113,6 +115,8 @@ export const DashboardTopbar: React.FC<
           <button
             type="button"
             onClick={primaryAction.onClick}
+            className="dashboard-primary-action"
+            aria-label={primaryAction.label}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -186,6 +190,7 @@ export const DashboardTopbar: React.FC<
 
         {/* User Profile + Dropdown */}
         <div
+          className="dashboard-profile-menu"
           ref={menuRef}
           style={{ position: 'relative' }}
         >
@@ -227,6 +232,7 @@ export const DashboardTopbar: React.FC<
 
             {/* Name + Role */}
             <div
+              className="dashboard-user-details"
               style={{
                 textAlign: 'left',
                 lineHeight: 1.3,

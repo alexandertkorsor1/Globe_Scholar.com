@@ -190,6 +190,7 @@ export const Login: React.FC<LoginProps> = ({
 
   return (
     <div
+      className="auth-page"
       style={{
         minHeight: '100vh',
         display: 'flex',
@@ -201,6 +202,7 @@ export const Login: React.FC<LoginProps> = ({
     >
       {onBack && (
         <button
+          className="auth-back-button"
           type="button"
           onClick={onBack}
           style={{
@@ -221,6 +223,7 @@ export const Login: React.FC<LoginProps> = ({
         </button>
       )}
       <div
+        className="auth-card"
         style={{
           width: '100%',
           maxWidth: '430px',

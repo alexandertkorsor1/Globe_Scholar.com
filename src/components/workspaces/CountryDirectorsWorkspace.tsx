@@ -69,7 +69,7 @@ export const CountryDirectorsWorkspace: React.FC = () => {
       </div>
 
       {/* Region Overview Stats */}
-      <div id="regional-analytics" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+      <div id="regional-analytics" className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
         <div className="glass-panel" style={{ padding: '18px' }}>
           <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Regional Target Applications</span>
           <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#2dd4bf', marginTop: '4px' }}>{visibleApps.length}</div>

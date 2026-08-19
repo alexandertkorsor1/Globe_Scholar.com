@@ -153,7 +153,7 @@ export const AdminDepartmentReports: React.FC<AdminDepartmentReportsProps> = ({
           </span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px', marginBottom: '16px' }}>
+        <div className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px', marginBottom: '16px' }}>
           {[
             { label: 'Reports received', value: reports.length, accent: '#1d4ed8' },
             { label: 'Active staff', value: staffCount, accent: '#7c3aed' },
@@ -245,7 +245,7 @@ export const AdminDepartmentReports: React.FC<AdminDepartmentReportsProps> = ({
                 <button type="button" onClick={() => handleOpenFile(selectedReport)} disabled={openingFile || selectedReport.attachments.length === 0} className="btn btn-primary btn-sm"><Download size={14} />{openingFile ? 'Opening…' : 'Open file'}</button>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px', marginBottom: '16px' }}>
+              <div className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px', marginBottom: '16px' }}>
                 {[
                   ['Executive summary', selectedReport.executive_summary || 'No executive summary was recorded.'],
                   ['Key activities', selectedReport.key_activities || 'No key activities were recorded.'],
@@ -262,7 +262,7 @@ export const AdminDepartmentReports: React.FC<AdminDepartmentReportsProps> = ({
 
               <div style={{ padding: '16px', borderRadius: '12px', background: '#eff6ff', border: '1px solid #bfdbfe' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#1e40af', marginBottom: '12px' }}><MessageSquareText size={18} /><strong>Administrative review</strong></div>
-                <div style={{ display: 'grid', gridTemplateColumns: '190px minmax(0, 1fr)', gap: '12px' }}>
+                <div className="dashboard-responsive-grid department-report-review-grid" style={{ display: 'grid', gridTemplateColumns: '190px minmax(0, 1fr)', gap: '12px' }}>
                   <div>
                     <label style={{ display: 'block', marginBottom: '6px', color: '#34415a', fontSize: '12px', fontWeight: 800 }}>Review outcome</label>
                     <select value={reviewStatus} onChange={(event) => setReviewStatus(event.target.value as DepartmentReportStatus)} style={{ width: '100%', boxSizing: 'border-box', padding: '10px', borderRadius: '8px', border: '1px solid #bcd0ee', background: '#ffffff', color: '#1e293b' }}>

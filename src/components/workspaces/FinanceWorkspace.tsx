@@ -131,7 +131,7 @@ export const FinanceWorkspace: React.FC = () => {
       )}
 
       {/* Financial Overview Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+      <div className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
         <div className="glass-panel" style={{ padding: '18px' }}>
           <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Student Registration Fees Collected</span>
           <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#34d399', marginTop: '4px' }}>

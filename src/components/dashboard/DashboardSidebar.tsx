@@ -39,6 +39,8 @@ export const DashboardSidebar: React.FC<
 
   return (
     <aside
+      className="dashboard-sidebar"
+      data-collapsed={collapsed ? 'true' : 'false'}
       style={{
         width: collapsed ? '72px' : '240px',
         minWidth: collapsed ? '72px' : '240px',
@@ -57,6 +59,7 @@ export const DashboardSidebar: React.FC<
     >
       {/* Header: Menu toggle + Logo */}
       <div
+        className="dashboard-sidebar-header"
         style={{
           padding: collapsed ? '0 4px 20px' : '0 12px 20px',
           borderBottom: '1px solid #f3f4f6',
@@ -117,7 +120,7 @@ export const DashboardSidebar: React.FC<
       </div>
 
       {/* Navigation Items */}
-      <nav style={{ flex: 1 }}>
+      <nav className="dashboard-sidebar-nav" style={{ flex: 1 }}>
         {items.map((item) => {
           const hasChildren =
             item.children && item.children.length > 0;
@@ -137,6 +140,7 @@ export const DashboardSidebar: React.FC<
                     item.onClick?.();
                   }
                 }}
+                className="dashboard-sidebar-item"
                 style={{
                   width: '100%',
                   display: 'flex',
@@ -263,6 +267,7 @@ export const DashboardSidebar: React.FC<
 
       {/* Help Center (pinned bottom) */}
       <div
+        className="dashboard-sidebar-help"
         style={{
           borderTop: '1px solid #f3f4f6',
           paddingTop: '14px',

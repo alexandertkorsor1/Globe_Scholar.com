@@ -80,7 +80,7 @@ export const CounselingWorkspace: React.FC = () => {
       </div>
 
       {/* Main Grid: Student List & Scheduled Sessions */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '20px' }}>
+      <div className="dashboard-responsive-grid dashboard-responsive-grid-wide" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '20px' }}>
         
         {/* Left Column: Assigned Students */}
         <div id="counseling-students" className="glass-panel" style={{ padding: '20px' }}>
