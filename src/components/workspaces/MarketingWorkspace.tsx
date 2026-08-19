@@ -23,6 +23,8 @@ export const MarketingWorkspace: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [country, setCountry] = useState('India');
   const [leadSource, setLeadSource] = useState('Global STEM Webinar');
+  const goTo = (sectionId: string) =>
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   const scopedAppsResult = getScopedApplications();
   const visibleApps = scopedAppsResult.data || [];
@@ -58,8 +60,8 @@ export const MarketingWorkspace: React.FC = () => {
   };
 
   const sidebarNav = [
-    { label: 'Lead Pipeline', icon: <Megaphone style={{ width: 18, height: 18 }} />, active: true },
-    { label: 'Students', icon: <Users style={{ width: 18, height: 18 }} /> },
+    { label: 'Lead Pipeline', icon: <Megaphone style={{ width: 18, height: 18 }} />, active: true, onClick: () => goTo('marketing-pipeline') },
+    { label: 'Students', icon: <Users style={{ width: 18, height: 18 }} />, onClick: () => goTo('marketing-students') },
   ];
 
   return (
@@ -75,7 +77,7 @@ export const MarketingWorkspace: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
       {/* Workspace Banner */}
-      <div className="glass-panel" style={{ padding: '20px 24px' }}>
+      <div id="marketing-pipeline" className="glass-panel" style={{ padding: '20px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -108,7 +110,7 @@ export const MarketingWorkspace: React.FC = () => {
       </div>
 
       {/* Prospective Leads & Draft Applications Table */}
-      <div className="glass-panel" style={{ padding: '20px' }}>
+      <div id="marketing-students" className="glass-panel" style={{ padding: '20px' }}>
         <h3 style={{ fontSize: '1rem', color: '#111827', marginBottom: '14px' }}>Active Marketing Leads & Pre-Admissions Queue</h3>
         
         <div className="custom-table-container">
@@ -154,7 +156,9 @@ export const MarketingWorkspace: React.FC = () => {
                         </span>
                       ) : (
                         <button
-                          onClick={() => stdApp && handoffToAdmissions(stdApp.id)}
+                          onClick={() => {
+                            if (stdApp) void handoffToAdmissions(stdApp.id);
+                          }}
                           className="btn btn-primary btn-sm"
                           style={{ fontSize: '0.72rem', padding: '4px 10px' }}
                         >

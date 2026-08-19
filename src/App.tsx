@@ -8,6 +8,8 @@ import { RLSSecurityAuditPanel } from './components/security/RLSSecurityAuditPan
 import { AuditLogViewer } from './components/audit/AuditLogViewer';
 
 import { Login } from './components/auth/Login';
+import { PasswordRecovery } from './components/auth/PasswordRecovery';
+import { PublicLanding } from './components/public/PublicLanding';
 
 import { AdminWorkspace } from './components/workspaces/AdminWorkspace';
 import { MarketingWorkspace } from './components/workspaces/MarketingWorkspace';
@@ -32,6 +34,8 @@ const WorkspaceContainer: React.FC = () => {
   const [showComms, setShowComms] = useState(false);
   const [showRLSAudit, setShowRLSAudit] = useState(false);
   const [showAuditLogs, setShowAuditLogs] = useState(false);
+  const [publicView, setPublicView] = useState<'landing' | 'login' | 'student-signup'>('landing');
+  const isPasswordRecovery = new URLSearchParams(window.location.search).has('reset-password');
 
   if (loading) {
     return (
@@ -72,8 +76,34 @@ const WorkspaceContainer: React.FC = () => {
     );
   }
 
+  if (isPasswordRecovery) {
+    return (
+      <PasswordRecovery
+        onComplete={() => {
+          window.history.replaceState({}, '', window.location.pathname);
+          void logout();
+          setPublicView('login');
+        }}
+      />
+    );
+  }
+
   if (!user || !currentProfile) {
-    return <Login />;
+    if (publicView === 'landing') {
+      return (
+        <PublicLanding
+          onSignIn={() => setPublicView('login')}
+          onApply={() => setPublicView('student-signup')}
+        />
+      );
+    }
+
+    return (
+      <Login
+        initialMode={publicView}
+        onBack={() => setPublicView('landing')}
+      />
+    );
   }
 
   const renderActiveWorkspace = () => {

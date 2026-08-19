@@ -17,7 +17,8 @@ import {
   PriorityLevel,
   DepartmentReport,
   DepartmentReportStatus,
-  DepartmentReportSubmission
+  DepartmentReportSubmission,
+  DepartmentType
 } from '../types/database';
 import {
   INITIAL_APPLICATIONS,
@@ -56,15 +57,30 @@ interface ApplicationContextType {
 
   // Action methods
   updateApplicationStatus: (appId: string, newStatus: ApplicationStatus, note: string) => void;
-  handoffToAdmissions: (appId: string) => void;
+  handoffToAdmissions: (appId: string) => Promise<void>;
   addDocument: (appId: string, docType: DocType, file: File) => Promise<ApplicationDocument>;
   updateDocumentVersion: (docId: string, changeSummary: string) => void;
   verifyDocument: (docId: string, verified: boolean) => void;
   toggleMissingDocFlag: (docId: string, isMissing: boolean) => void;
   scheduleCounselingSession: (studentId: string, scheduledAt: string, meetLink: string, notes: string) => void;
   createInstitutionTask: (appId: string, title: string, description: string, assigneeName: string, deadline: string) => void;
-  processFeePayment: (appId: string, amount: number, paymentRef: string) => void;
-  addCommunication: (type: CommunicationType, title: string, body: string, priority?: PriorityLevel, dept?: any) => void;
+  processFeePayment: (appId: string, amount: number, paymentRef: string) => Promise<FinancialRecord>;
+  createFinancialRecord: (
+    record: Omit<FinancialRecord, 'id' | 'created_at' | 'approved_by_name'>
+  ) => Promise<FinancialRecord>;
+  reviewRegistrationPayment: (
+    recordId: string,
+    approved: boolean,
+    note?: string
+  ) => Promise<FinancialRecord>;
+  addCommunication: (
+    type: CommunicationType,
+    title: string,
+    body: string,
+    priority?: PriorityLevel,
+    dept?: DepartmentType | 'all'
+  ) => Promise<void>;
+  markCommunicationRead: (communicationId: string) => Promise<void>;
   makeAdmissionsDecision: (appId: string, decision: 'conditional_offer' | 'unconditional_offer' | 'rejected', notes: string) => void;
   addStudent: (student: Partial<Student>) => Student;
   
@@ -139,31 +155,49 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
   useEffect(() => {
     if (loading) return;
 
-    const loadStudentApplications = async () => {
-      if (currentProfile?.account_type !== 'student' || !currentProfile?.id) {
+    const loadApplications = async () => {
+      if (!currentProfile?.id || currentProfile.account_type === 'unassigned') {
+        setApplications([]);
+        setDocuments([]);
+        setStatusHistory([]);
         setStudentApplicationsLoading(false);
         return;
       }
 
-      setStudentApplicationsLoading(true);
+      const isStudent = currentProfile.account_type === 'student';
+      setStudentApplicationsLoading(isStudent);
 
       try {
-        const { data, error } = await supabase
+        let applicationQuery = supabase
           .from('applications')
           .select('*')
-          .eq('student_id', currentProfile.id)
           .order('created_at', { ascending: false });
 
+        if (isStudent) {
+          applicationQuery = applicationQuery.eq('student_id', currentProfile.id);
+        }
+
+        const { data, error } = await applicationQuery;
+
         if (error) {
-          console.error('Error loading student applications:', error);
+          console.error('Error loading applications:', error);
           return;
         }
 
-        const studentApplications = (data || []) as Application[];
-        setApplications(studentApplications);
+        const applicationRows = (data || []) as Application[];
+        setApplications(applicationRows);
 
-        if (studentApplications.length === 0) {
+        if (applicationRows.length === 0) {
           setDocuments([]);
+          setStatusHistory([]);
+          return;
+        }
+
+        // Finance can see payment records but never confidential application
+        // documents or full case history.
+        if (currentProfile.department === 'finance' && !currentProfile.is_admin) {
+          setDocuments([]);
+          setStatusHistory([]);
           return;
         }
 
@@ -172,7 +206,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
           .select('*')
           .in(
             'application_id',
-            studentApplications.map((application) => application.id)
+            applicationRows.map((application) => application.id)
           )
           .order('created_at', { ascending: false });
 
@@ -195,7 +229,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
           .select('*')
           .in(
             'application_id',
-            studentApplications.map((application) => application.id)
+            applicationRows.map((application) => application.id)
           )
           .order('created_at', { ascending: false });
 
@@ -216,7 +250,37 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       }
     };
 
-    loadStudentApplications();
+    const loadFinancialRecords = async () => {
+      const mayViewFinancialRecords =
+        currentProfile?.account_type === 'student' ||
+        currentProfile?.is_admin ||
+        ['finance', 'admissions'].includes(currentProfile?.department || '');
+
+      if (!currentProfile?.id || currentProfile.account_type === 'unassigned' || !mayViewFinancialRecords) {
+        setFinancialRecords([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('financial_records')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading financial records:', error);
+        return;
+      }
+
+      setFinancialRecords(
+        (data || []).map((record) => ({
+          ...record,
+          amount: Number(record.amount),
+        })) as FinancialRecord[]
+      );
+    };
+
+    loadApplications();
+    loadFinancialRecords();
 
     const loadPartnerUniversities = async () => {
       const { data: universities, error: universitiesError } = await supabase
@@ -344,6 +408,57 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     currentProfile?.department,
     currentProfile?.is_admin,
   ]);
+
+  useEffect(() => {
+    if (loading || !currentProfile?.id || currentProfile.account_type === 'unassigned') {
+      setCommunications([]);
+      return;
+    }
+
+    let active = true;
+    const loadCommunications = async () => {
+      const { data, error } = await supabase
+        .from('department_communications')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading department communications:', error);
+        return;
+      }
+
+      if (!active) return;
+      setCommunications(
+        (data || []).map((message) => ({
+          id: message.id,
+          type: message.type as CommunicationType,
+          sender_id: message.sender_id,
+          sender_name: message.sender_name,
+          department: message.recipient_department as DepartmentType | 'all',
+          title: message.title,
+          body: message.body,
+          priority: message.priority as PriorityLevel,
+          is_read: message.is_read,
+          created_at: message.created_at,
+        })) as Communication[]
+      );
+    };
+
+    void loadCommunications();
+    const channel = supabase
+      .channel(`department-communications-${currentProfile.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'department_communications' },
+        () => void loadCommunications()
+      )
+      .subscribe();
+
+    return () => {
+      active = false;
+      void supabase.removeChannel(channel);
+    };
+  }, [loading, currentProfile?.id, currentProfile?.account_type]);
 
   if (loading) {
     return (
@@ -490,31 +605,81 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     })();
   };
 
-  // Hand off Lead/Draft Application from Marketing to Admissions
-  const handoffToAdmissions = (appId: string) => {
-    setApplications(prev =>
-      prev.map(app => {
-        if (app.id === appId) {
-          logAudit('HANDOFF_TO_ADMISSIONS', 'applications', appId, { handed_off: false }, { handed_off: true });
+  // A handoff is persisted before it appears in the Admissions queue. This
+  // avoids the old behaviour where a transfer disappeared after a refresh.
+  const handoffToAdmissions = async (appId: string) => {
+    const application = applications.find((app) => app.id === appId);
+    if (!application) {
+      throw new Error('The application could not be found for handoff.');
+    }
 
-          // Broadcast notification to Admissions
-          addCommunication(
-            'notification',
-            `Application ${app.application_number} Handed Off`,
-            `Marketing has transferred ${app.student_name}'s application for ${app.degree_program} at ${app.target_university} to Admissions.`,
-            'medium',
-            'admissions'
-          );
-
-          return {
-            ...app,
-            handed_off_to_admissions: true,
-            status: app.status === 'draft' ? 'submitted' : app.status,
-            updated_at: new Date().toISOString()
-          };
-        }
-        return app;
+    const nextStatus = application.status === 'draft' ? 'submitted' : application.status;
+    const updatedAt = new Date().toISOString();
+    const { error } = await supabase
+      .from('applications')
+      .update({
+        handed_off_to_admissions: true,
+        status: nextStatus,
       })
+      .eq('id', appId);
+
+    if (error) {
+      console.error('Unable to hand application to Admissions:', error);
+      throw new Error(error.message);
+    }
+
+    setApplications((previous) =>
+      previous.map((app) =>
+        app.id === appId
+          ? {
+              ...app,
+              handed_off_to_admissions: true,
+              status: nextStatus,
+              updated_at: updatedAt,
+            }
+          : app
+      )
+    );
+    if (nextStatus !== application.status) {
+      const actingDepartment =
+        currentProfile.account_type === 'student'
+          ? 'marketing'
+          : currentProfile.department;
+      const handoffHistory: ApplicationStatusHistory = {
+        id: `his-${Date.now()}`,
+        application_id: appId,
+        from_status: application.status,
+        to_status: nextStatus,
+        changed_by_name: currentProfile.full_name,
+        department: actingDepartment,
+        note: 'Application submitted and routed to Admissions.',
+        created_at: updatedAt,
+      };
+      setStatusHistory((previous) => [handoffHistory, ...previous]);
+      const { error: historyError } = await supabase
+        .from('application_status_history')
+        .insert({
+          application_id: appId,
+          from_status: application.status,
+          to_status: nextStatus,
+          changed_by_name: currentProfile.full_name,
+          department: actingDepartment,
+          note: handoffHistory.note,
+          created_at: updatedAt,
+        });
+
+      if (historyError) {
+        console.error('Unable to save Admissions handoff history:', historyError);
+      }
+    }
+    logAudit('HANDOFF_TO_ADMISSIONS', 'applications', appId, { handed_off: application.handed_off_to_admissions }, { handed_off: true });
+
+    addCommunication(
+      'notification',
+      `Application ${application.application_number} ready for Admissions`,
+      `${application.student_name}'s completed application has been routed to the Admissions review queue.`,
+      'high',
+      'admissions'
     );
   };
 
@@ -781,57 +946,230 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     logAudit('CREATE_INSTITUTION_TASK', 'institution_tasks', newTask.id, null, { title });
   };
 
-  // Process Fee Payment
-  const processFeePayment = (appId: string, amount: number, paymentRef: string) => {
+  // Records a payment confirmation only. Card details stay with the payment
+  // provider; Finance confirms the payment in its secure ledger.
+  const processFeePayment = async (appId: string, amount: number, paymentRef: string) => {
     const app = applications.find(a => a.id === appId);
+    if (!app || !currentProfile || currentProfile.account_type !== 'student') {
+      throw new Error('Only the student who owns this application can submit a payment confirmation.');
+    }
+
+    const { data, error } = await supabase
+      .from('financial_records')
+      .insert({
+        application_id: appId,
+        application_number: app.application_number,
+        student_id: app.student_id,
+        student_name: app.student_name,
+        record_type: 'registration_fee',
+        amount,
+        currency: 'USD',
+        status: 'pending',
+        payment_reference: paymentRef,
+        notes: 'Payment confirmation submitted by the student. Finance verification is required.',
+      })
+      .select('*')
+      .single();
+
+    if (error || !data) {
+      console.error('Unable to submit payment confirmation:', error);
+      throw new Error(error?.message || 'The payment confirmation could not be saved.');
+    }
+
     const newRecord: FinancialRecord = {
-      id: `fin-${Date.now()}`,
-      application_id: appId,
-      application_number: app ? app.application_number : 'GS-FEE',
-      student_id: app ? app.student_id : 'std-001',
-      student_name: app ? app.student_name : 'Student',
+      ...data,
+      amount: Number(data.amount),
+      status: data.status as FinancialRecord['status'],
       record_type: 'registration_fee',
-      amount,
-      currency: 'USD',
-      status: 'paid',
-      payment_reference: paymentRef,
-      approved_by_name: 'Stripe Gateway (Verified)',
-      notes: 'Registration fee successfully processed via Student Portal.',
-      created_at: new Date().toISOString()
     };
 
     setFinancialRecords(prev => [newRecord, ...prev]);
 
-    // Mark student fee paid
-    if (app) {
-      setStudents(stds =>
-        stds.map(s => (s.id === app.student_id ? { ...s, registration_fee_paid: true } : s))
-      );
-    }
-
-    logAudit('PROCESS_REGISTRATION_FEE', 'financial_records', newRecord.id, null, { amount, ref: paymentRef });
+    addCommunication(
+      'notification',
+      `Registration fee confirmation: ${app.application_number}`,
+      `${app.student_name} submitted a $${amount.toFixed(2)} USD registration-fee payment confirmation (${paymentRef}). Finance verification is required.`,
+      'high',
+      'finance'
+    );
+    addCommunication(
+      'notification',
+      `Payment status updated: ${app.application_number}`,
+      `${app.student_name} submitted a registration-fee payment confirmation. The application may proceed while Finance verifies it.`,
+      'medium',
+      'admissions'
+    );
+    logAudit('SUBMIT_REGISTRATION_FEE_CONFIRMATION', 'financial_records', newRecord.id, null, { amount, ref: paymentRef });
+    return newRecord;
   };
 
-  // Communication
-  const addCommunication = (
+  const reviewRegistrationPayment = async (
+    recordId: string,
+    approved: boolean,
+    note = ''
+  ): Promise<FinancialRecord> => {
+    if (!currentProfile || (!currentProfile.is_admin && currentProfile.department !== 'finance')) {
+      throw new Error('Only Finance or an administrator can verify a payment.');
+    }
+
+    const existingRecord = financialRecords.find((record) => record.id === recordId);
+    if (!existingRecord) {
+      throw new Error('The payment record could not be found.');
+    }
+
+    const status = approved ? 'paid' : 'rejected';
+    const verificationNote = note.trim() || (
+      approved
+        ? 'Finance verified the student payment confirmation.'
+        : 'Finance could not verify the submitted payment confirmation.'
+    );
+    const { data, error } = await supabase
+      .from('financial_records')
+      .update({
+        status,
+        approved_by_name: currentProfile.full_name,
+        notes: verificationNote,
+        verified_at: new Date().toISOString(),
+      })
+      .eq('id', recordId)
+      .select('*')
+      .single();
+
+    if (error || !data) {
+      console.error('Unable to verify payment:', error);
+      throw new Error(error?.message || 'The payment review could not be saved.');
+    }
+
+    const reviewedRecord: FinancialRecord = {
+      ...data,
+      amount: Number(data.amount),
+      status: data.status as FinancialRecord['status'],
+      record_type: data.record_type as FinancialRecord['record_type'],
+    };
+    setFinancialRecords((previous) =>
+      previous.map((record) => record.id === recordId ? reviewedRecord : record)
+    );
+    setStudents((previous) => previous.map((student) =>
+      student.id === reviewedRecord.student_id
+        ? { ...student, registration_fee_paid: approved }
+        : student
+    ));
+    addCommunication(
+      'notification',
+      `Finance ${approved ? 'verified' : 'rejected'} fee: ${reviewedRecord.application_number}`,
+      `Finance ${approved ? 'verified' : 'rejected'} ${reviewedRecord.student_name}'s registration-fee payment. ${verificationNote}`,
+      approved ? 'medium' : 'high',
+      'admissions'
+    );
+    logAudit('REVIEW_REGISTRATION_FEE', 'financial_records', recordId, { status: existingRecord.status }, { status });
+    return reviewedRecord;
+  };
+
+  const createFinancialRecord = async (
+    record: Omit<FinancialRecord, 'id' | 'created_at' | 'approved_by_name'>
+  ): Promise<FinancialRecord> => {
+    if (!currentProfile || (!currentProfile.is_admin && currentProfile.department !== 'finance')) {
+      throw new Error('Only Finance or an administrator can add a financial record.');
+    }
+
+    const { data, error } = await supabase
+      .from('financial_records')
+      .insert({
+        ...record,
+        amount: Number(record.amount),
+        approved_by_name: currentProfile.full_name,
+      })
+      .select('*')
+      .single();
+
+    if (error || !data) {
+      console.error('Unable to create financial record:', error);
+      throw new Error(error?.message || 'The financial record could not be created.');
+    }
+
+    const newRecord: FinancialRecord = {
+      ...data,
+      amount: Number(data.amount),
+      status: data.status as FinancialRecord['status'],
+      record_type: data.record_type as FinancialRecord['record_type'],
+    };
+    setFinancialRecords((previous) => [newRecord, ...previous]);
+    logAudit('CREATE_FINANCIAL_RECORD', 'financial_records', newRecord.id, null, {
+      application_id: newRecord.application_id,
+      record_type: newRecord.record_type,
+      amount: newRecord.amount,
+    });
+    return newRecord;
+  };
+
+  // Cross-department messages are stored in Supabase, so a recipient sees
+  // the same inbox after refresh or when they sign in from another device.
+  const addCommunication = async (
     type: CommunicationType,
     title: string,
     body: string,
     priority: PriorityLevel = 'medium',
-    dept?: any
-  ) => {
+    dept: DepartmentType | 'all' = 'admin'
+  ): Promise<void> => {
+    if (!currentProfile?.id) {
+      throw new Error('Sign in before sending a department communication.');
+    }
+
+    const { data, error } = await supabase
+      .from('department_communications')
+      .insert({
+        sender_id: currentProfile.id,
+        sender_name: `${currentProfile.full_name} (${currentProfile.department})`,
+        sender_department: currentProfile.department,
+        recipient_department: dept,
+        type,
+        title: title.trim(),
+        body: body.trim(),
+        priority,
+      })
+      .select('*')
+      .single();
+
+    if (error || !data) {
+      console.error('Unable to send department communication:', error);
+      throw new Error(error?.message || 'The department communication could not be sent.');
+    }
+
     const newComm: Communication = {
-      id: `com-${Date.now()}`,
-      type,
-      sender_name: `${currentProfile.full_name} (${currentProfile.department})`,
-      department: dept,
-      title,
-      body,
-      priority,
-      is_read: false,
-      created_at: new Date().toISOString()
+      id: data.id,
+      type: data.type as CommunicationType,
+      sender_id: data.sender_id,
+      sender_name: data.sender_name,
+      department: data.recipient_department as DepartmentType | 'all',
+      title: data.title,
+      body: data.body,
+      priority: data.priority as PriorityLevel,
+      is_read: data.is_read,
+      created_at: data.created_at,
     };
-    setCommunications(prev => [newComm, ...prev]);
+    setCommunications((previous) => [
+      newComm,
+      ...previous.filter((communication) => communication.id !== newComm.id),
+    ]);
+  };
+
+  const markCommunicationRead = async (communicationId: string) => {
+    const { error } = await supabase.rpc('mark_department_communication_read', {
+      p_communication_id: communicationId,
+    });
+
+    if (error) {
+      console.error('Unable to mark department communication as read:', error);
+      throw new Error(error.message);
+    }
+
+    setCommunications((previous) =>
+      previous.map((communication) =>
+        communication.id === communicationId
+          ? { ...communication, is_read: true }
+          : communication
+      )
+    );
   };
 
   // Admissions Decision
@@ -1428,7 +1766,10 @@ const createApplication = async (
         scheduleCounselingSession,
         createInstitutionTask,
         processFeePayment,
+        createFinancialRecord,
+        reviewRegistrationPayment,
         addCommunication,
+        markCommunicationRead,
         makeAdmissionsDecision,
         addStudent,
         createApplication,

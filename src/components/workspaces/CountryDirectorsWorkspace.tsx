@@ -9,6 +9,8 @@ export const CountryDirectorsWorkspace: React.FC = () => {
   const { currentProfile, logout } = useAuth();
 
   const [selectedCountry, setSelectedCountry] = useState<string>('United Kingdom');
+  const goTo = (sectionId: string) =>
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   const scopedAppsResult = getScopedApplications();
   const visibleApps = (scopedAppsResult.data || []).filter(a => a.target_country === selectedCountry);
@@ -19,8 +21,8 @@ export const CountryDirectorsWorkspace: React.FC = () => {
   const regionPartners = partnerUniversities.filter(p => p.country === selectedCountry);
 
   const sidebarNav = [
-    { label: 'Regional View', icon: <Globe style={{ width: 18, height: 18 }} />, active: true },
-    { label: 'Analytics', icon: <BarChart3 style={{ width: 18, height: 18 }} /> },
+    { label: 'Regional View', icon: <Globe style={{ width: 18, height: 18 }} />, active: true, onClick: () => goTo('regional-applications') },
+    { label: 'Analytics', icon: <BarChart3 style={{ width: 18, height: 18 }} />, onClick: () => goTo('regional-analytics') },
   ];
 
   return (
@@ -67,7 +69,7 @@ export const CountryDirectorsWorkspace: React.FC = () => {
       </div>
 
       {/* Region Overview Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+      <div id="regional-analytics" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
         <div className="glass-panel" style={{ padding: '18px' }}>
           <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Regional Target Applications</span>
           <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#2dd4bf', marginTop: '4px' }}>{visibleApps.length}</div>
@@ -88,7 +90,7 @@ export const CountryDirectorsWorkspace: React.FC = () => {
       </div>
 
       {/* Regional Applications Table */}
-      <div className="glass-panel" style={{ padding: '20px' }}>
+      <div id="regional-applications" className="glass-panel" style={{ padding: '20px' }}>
         <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '14px' }}>
           Applications Queue for Region: {selectedCountry}
         </h3>

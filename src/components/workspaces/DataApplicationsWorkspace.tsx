@@ -12,6 +12,8 @@ export const DataApplicationsWorkspace: React.FC = () => {
 
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
+  const goTo = (sectionId: string) =>
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   const kanbanColumns: { status: ApplicationStatus; title: string; color: string }[] = [
     { status: 'draft', title: 'Draft Applications', color: '#cbd5e1' },
@@ -23,8 +25,8 @@ export const DataApplicationsWorkspace: React.FC = () => {
   ];
 
   const sidebarNav = [
-    { label: 'Pipeline', icon: <Layers style={{ width: 18, height: 18 }} />, active: true },
-    { label: 'Kanban', icon: <Kanban style={{ width: 18, height: 18 }} /> },
+    { label: 'Pipeline', icon: <Layers style={{ width: 18, height: 18 }} />, active: true, onClick: () => { setViewMode('table'); goTo('data-pipeline'); } },
+    { label: 'Kanban', icon: <Kanban style={{ width: 18, height: 18 }} />, onClick: () => { setViewMode('kanban'); goTo('data-pipeline'); } },
   ];
 
   return (
@@ -37,7 +39,7 @@ export const DataApplicationsWorkspace: React.FC = () => {
       navigation={sidebarNav}
       onLogout={logout}
     >
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div id="data-pipeline" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
       {/* Banner */}
       <div className="glass-panel" style={{ padding: '20px 24px' }}>

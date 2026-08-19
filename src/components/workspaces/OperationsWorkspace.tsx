@@ -19,6 +19,8 @@ export const OperationsWorkspace: React.FC = () => {
   const [taskDesc, setTaskDesc] = useState('');
   const [taskAssignee, setTaskAssignee] = useState('Olivia Martinez (Ops)');
   const [taskDeadline, setTaskDeadline] = useState('2026-03-30');
+  const goTo = (sectionId: string) =>
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   const handleCreateTask = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,8 +37,8 @@ export const OperationsWorkspace: React.FC = () => {
   };
 
   const sidebarNav = [
-    { label: 'Tasks', icon: <ListTodo style={{ width: 18, height: 18 }} />, active: true },
-    { label: 'Submissions', icon: <Send style={{ width: 18, height: 18 }} /> },
+    { label: 'Tasks', icon: <ListTodo style={{ width: 18, height: 18 }} />, active: true, onClick: () => goTo('operations-tasks') },
+    { label: 'Submissions', icon: <Send style={{ width: 18, height: 18 }} />, onClick: () => goTo('operations-submissions') },
   ];
 
   return (
@@ -72,7 +74,7 @@ export const OperationsWorkspace: React.FC = () => {
       </div>
 
       {/* Task Board */}
-      <div className="glass-panel" style={{ padding: '20px' }}>
+      <div id="operations-tasks" className="glass-panel" style={{ padding: '20px' }}>
         <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '14px' }}>Active Institution Coordination Tasks</h3>
         
         <div className="custom-table-container">
@@ -118,6 +120,11 @@ export const OperationsWorkspace: React.FC = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div id="operations-submissions" className="glass-panel" style={{ padding: '18px 20px' }}>
+        <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '8px' }}>Institution submission readiness</h3>
+        <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.82rem', lineHeight: 1.5 }}>Create and track an institution task for each application before external submission. Escalations and next actions are shared through the team inbox.</p>
       </div>
 
       {/* Modal: Create Task */}

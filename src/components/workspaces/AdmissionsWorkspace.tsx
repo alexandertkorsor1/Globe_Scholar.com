@@ -7,7 +7,7 @@ import { DocumentManager } from '../documents/DocumentManager';
 import { Application } from '../../types/database';
 
 export const AdmissionsWorkspace: React.FC = () => {
-  const { applications, makeAdmissionsDecision } = useApplication();
+  const { applications, financialRecords, makeAdmissionsDecision } = useApplication();
   const { currentProfile, logout } = useAuth();
 
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
@@ -20,6 +20,8 @@ export const AdmissionsWorkspace: React.FC = () => {
   const [wCountry, setWCountry] = useState('United Kingdom');
   const [wStart, setWStart] = useState('2026-01-01');
   const [wEnd, setWEnd] = useState('2026-09-30');
+  const goTo = (sectionId: string) =>
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   const [admissionWindows, setAdmissionWindows] = useState([
     { id: 'w1', title: 'Fall 2026 UK Excellence Scholarships', target_country: 'United Kingdom', intake_period: 'Fall 2026', start_date: '2026-01-01', end_date: '2026-09-30', is_active: true },
@@ -53,9 +55,22 @@ export const AdmissionsWorkspace: React.FC = () => {
   };
 
   const sidebarNav = [
-    { label: 'Applications', icon: <ClipboardList style={{ width: 18, height: 18 }} />, active: true },
-    { label: 'Admission Windows', icon: <Calendar style={{ width: 18, height: 18 }} /> },
+    { label: 'Applications', icon: <ClipboardList style={{ width: 18, height: 18 }} />, active: true, onClick: () => goTo('admissions-queue') },
+    { label: 'Admission Windows', icon: <Calendar style={{ width: 18, height: 18 }} />, onClick: () => goTo('admission-windows') },
   ];
+
+  // Admissions only works applications formally handed into its queue. This
+  // prevents drafts and incomplete marketing leads appearing in decisions.
+  const admissionsQueue = applications.filter((application) =>
+    application.handed_off_to_admissions ||
+    ['admissions_review', 'decision_pending', 'approved', 'rejected'].includes(application.status)
+  );
+  const registrationFeeFor = (applicationId: string) =>
+    financialRecords.find(
+      (record) =>
+        record.application_id === applicationId &&
+        record.record_type === 'registration_fee'
+    );
 
   return (
     <DashboardLayout
@@ -78,7 +93,7 @@ export const AdmissionsWorkspace: React.FC = () => {
               <h2 style={{ fontSize: '1.25rem', color: '#111827' }}>Admissions & Eligibility Workspace</h2>
             </div>
             <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '4px' }}>
-              Admission windows setup, eligibility screening, document review, and formal offer decisions.
+              Admission windows, eligibility screening, document review, formal offer decisions, and live Finance payment status.
             </p>
           </div>
 
@@ -90,7 +105,7 @@ export const AdmissionsWorkspace: React.FC = () => {
       </div>
 
       {/* Active Admission Windows List */}
-      <div className="glass-panel" style={{ padding: '16px 20px' }}>
+      <div id="admission-windows" className="glass-panel" style={{ padding: '16px 20px' }}>
         <h3 style={{ fontSize: '0.9rem', color: '#fff', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
           <Calendar style={{ color: '#c084fc', width: '16px', height: '16px' }} />
           Active Admission Windows & Eligibility Thresholds
@@ -111,7 +126,7 @@ export const AdmissionsWorkspace: React.FC = () => {
       </div>
 
       {/* Admissions Review Queue Table */}
-      <div className="glass-panel" style={{ padding: '20px' }}>
+      <div id="admissions-queue" className="glass-panel" style={{ padding: '20px' }}>
         <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '14px' }}>Admissions Decisions & Applicant Review Queue</h3>
 
         <div className="custom-table-container">
@@ -123,12 +138,15 @@ export const AdmissionsWorkspace: React.FC = () => {
                 <th>Target University</th>
                 <th>Program & Country</th>
                 <th>Missing Docs</th>
+                <th>Fee Status</th>
                 <th>Admissions Decision</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {applications.map(app => (
+              {admissionsQueue.map(app => {
+                const registrationFee = registrationFeeFor(app.id);
+                return (
                 <tr key={app.id}>
                   <td><strong style={{ color: '#c084fc' }}>{app.application_number}</strong></td>
                   <td style={{ fontWeight: 600, color: '#fff' }}>{app.student_name}</td>
@@ -141,6 +159,15 @@ export const AdmissionsWorkspace: React.FC = () => {
                       <span className="badge badge-documents_missing">{app.missing_documents_count} Missing</span>
                     ) : (
                       <span className="badge badge-documents_verified">0 Missing</span>
+                    )}
+                  </td>
+                  <td>
+                    {registrationFee ? (
+                      <span className={`badge badge-${registrationFee.status === 'paid' ? 'approved' : registrationFee.status === 'rejected' ? 'rejected' : 'under_review'}`}>
+                        {registrationFee.status === 'paid' ? 'VERIFIED' : registrationFee.status === 'rejected' ? 'REJECTED' : 'AWAITING FINANCE'}
+                      </span>
+                    ) : (
+                      <span className="badge badge-draft">NOT SUBMITTED</span>
                     )}
                   </td>
                   <td>
@@ -176,7 +203,15 @@ export const AdmissionsWorkspace: React.FC = () => {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
+              {admissionsQueue.length === 0 && (
+                <tr>
+                  <td colSpan={8} style={{ padding: '28px', textAlign: 'center', color: '#94a3b8' }}>
+                    No completed applications have been routed to Admissions yet.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

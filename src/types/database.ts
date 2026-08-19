@@ -304,9 +304,10 @@ export interface DepartmentReportSubmission {
 export interface Communication {
   id: string;
   type: CommunicationType;
+  sender_id?: string;
   sender_name: string;
   recipient_name?: string;
-  department?: DepartmentType;
+  department?: DepartmentType | 'all';
   related_student_name?: string;
   related_application_number?: string;
   title: string;

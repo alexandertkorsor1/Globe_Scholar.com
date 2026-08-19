@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileUp } from 'lucide-react';
+import { ArrowRight, FileUp, MessageSquare } from 'lucide-react';
 import {
   DashboardSidebar,
   DashboardNavigationItem,
@@ -11,6 +11,7 @@ import {
   DepartmentSettingsPreferences,
 } from './DepartmentSettingsModal';
 import { DepartmentReportModal } from '../reports/DepartmentReportModal';
+import { CommunicationHub } from '../communication/CommunicationHub';
 import { useAuth } from '../../context/AuthContext';
 import { useApplication } from '../../context/ApplicationContext';
 
@@ -44,13 +45,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   onSettings,
 }) => {
   const { currentProfile } = useAuth();
-  const { submitDepartmentReport } = useApplication();
+  const { submitDepartmentReport, communications } = useApplication();
   const settingsStorageKey = `report-com:${department
     .toLowerCase()
     .replace(/\s+/g, '-')}:settings`;
   const [showSettings, setShowSettings] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [showDepartmentReport, setShowDepartmentReport] = useState(false);
+  const [showCommunications, setShowCommunications] = useState(false);
   const [preferences, setPreferences] =
     useState<DepartmentSettingsPreferences>(() => {
       try {
@@ -78,6 +80,23 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     currentProfile.account_type === 'staff' &&
     !currentProfile.is_admin &&
     currentProfile.department !== 'admin';
+  const unreadCommunications = communications.filter(
+    (communication) =>
+      !communication.is_read &&
+      communication.sender_id !== currentProfile.id &&
+      (communication.department === currentProfile.department || communication.department === 'all')
+  ).length;
+  const workflowDestinations: Partial<Record<typeof currentProfile.department, string>> = {
+    marketing: 'Counseling and Admissions',
+    counseling: 'Data & Applications',
+    data_applications: 'Admissions',
+    admissions: 'Finance and Operations',
+    finance: 'Admissions',
+    operations: 'Country Directors',
+    country_directors: 'Admin',
+    admin: 'All departments',
+  };
+  const nextWorkflowTeam = workflowDestinations[currentProfile.department] || 'Admin';
 
   return (
     <div
@@ -110,9 +129,15 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           subtitle={subtitle}
           userName={userName}
           userRole={userRole}
-          notificationCount={notificationCount}
-          onNotifications={onNotifications}
-          onMessages={onMessages}
+          notificationCount={notificationCount ?? unreadCommunications}
+          onNotifications={() => {
+            onNotifications?.();
+            setShowCommunications(true);
+          }}
+          onMessages={() => {
+            onMessages?.();
+            setShowCommunications(true);
+          }}
           onLogout={onLogout}
           onSettings={() => {
             onSettings?.();
@@ -128,6 +153,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               : undefined
           }
         />
+        <div style={{ margin: '14px 28px 0', padding: '11px 14px', border: '1px solid #dbe5fa', borderRadius: '10px', background: '#f8fbff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
+            <MessageSquare size={17} color="#2f62e8" />
+            <span style={{ color: '#465675', fontSize: '12px' }}><strong style={{ color: '#193572' }}>Connected workflow:</strong> {department} works next with {nextWorkflowTeam}.</span>
+          </div>
+          <button type="button" onClick={() => setShowCommunications(true)} style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '5px', border: 0, background: 'transparent', color: '#2858c5', fontSize: '12px', fontWeight: 750, cursor: 'pointer' }}>Open team inbox <ArrowRight size={14} /></button>
+        </div>
         <main
           style={{
             flex: 1,
@@ -162,6 +194,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           onSubmit={submitDepartmentReport}
         />
       )}
+
+      <CommunicationHub
+        isOpen={showCommunications}
+        onClose={() => setShowCommunications(false)}
+      />
     </div>
   );
 };

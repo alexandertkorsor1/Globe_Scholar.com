@@ -203,13 +203,17 @@ export const AdminWorkspace: React.FC = () => {
     }
   };
 
-  const handleGlobalNotify = (e: React.FormEvent) => {
+  const handleGlobalNotify = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!noticeTitle || !noticeBody) return;
-    addCommunication('alert', noticeTitle, noticeBody, 'high');
-    setShowGlobalNotifyModal(false);
-    setNoticeTitle('');
-    setNoticeBody('');
+    try {
+      await addCommunication('alert', noticeTitle, noticeBody, 'high', 'all');
+      setShowGlobalNotifyModal(false);
+      setNoticeTitle('');
+      setNoticeBody('');
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'The global notice could not be sent.');
+    }
   };
 
   const handleDeletePartner = async () => {
@@ -446,7 +450,7 @@ export const AdminWorkspace: React.FC = () => {
       {activeTab === 'drilldown' && (
         <div className="glass-panel" style={{ padding: '20px' }}>
           <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '14px' }}>
-            Multi-Department Drill-Down Engine (Department → Staff → Student → Application → Activity)
+            Department Performance & Report Review
           </h3>
 
           <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', overflowX: 'auto' }}>
@@ -469,44 +473,6 @@ export const AdminWorkspace: React.FC = () => {
             onReview={reviewDepartmentReport}
           />
 
-          <div className="custom-table-container">
-            <table className="custom-table">
-              <thead>
-                <tr>
-                  <th>Application #</th>
-                  <th>Student Name</th>
-                  <th>Target Institution</th>
-                  <th>Status</th>
-                  <th>Last Handled By</th>
-                  <th>Activity History Note</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {applications.map(app => {
-                  const lastHist = statusHistory.find(h => h.application_id === app.id);
-                  return (
-                    <tr key={app.id}>
-                      <td><strong style={{ color: '#6366f1' }}>{app.application_number}</strong></td>
-                      <td>{app.student_name}</td>
-                      <td>{app.target_university} ({app.target_country})</td>
-                      <td><span className={`badge badge-${app.status}`}>{app.status}</span></td>
-                      <td>{lastHist?.changed_by_name || 'System Engine'}</td>
-                      <td style={{ fontSize: '0.78rem', color: '#94a3b8' }}>{lastHist?.note || 'Initial record registered.'}</td>
-                      <td>
-                        <button
-                          onClick={() => setSelectedApplication(app)}
-                          className="btn btn-primary btn-sm"
-                        >
-                          Open Application
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
         </div>
       )}
 

@@ -20,7 +20,7 @@ interface CommunicationHubProps {
 }
 
 export const CommunicationHub: React.FC<CommunicationHubProps> = ({ isOpen, onClose }) => {
-  const { communications, addCommunication } = useApplication();
+  const { communications, addCommunication, markCommunicationRead } = useApplication();
   const { currentProfile } = useAuth();
 
   const [activeTab, setActiveTab] = useState<CommunicationType | 'all'>('all');
@@ -31,7 +31,9 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ isOpen, onCl
   const [msgTitle, setMsgTitle] = useState('');
   const [msgBody, setMsgBody] = useState('');
   const [msgPriority, setMsgPriority] = useState<PriorityLevel>('medium');
-  const [targetDept, setTargetDept] = useState<DepartmentType>('operations');
+  const [targetDept, setTargetDept] = useState<DepartmentType | 'all'>('operations');
+  const [sendError, setSendError] = useState('');
+  const [isSending, setIsSending] = useState(false);
 
   if (!isOpen) return null;
 
@@ -40,14 +42,30 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ isOpen, onCl
     return c.type === activeTab;
   });
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!msgTitle || !msgBody) return;
 
-    addCommunication(msgType, msgTitle, msgBody, msgPriority, targetDept);
-    setMsgTitle('');
-    setMsgBody('');
-    setShowNewMsgModal(false);
+    setIsSending(true);
+    setSendError('');
+    try {
+      await addCommunication(msgType, msgTitle, msgBody, msgPriority, targetDept);
+      setMsgTitle('');
+      setMsgBody('');
+      setShowNewMsgModal(false);
+    } catch (error) {
+      setSendError(error instanceof Error ? error.message : 'The communication could not be sent.');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleMarkRead = async (communicationId: string) => {
+    try {
+      await markCommunicationRead(communicationId);
+    } catch (error) {
+      setSendError(error instanceof Error ? error.message : 'The message could not be marked as read.');
+    }
   };
 
   const getPriorityBadge = (p: PriorityLevel) => {
@@ -168,7 +186,16 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ isOpen, onCl
               <p style={{ fontSize: '0.85rem' }}>No communications found in this filter.</p>
             </div>
           ) : (
-            filteredComms.map(item => (
+            filteredComms.map(item => {
+              const isRecipient =
+                item.department === currentProfile.department ||
+                item.department === 'all';
+              const canMarkRead =
+                isRecipient &&
+                item.sender_id !== currentProfile.id &&
+                !item.is_read;
+
+              return (
               <div
                 key={item.id}
                 className="glass-panel"
@@ -192,10 +219,18 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ isOpen, onCl
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                   <span>From: <strong style={{ color: '#94a3b8' }}>{item.sender_name}</strong></span>
-                  <span>{new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+                    <span>{item.department === 'all' ? 'All departments' : `To: ${item.department?.replace('_', ' ') || 'Admin'}`}</span>
+                    {canMarkRead ? (
+                      <button type="button" onClick={() => void handleMarkRead(item.id)} style={{ border: 0, borderRadius: '6px', padding: '4px 7px', background: 'rgba(99,102,241,.2)', color: '#c7d2fe', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>Mark read</button>
+                    ) : (
+                      <span>{item.is_read ? 'Read' : new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    )}
+                  </div>
                 </div>
               </div>
-            ))
+              );
+            })
           )}
         </div>
 
@@ -246,11 +281,17 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ isOpen, onCl
                   style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}
                 >
                   <option value="admissions">Admissions</option>
+                  <option value="marketing">Marketing</option>
                   <option value="operations">Operations</option>
                   <option value="finance">Finance</option>
                   <option value="counseling">Counseling</option>
                   <option value="data_applications">Data & Applications</option>
+                  <option value="country_directors">Country Directors</option>
                   <option value="admin">Admin</option>
+                  <option value="it_support">IT Support</option>
+                  <option value="legal_compliance">Legal & Compliance</option>
+                  <option value="alumni_success">Alumni Success</option>
+                  {currentProfile.is_admin && <option value="all">All departments</option>}
                 </select>
               </div>
 
@@ -292,11 +333,15 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ isOpen, onCl
                 />
               </div>
 
+              {sendError && (
+                <div role="alert" style={{ borderRadius: '8px', padding: '10px 12px', background: 'rgba(239,68,68,.14)', color: '#fecaca', fontSize: '0.78rem' }}>{sendError}</div>
+              )}
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
                 <button type="button" onClick={() => setShowNewMsgModal(false)} className="btn btn-secondary btn-sm">Cancel</button>
-                <button type="submit" className="btn btn-primary btn-sm">
+                <button type="submit" disabled={isSending} className="btn btn-primary btn-sm">
                   <Send style={{ width: '14px', height: '14px' }} />
-                  Send Communication
+                  {isSending ? 'Sending…' : 'Send communication'}
                 </button>
               </div>
             </form>

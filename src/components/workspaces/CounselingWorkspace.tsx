@@ -22,6 +22,8 @@ export const CounselingWorkspace: React.FC = () => {
   const [scheduledAt, setScheduledAt] = useState('2026-03-25T14:00');
   const [meetLink, setMeetLink] = useState('https://meet.google.com/gsp-advisory-2026');
   const [sessionNotes, setSessionNotes] = useState('');
+  const goTo = (sectionId: string) =>
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   const scopedSessionsResult = getScopedCounselingSessions();
   const visibleSessions = scopedSessionsResult.data || [];
@@ -46,8 +48,8 @@ export const CounselingWorkspace: React.FC = () => {
   };
 
   const sidebarNav = [
-    { label: 'Sessions', icon: <Video style={{ width: 18, height: 18 }} />, active: true },
-    { label: 'Students', icon: <Users style={{ width: 18, height: 18 }} /> },
+    { label: 'Sessions', icon: <Video style={{ width: 18, height: 18 }} />, active: true, onClick: () => goTo('counseling-sessions') },
+    { label: 'Students', icon: <Users style={{ width: 18, height: 18 }} />, onClick: () => goTo('counseling-students') },
   ];
 
   return (
@@ -81,7 +83,7 @@ export const CounselingWorkspace: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '20px' }}>
         
         {/* Left Column: Assigned Students */}
-        <div className="glass-panel" style={{ padding: '20px' }}>
+        <div id="counseling-students" className="glass-panel" style={{ padding: '20px' }}>
           <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '14px' }}>Assigned Students & Advising Profiles</h3>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -137,7 +139,7 @@ export const CounselingWorkspace: React.FC = () => {
         </div>
 
         {/* Right Column: Google Meet Sessions & Timeline */}
-        <div className="glass-panel" style={{ padding: '20px' }}>
+        <div id="counseling-sessions" className="glass-panel" style={{ padding: '20px' }}>
           <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '14px' }}>
             {selectedStudent ? `Meeting Timeline: ${selectedStudent.first_name} ${selectedStudent.last_name}` : 'All Scheduled Counseling Sessions'}
           </h3>

@@ -1,15 +1,26 @@
 import React, { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
-type AuthMode = 'login' | 'student-signup';
+export type AuthMode = 'login' | 'student-signup' | 'forgot-password';
 
-export const Login: React.FC = () => {
-  const [mode, setMode] = useState<AuthMode>('login');
+interface LoginProps {
+  initialMode?: AuthMode;
+  onBack?: () => void;
+}
+
+export const Login: React.FC<LoginProps> = ({
+  initialMode = 'login',
+  onBack,
+}) => {
+  const [mode, setMode] = useState<AuthMode>(initialMode);
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -121,12 +132,37 @@ export const Login: React.FC = () => {
     setLoading(false);
   };
 
+  const handlePasswordReset = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    const resetUrl = `${window.location.origin}${window.location.pathname}?reset-password=true`;
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+      email.trim(),
+      { redirectTo: resetUrl }
+    );
+
+    setLoading(false);
+
+    if (resetError) {
+      console.error('Password reset request failed:', resetError);
+      setError(resetError.message);
+      return;
+    }
+
+    setSuccess('If this email has an account, a secure password-reset link has been sent. Check your inbox and spam folder.');
+  };
+
   const switchMode = (newMode: AuthMode) => {
     setMode(newMode);
     setError('');
     setSuccess('');
     setPassword('');
     setConfirmPassword('');
+    setShowPassword(false);
+    setShowConfirmPassword(false);
   };
 
   const inputStyle: React.CSSProperties = {
@@ -163,6 +199,27 @@ export const Login: React.FC = () => {
         background: '#f6f7f9',
       }}
     >
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          style={{
+            position: 'fixed',
+            top: '20px',
+            left: '24px',
+            border: '1px solid #d7deea',
+            borderRadius: '9px',
+            background: '#ffffff',
+            color: '#244486',
+            padding: '9px 12px',
+            fontSize: '13px',
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          ← Back to site
+        </button>
+      )}
       <div
         style={{
           width: '100%',
@@ -229,7 +286,9 @@ export const Login: React.FC = () => {
           >
             {mode === 'login'
               ? 'Staff & Student Portal'
-              : 'Student Registration'}
+              : mode === 'student-signup'
+                ? 'Student Registration'
+                : 'Password Recovery'}
           </p>
         </div>
 
@@ -268,27 +327,39 @@ export const Login: React.FC = () => {
               Password
             </label>
 
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(event) =>
-                setPassword(event.target.value)
-              }
-              placeholder="Enter your password"
-              autoComplete="current-password"
-              required
-              style={inputStyle}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#3366FF';
-                e.target.style.boxShadow =
-                  '0 0 0 3px rgba(51, 102, 255, 0.1)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = '#e5e7eb';
-                e.target.style.boxShadow = 'none';
-              }}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Enter your password"
+                autoComplete="current-password"
+                required
+                style={{ ...inputStyle, paddingRight: '70px' }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3366FF';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(51, 102, 255, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e5e7eb';
+                  e.target.style.boxShadow = 'none';
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((visible) => !visible)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                style={{ position: 'absolute', top: '10px', right: '9px', display: 'inline-flex', alignItems: 'center', gap: '4px', border: 0, background: 'transparent', color: '#315cc8', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
+
+            <button type="button" onClick={() => switchMode('forgot-password')} style={{ display: 'block', margin: '-5px 0 18px auto', padding: 0, border: 0, background: 'transparent', color: '#315cc8', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+              Forgot password?
+            </button>
 
             {error && (
               <div
@@ -376,7 +447,7 @@ export const Login: React.FC = () => {
               Create Student Account
             </button>
           </form>
-        ) : (
+        ) : mode === 'student-signup' ? (
           <form onSubmit={handleStudentSignup}>
             <label
               htmlFor="fullName"
@@ -443,27 +514,12 @@ export const Login: React.FC = () => {
               Password
             </label>
 
-            <input
-              id="student-password"
-              type="password"
-              value={password}
-              onChange={(event) =>
-                setPassword(event.target.value)
-              }
-              placeholder="Create a password"
-              autoComplete="new-password"
-              required
-              style={inputStyle}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#3366FF';
-                e.target.style.boxShadow =
-                  '0 0 0 3px rgba(51, 102, 255, 0.1)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = '#e5e7eb';
-                e.target.style.boxShadow = 'none';
-              }}
-            />
+            <div style={{ position: 'relative' }}>
+              <input id="student-password" type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Create a password" autoComplete="new-password" required style={{ ...inputStyle, paddingRight: '70px' }} />
+              <button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Hide password' : 'Show password'} style={{ position: 'absolute', top: '10px', right: '9px', display: 'inline-flex', alignItems: 'center', gap: '4px', border: 0, background: 'transparent', color: '#315cc8', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}>
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}{showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
 
             <label
               htmlFor="confirm-password"
@@ -472,27 +528,12 @@ export const Login: React.FC = () => {
               Confirm password
             </label>
 
-            <input
-              id="confirm-password"
-              type="password"
-              value={confirmPassword}
-              onChange={(event) =>
-                setConfirmPassword(event.target.value)
-              }
-              placeholder="Confirm your password"
-              autoComplete="new-password"
-              required
-              style={inputStyle}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#3366FF';
-                e.target.style.boxShadow =
-                  '0 0 0 3px rgba(51, 102, 255, 0.1)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = '#e5e7eb';
-                e.target.style.boxShadow = 'none';
-              }}
-            />
+            <div style={{ position: 'relative' }}>
+              <input id="confirm-password" type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Confirm your password" autoComplete="new-password" required style={{ ...inputStyle, paddingRight: '70px' }} />
+              <button type="button" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={showConfirmPassword ? 'Hide confirmation password' : 'Show confirmation password'} style={{ position: 'absolute', top: '10px', right: '9px', display: 'inline-flex', alignItems: 'center', gap: '4px', border: 0, background: 'transparent', color: '#315cc8', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}>
+                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}{showConfirmPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
 
             {error && (
               <div
@@ -575,6 +616,25 @@ export const Login: React.FC = () => {
               Back to Sign In
             </button>
           </form>
+        ) : (
+          <form onSubmit={handlePasswordReset}>
+            <p style={{ margin: '0 0 20px', color: '#5b677a', fontSize: '14px', lineHeight: 1.55 }}>
+              Enter your account email and we will send a secure link to choose a new password.
+            </p>
+
+            <label htmlFor="reset-email" style={labelStyle}>Email address</label>
+            <input id="reset-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" required style={inputStyle} />
+
+            {error && <div role="alert" style={{ marginBottom: '18px', padding: '12px 14px', borderRadius: '10px', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: '13px' }}>{error}</div>}
+            {success && <div role="status" style={{ marginBottom: '18px', padding: '12px 14px', borderRadius: '10px', background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', fontSize: '13px', lineHeight: 1.45 }}>{success}</div>}
+
+            <button type="submit" disabled={loading} style={{ width: '100%', padding: '13px', border: 'none', borderRadius: '10px', background: loading ? '#93c5fd' : '#3366FF', color: '#ffffff', fontSize: '15px', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-body)', boxShadow: '0 2px 8px rgba(51, 102, 255, 0.25)' }}>
+              {loading ? 'Sending reset link...' : 'Send password reset link'}
+            </button>
+            <button type="button" onClick={() => switchMode('login')} style={{ width: '100%', marginTop: '12px', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '10px', background: '#ffffff', color: '#374151', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+              Back to Sign In
+            </button>
+          </form>
         )}
 
         <div
@@ -587,7 +647,9 @@ export const Login: React.FC = () => {
         >
           {mode === 'login'
             ? 'Authorized staff and student access'
-            : 'Student accounts only'}
+            : mode === 'student-signup'
+              ? 'Student accounts only'
+              : 'Secure account recovery'}
         </div>
       </div>
     </div>

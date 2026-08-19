@@ -23,6 +23,9 @@ export const DashboardSidebar: React.FC<
   DashboardSidebarProps
 > = ({ department, items }) => {
   const [collapsed, setCollapsed] = useState(false);
+  const [selectedLabel, setSelectedLabel] = useState(
+    () => items.find((item) => item.active)?.label || items[0]?.label || ''
+  );
   const [expandedMenus, setExpandedMenus] = useState<
     Record<string, boolean>
   >({});
@@ -120,6 +123,7 @@ export const DashboardSidebar: React.FC<
             item.children && item.children.length > 0;
           const isExpanded =
             expandedMenus[item.label] ?? false;
+          const isActive = selectedLabel === item.label;
 
           return (
             <div key={item.label}>
@@ -129,6 +133,7 @@ export const DashboardSidebar: React.FC<
                   if (hasChildren) {
                     toggleMenu(item.label);
                   } else {
+                    setSelectedLabel(item.label);
                     item.onClick?.();
                   }
                 }}
@@ -146,16 +151,16 @@ export const DashboardSidebar: React.FC<
                   marginBottom: '4px',
                   border: 'none',
                   borderRadius: '10px',
-                  background: item.active
+                  background: isActive
                     ? '#3366FF'
                     : 'transparent',
-                  color: item.active
+                  color: isActive
                     ? '#ffffff'
                     : '#4b5563',
                   cursor: 'pointer',
                   textAlign: 'left',
                   fontSize: '14px',
-                  fontWeight: item.active ? 600 : 500,
+                  fontWeight: isActive ? 600 : 500,
                   fontFamily: 'var(--font-body)',
                   transition: 'background 0.15s, color 0.15s',
                   whiteSpace: 'nowrap',
@@ -219,22 +224,25 @@ export const DashboardSidebar: React.FC<
                       <button
                         key={child.label}
                         type="button"
-                        onClick={child.onClick}
+                        onClick={() => {
+                          setSelectedLabel(child.label);
+                          child.onClick?.();
+                        }}
                         style={{
                           width: '100%',
                           display: 'block',
                           padding: '8px 12px',
                           border: 'none',
-                          background: child.active
+                          background: selectedLabel === child.label
                             ? '#eff6ff'
                             : 'transparent',
-                          color: child.active
+                          color: selectedLabel === child.label
                             ? '#3366FF'
                             : '#6b7280',
                           cursor: 'pointer',
                           textAlign: 'left',
                           fontSize: '13px',
-                          fontWeight: child.active
+                          fontWeight: selectedLabel === child.label
                             ? 600
                             : 400,
                           borderRadius: '8px',

@@ -33,9 +33,10 @@ export const StudentPortal: React.FC = () => {
   const {
     applications,
     documents,
+    financialRecords,
     processFeePayment,
+    handoffToAdmissions,
     addDocument,
-    updateApplicationStatus,
     statusHistory,
     createApplication,
     studentApplicationsLoading,
@@ -65,10 +66,11 @@ export const StudentPortal: React.FC = () => {
     'GSP Merit Fellowship'
   );
 
-  const [cardNumber, setCardNumber] = useState('4242 •••• •••• 4242');
-  const [expiry, setExpiry] = useState('12/28');
-  const [cvc, setCvc] = useState('992');
+  const [paymentProvider, setPaymentProvider] = useState('Bank transfer');
+  const [paymentReference, setPaymentReference] = useState('');
   const [feePaidSuccess, setFeePaidSuccess] = useState(false);
+  const [feePaymentMessage, setFeePaymentMessage] = useState('');
+  const [isSubmittingFee, setIsSubmittingFee] = useState(false);
   const [creatingInitialApplication, setCreatingInitialApplication] =
     useState(false);
   const [applicationCreationError, setApplicationCreationError] =
@@ -101,6 +103,15 @@ export const StudentPortal: React.FC = () => {
   );
   const allRequiredDocumentsUploaded =
     uploadedRequirementCount === requiredDocuments.length;
+  const registrationFeeRecord = myApp
+    ? financialRecords.find(
+        (record) =>
+          record.application_id === myApp.id &&
+          record.record_type === 'registration_fee' &&
+          record.status !== 'rejected'
+      )
+    : undefined;
+  const hasPaymentConfirmation = feePaidSuccess || Boolean(registrationFeeRecord);
 
   // A database trigger creates the draft during signup. This client-side
   // fallback covers student accounts created before that migration was run.
@@ -266,7 +277,7 @@ export const StudentPortal: React.FC = () => {
     return true;
   };
 
-  const handleFinalSubmit = () => {
+  const handleFinalSubmit = async () => {
     if (!allRequiredDocumentsUploaded) {
       setActiveStep(2);
       setDocumentUploadMessage(
@@ -275,12 +286,22 @@ export const StudentPortal: React.FC = () => {
       return;
     }
 
-    if (!feePaidSuccess) {
-      alert('Please complete the inline registration fee payment step before final application submission.');
+    if (!hasPaymentConfirmation) {
+      setActiveStep(3);
+      setFeePaymentMessage('Submit your payment confirmation before sending the application to Admissions.');
       return;
     }
-    updateApplicationStatus(myApp.id, 'submitted', 'Final application submitted by student via portal wizard.');
-    alert('Congratulations! Your application has been officially submitted and routed to Data & Admissions.');
+    if (myApp.handed_off_to_admissions) {
+      alert('Your application has already been sent to Admissions. You can follow its progress from your application journey.');
+      return;
+    }
+    try {
+      await handoffToAdmissions(myApp.id);
+      alert('Your application has been sent to Admissions. Finance will verify your payment confirmation separately.');
+    } catch (error) {
+      console.error('Unable to route application to Admissions:', error);
+      alert('Your application was submitted, but it could not be routed to Admissions. Please refresh the page and try again.');
+    }
   };
 
   const handleSaveProfile = async () => {
@@ -355,11 +376,35 @@ export const StudentPortal: React.FC = () => {
     setPasswordMessage('Password changed successfully. Keep it private and secure.');
   };
 
-  const handlePayFee = (e: React.FormEvent) => {
+  const handlePayFee = async (e: React.FormEvent) => {
     e.preventDefault();
-    processFeePayment(myApp.id, 150.00, `PAY-PORTAL-${Date.now()}`);
-    setFeePaidSuccess(true);
-    alert('Payment of $150.00 USD verified! Receipt generated.');
+    const reference = paymentReference.trim();
+    if (!reference) {
+      setFeePaymentMessage('Enter the reference issued by your payment provider.');
+      return;
+    }
+
+    setIsSubmittingFee(true);
+    setFeePaymentMessage('');
+    try {
+      const record = await processFeePayment(
+        myApp.id,
+        150.00,
+        `${paymentProvider}: ${reference}`
+      );
+      setFeePaidSuccess(true);
+      setFeePaymentMessage(
+        `Payment confirmation ${record.payment_reference} is now visible in the Finance ledger and Admissions queue.`
+      );
+    } catch (error) {
+      setFeePaymentMessage(
+        error instanceof Error
+          ? error.message
+          : 'We could not submit your payment confirmation. Please try again.'
+      );
+    } finally {
+      setIsSubmittingFee(false);
+    }
   };
 
   // Milestone Progress Tracker Logic
@@ -749,51 +794,63 @@ export const StudentPortal: React.FC = () => {
         </div>
       )}
 
-      {/* Step 3: Inline Fee Payment Gateway */}
+      {/* Step 3: Registration fee confirmation */}
       {activeStep === 3 && (
         <div className="glass-panel" style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
           <div>
             <h3 style={{ fontSize: '1.05rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <CreditCard style={{ color: '#10b981' }} />
-              Inline Portal Registration Fee Payment
+              Registration Fee Confirmation
             </h3>
             <p style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-              Standard application processing fee: <strong style={{ color: '#34d399' }}>$150.00 USD</strong>. Paid directly to Finance ledger.
+              Standard application processing fee: <strong style={{ color: '#34d399' }}>$150.00 USD</strong>. Submit the reference from your payment provider; Finance verifies it before it is marked as paid.
             </p>
           </div>
 
-          {feePaidSuccess ? (
+          {hasPaymentConfirmation ? (
             <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10b981', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
               <CheckCircle2 style={{ color: '#34d399', width: '36px', height: '36px', margin: '0 auto 8px auto' }} />
-              <h4 style={{ fontSize: '1rem', color: '#fff' }}>Registration Fee Cleared</h4>
+              <h4 style={{ fontSize: '1rem', color: '#fff' }}>
+                {registrationFeeRecord?.status === 'paid' ? 'Registration Fee Verified' : 'Payment Confirmation Received'}
+              </h4>
               <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
-                Transaction Receipt: <span style={{ color: '#06b6d4', fontFamily: 'monospace' }}>PAY-PORTAL-STRIPE-8912039</span>
+                Reference: <span style={{ color: '#06b6d4', fontFamily: 'monospace' }}>{registrationFeeRecord?.payment_reference || paymentReference}</span>
+              </p>
+              <p style={{ fontSize: '0.78rem', color: '#cbd5e1', marginTop: '8px' }}>
+                {registrationFeeRecord?.status === 'paid'
+                  ? 'Finance has verified this payment. Admissions can see the cleared status.'
+                  : 'Finance verification is pending. Admissions can see the payment status in the application queue.'}
               </p>
             </div>
           ) : (
             <form onSubmit={handlePayFee} style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '480px' }}>
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Card Number</label>
-                <input type="text" value={cardNumber} onChange={e => setCardNumber(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }} />
+                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Payment provider</label>
+                <select value={paymentProvider} onChange={e => setPaymentProvider(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}>
+                  <option value="Bank transfer">Bank transfer</option>
+                  <option value="Mobile money">Mobile money</option>
+                  <option value="Online payment provider">Online payment provider</option>
+                </select>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Expiry (MM/YY)</label>
-                  <input type="text" value={expiry} onChange={e => setExpiry(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>CVC</label>
-                  <input type="text" value={cvc} onChange={e => setCvc(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }} />
-                </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Payment reference</label>
+                <input type="text" required value={paymentReference} onChange={e => setPaymentReference(e.target.value)} placeholder="Enter the receipt or transfer reference" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }} />
+                <p style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '6px' }}>For your security, do not enter card numbers, PINs, passwords, or CVC codes here.</p>
               </div>
-              <button type="submit" className="btn btn-primary" style={{ marginTop: '10px' }}>
-                Pay $150.00 Registration Fee & Verify
+              <button type="submit" disabled={isSubmittingFee} className="btn btn-primary" style={{ marginTop: '10px' }}>
+                {isSubmittingFee ? 'Submitting confirmation…' : 'Send payment confirmation'}
               </button>
             </form>
           )}
 
+          {feePaymentMessage && (
+            <div style={{ fontSize: '0.8rem', color: feePaymentMessage.startsWith('Payment confirmation') ? '#34d399' : '#fbbf24' }}>
+              {feePaymentMessage}
+            </div>
+          )}
+
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-            <button onClick={() => setActiveStep(4)} className="btn btn-primary">
+            <button onClick={() => setActiveStep(4)} disabled={!hasPaymentConfirmation} className="btn btn-primary">
               Next: Review & Submit →
             </button>
           </div>
@@ -810,7 +867,7 @@ export const StudentPortal: React.FC = () => {
               <div><span style={{ color: '#94a3b8' }}>Student Name:</span> <strong>{myApp.student_name}</strong></div>
               <div><span style={{ color: '#94a3b8' }}>Target Institution:</span> <strong>{myApp.target_university}</strong></div>
               <div><span style={{ color: '#94a3b8' }}>Degree Program:</span> <strong>{myApp.degree_program}</strong></div>
-              <div><span style={{ color: '#94a3b8' }}>Registration Fee:</span> <strong style={{ color: feePaidSuccess ? '#34d399' : '#f43f5e' }}>{feePaidSuccess ? 'PAID ($150.00)' : 'UNPAID'}</strong></div>
+              <div><span style={{ color: '#94a3b8' }}>Registration Fee:</span> <strong style={{ color: hasPaymentConfirmation ? '#34d399' : '#f43f5e' }}>{registrationFeeRecord?.status === 'paid' ? 'VERIFIED ($150.00)' : hasPaymentConfirmation ? 'CONFIRMATION SUBMITTED' : 'NOT SUBMITTED'}</strong></div>
             </div>
           </div>
 
@@ -819,9 +876,9 @@ export const StudentPortal: React.FC = () => {
               <Save style={{ width: '14px', height: '14px' }} />
               Save Draft
             </button>
-            <button onClick={handleFinalSubmit} className="btn btn-primary" style={{ padding: '12px 24px', fontSize: '0.95rem' }}>
+            <button onClick={() => void handleFinalSubmit()} className="btn btn-primary" style={{ padding: '12px 24px', fontSize: '0.95rem' }}>
               <Send style={{ width: '16px', height: '16px' }} />
-              Submit Application to GSP Portal
+              Send Application to Admissions
             </button>
           </div>
         </div>
