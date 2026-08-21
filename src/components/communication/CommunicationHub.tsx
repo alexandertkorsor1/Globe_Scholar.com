@@ -19,11 +19,13 @@ interface CommunicationHubProps {
   onClose: () => void;
 }
 
+type CommunicationTab = CommunicationType | 'all';
+
 export const CommunicationHub: React.FC<CommunicationHubProps> = ({ isOpen, onClose }) => {
   const { communications, addCommunication, markCommunicationRead } = useApplication();
   const { currentProfile } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<CommunicationType | 'all'>('all');
+  const [activeTab, setActiveTab] = useState<CommunicationTab>('all');
   const [showNewMsgModal, setShowNewMsgModal] = useState(false);
 
   // New message form state
@@ -91,6 +93,19 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ isOpen, onCl
     }
   };
 
+  const communicationTabs: Array<{
+    id: CommunicationTab;
+    label: string;
+    icon: React.ReactNode;
+  }> = [
+    { id: 'all', label: 'All', icon: <Bell style={{ width: '14px', height: '14px' }} /> },
+    { id: 'notification', label: 'Notifications', icon: <Bell style={{ width: '14px', height: '14px' }} /> },
+    { id: 'task', label: 'Tasks', icon: <CheckSquare style={{ width: '14px', height: '14px' }} /> },
+    { id: 'alert', label: 'Alerts', icon: <AlertTriangle style={{ width: '14px', height: '14px' }} /> },
+    { id: 'message', label: 'Messages', icon: <MessageSquare style={{ width: '14px', height: '14px' }} /> },
+    { id: 'escalation', label: 'Escalations', icon: <Flame style={{ width: '14px', height: '14px' }} /> },
+  ];
+
   return (
     <div className="department-communications-overlay" style={{
       position: 'fixed',
@@ -119,10 +134,10 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ isOpen, onCl
           <div>
             <h2 style={{ fontSize: '1.15rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Bell style={{ color: '#6366f1' }} />
-              Unified Communication Engine
+              Staff Communication Center
             </h2>
             <p style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-              Notifications, Tasks, Alerts, Messages & Cross-Department Escalations
+              Notifications, tasks, alerts, messages, and cross-department escalations
             </p>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
@@ -132,17 +147,10 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ isOpen, onCl
 
         {/* Category Tabs */}
         <div className="department-communications-tabs" style={{ display: 'flex', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', padding: '0 16px', gap: '4px', overflowX: 'auto' }}>
-          {[
-            { id: 'all', label: 'All', icon: <Bell style={{ width: '14px', height: '14px' }} /> },
-            { id: 'notification', label: 'Notifications', icon: <Bell style={{ width: '14px', height: '14px' }} /> },
-            { id: 'task', label: 'Tasks', icon: <CheckSquare style={{ width: '14px', height: '14px' }} /> },
-            { id: 'alert', label: 'Alerts', icon: <AlertTriangle style={{ width: '14px', height: '14px' }} /> },
-            { id: 'message', label: 'Messages', icon: <MessageSquare style={{ width: '14px', height: '14px' }} /> },
-            { id: 'escalation', label: 'Escalations', icon: <Flame style={{ width: '14px', height: '14px' }} /> }
-          ].map(tab => (
+          {communicationTabs.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id)}
               style={{
                 padding: '12px 14px',
                 background: 'none',
@@ -263,7 +271,7 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ isOpen, onCl
                 <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Type</label>
                 <select
                   value={msgType}
-                  onChange={e => setMsgType(e.target.value as any)}
+                  onChange={e => setMsgType(e.target.value as CommunicationType)}
                   style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}
                 >
                   <option value="message">Message (Cross-Department)</option>
@@ -277,7 +285,7 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ isOpen, onCl
                 <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Target Department</label>
                 <select
                   value={targetDept}
-                  onChange={e => setTargetDept(e.target.value as any)}
+                  onChange={e => setTargetDept(e.target.value as DepartmentType | 'all')}
                   style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}
                 >
                   <option value="admissions">Admissions</option>
@@ -288,9 +296,6 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ isOpen, onCl
                   <option value="data_applications">Data & Applications</option>
                   <option value="country_directors">Country Directors</option>
                   <option value="admin">Admin</option>
-                  <option value="it_support">IT Support</option>
-                  <option value="legal_compliance">Legal & Compliance</option>
-                  <option value="alumni_success">Alumni Success</option>
                   {currentProfile.is_admin && <option value="all">All departments</option>}
                 </select>
               </div>
@@ -311,7 +316,7 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ isOpen, onCl
                 <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Priority</label>
                 <select
                   value={msgPriority}
-                  onChange={e => setMsgPriority(e.target.value as any)}
+                  onChange={e => setMsgPriority(e.target.value as PriorityLevel)}
                   style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}
                 >
                   <option value="low">Low</option>

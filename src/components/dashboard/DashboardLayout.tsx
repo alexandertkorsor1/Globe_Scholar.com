@@ -10,6 +10,7 @@ import {
   DepartmentSettingsModal,
   DepartmentSettingsPreferences,
 } from './DepartmentSettingsModal';
+import { UserSettingsModal } from './UserSettingsModal';
 import { DepartmentReportModal } from '../reports/DepartmentReportModal';
 import { CommunicationHub } from '../communication/CommunicationHub';
 import { useAuth } from '../../context/AuthContext';
@@ -46,10 +47,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 }) => {
   const { currentProfile } = useAuth();
   const { submitDepartmentReport, communications } = useApplication();
-  const settingsStorageKey = `report-com:${department
+  const settingsStorageKey = `gsp:${department
     .toLowerCase()
     .replace(/\s+/g, '-')}:settings`;
   const [showSettings, setShowSettings] = useState(false);
+  const [showUserSettings, setShowUserSettings] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [showDepartmentReport, setShowDepartmentReport] = useState(false);
   const [showCommunications, setShowCommunications] = useState(false);
@@ -142,7 +144,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           onLogout={onLogout}
           onSettings={() => {
             onSettings?.();
-            setShowSettings(true);
+            setShowUserSettings(true);
           }}
           primaryAction={
             canSubmitDepartmentReport
@@ -177,6 +179,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         <div className="workspace-settings-toast" role="status">
           Settings saved for this department workspace.
         </div>
+      )}
+
+      {showUserSettings && currentProfile && (
+        <UserSettingsModal
+          user={currentProfile}
+          onClose={() => setShowUserSettings(false)}
+        />
       )}
 
       {showSettings && (

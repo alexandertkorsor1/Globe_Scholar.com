@@ -1,5 +1,5 @@
 -- ============================================================
--- REPORT.COM
+-- GLOBE SCHOLARS PATHWAYS, LLC.
 -- Profiles / Staff Authentication
 -- ============================================================
 
@@ -46,7 +46,7 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 -- ============================================================
 -- SECURITY FUNCTION
 -- Allows us to determine whether the logged-in user
--- is a Report.com administrator.
+-- is a Globe Scholars Pathways, LLC. administrator.
 -- ============================================================
 
 CREATE OR REPLACE FUNCTION public.is_report_admin()
@@ -79,7 +79,7 @@ USING (
 );
 
 -- ============================================================
--- ADMIN CAN VIEW ALL REPORT.COM PROFILES
+-- ADMIN CAN VIEW ALL GLOBE SCHOLARS PATHWAYS, LLC. PROFILES
 -- ============================================================
 
 CREATE POLICY profiles_admin_select

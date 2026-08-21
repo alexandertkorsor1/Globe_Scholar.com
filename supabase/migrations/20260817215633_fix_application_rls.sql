@@ -1,5 +1,5 @@
 -- ============================================================
--- REPORT.COM
+-- GLOBE SCHOLARS PATHWAYS, LLC.
 -- Fix application RLS for authenticated students
 -- ============================================================
 

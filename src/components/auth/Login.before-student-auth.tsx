@@ -63,7 +63,7 @@ export const Login: React.FC = () => {
               color: '#111827',
             }}
           >
-            Report.com
+            Globe Scholars Pathways, LLC.
           </h1>
 
           <p
@@ -97,7 +97,7 @@ export const Login: React.FC = () => {
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            placeholder="admin@report.com"
+            placeholder="admin@globescholars.com"
             autoComplete="email"
             required
             style={{

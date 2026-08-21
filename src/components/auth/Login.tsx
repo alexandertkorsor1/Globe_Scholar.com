@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import brandLogo from '../../brand-logo.svg';
 
 export type AuthMode = 'login' | 'student-signup' | 'forgot-password';
 
@@ -93,8 +94,6 @@ export const Login: React.FC<LoginProps> = ({
       setLoading(false);
       return;
     }
-
-    console.log('Student registration successful:', data);
 
     // When email confirmation is disabled in Supabase, signUp returns an
     // authenticated session and AuthContext will route the student directly
@@ -242,42 +241,7 @@ export const Login: React.FC<LoginProps> = ({
             marginBottom: '32px',
           }}
         >
-          <div
-            style={{
-              width: '52px',
-              height: '52px',
-              borderRadius: '14px',
-              background:
-                'linear-gradient(135deg, #3366FF, #6366f1)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 16px',
-            }}
-          >
-            <span
-              style={{
-                color: '#fff',
-                fontSize: '22px',
-                fontWeight: 800,
-                fontFamily: 'var(--font-heading)',
-              }}
-            >
-              R
-            </span>
-          </div>
-
-          <h1
-            style={{
-              margin: 0,
-              fontSize: '28px',
-              fontWeight: 800,
-              color: '#111827',
-              fontFamily: 'var(--font-heading)',
-            }}
-          >
-            Report.com
-          </h1>
+          <img className="auth-brand-logo" src={brandLogo} alt="Globe Scholars Pathways, LLC." />
 
           <p
             style={{
@@ -308,7 +272,7 @@ export const Login: React.FC<LoginProps> = ({
               onChange={(event) =>
                 setEmail(event.target.value)
               }
-              placeholder="admin@report.com"
+              placeholder="name@globescholarspathways.com"
               autoComplete="email"
               required
               style={inputStyle}

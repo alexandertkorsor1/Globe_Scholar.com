@@ -191,7 +191,7 @@ export const INITIAL_APPLICATIONS: Application[] = [
     target_country: 'United Kingdom',
     target_university: 'University of Oxford',
     study_level: 'postgraduate',
-    degree_program: 'MSc Computer Science & AI',
+    degree_program: 'MSc Computer Science',
     intake_period: 'Fall 2026',
     scholarship_requested: 'Rhodes STEM Excellence Fellowship (100% Tuition + Stipend)',
     missing_documents_count: 0,

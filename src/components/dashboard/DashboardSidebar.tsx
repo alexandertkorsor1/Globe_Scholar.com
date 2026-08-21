@@ -5,6 +5,7 @@ import {
   ChevronRight,
   HelpCircle,
 } from 'lucide-react';
+import brandLogo from '../../brand-logo.svg';
 
 export interface DashboardNavigationItem {
   label: string;
@@ -92,16 +93,11 @@ export const DashboardSidebar: React.FC<
 
         {!collapsed && (
           <div>
-            <div
-              style={{
-                fontSize: '18px',
-                fontWeight: 800,
-                color: '#111827',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Report.com
-            </div>
+            <img
+              className="dashboard-brand-logo"
+              src={brandLogo}
+              alt="Globe Scholars Pathways, LLC."
+            />
 
             <div
               style={{

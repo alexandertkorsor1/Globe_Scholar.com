@@ -7,8 +7,20 @@ import React, {
 } from 'react';
 
 import { User, Session } from '@supabase/supabase-js';
-import { Profile, DepartmentType } from '../types/database';
-import { supabase } from '../lib/supabase';
+import {
+  DepartmentMember,
+  DepartmentMemberInput,
+  DepartmentType,
+  Profile,
+} from '../types/database';
+import { createProvisioningAuthClient, supabase } from '../lib/supabase';
+
+type DepartmentMemberLoginStatus = 'created' | 'existing' | 'not_created';
+
+interface DepartmentMemberCreationResult {
+  member: DepartmentMember;
+  loginStatus: DepartmentMemberLoginStatus;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -21,6 +33,16 @@ interface AuthContextType {
   activeDepartment: DepartmentType;
 
   availableProfiles: Profile[];
+
+  departmentMembers: DepartmentMember[];
+  createDepartmentMember: (
+    member: DepartmentMemberInput
+  ) => Promise<DepartmentMemberCreationResult>;
+  updateDepartmentMember: (
+    memberId: string,
+    member: DepartmentMemberInput
+  ) => Promise<DepartmentMember>;
+  deleteDepartmentMember: (memberId: string) => Promise<void>;
 
   switchProfile: (profileId: string) => void;
 
@@ -47,6 +69,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   const [availableProfiles, setAvailableProfiles] =
     useState<Profile[]>([]);
+  const [departmentMembers, setDepartmentMembers] =
+    useState<DepartmentMember[]>([]);
 
   const [isStudentMode, setIsStudentMode] =
     useState<boolean>(false);
@@ -54,7 +78,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [loading, setLoading] = useState<boolean>(true);
 
   /**
-   * Load the Report.com profile belonging to the
+   * Load the Globe Scholars Pathways profile belonging to the
    * currently authenticated Supabase user.
    */
   const loadProfile = async (authUser: User) => {
@@ -66,7 +90,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
     if (error || !data) {
       console.error(
-        'Failed to load Report.com profile:',
+        'Failed to load Globe Scholars Pathways profile:',
         error
       );
 
@@ -75,13 +99,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
 
     const profile = data as Profile;
-
-    console.log('REPORT.COM PROFILE LOADED:', profile);
-    console.log('REPORT.COM ACCOUNT TYPE:', profile.account_type);
-    console.log(
-      'REPORT.COM STUDENT MODE:',
-      profile.account_type === 'student'
-    );
 
     setCurrentProfile(profile);
     setIsStudentMode(profile.account_type === 'student');
@@ -129,6 +146,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         } else {
           setCurrentProfile(null);
           setAvailableProfiles([]);
+          setDepartmentMembers([]);
           setIsStudentMode(false);
         }
 
@@ -143,33 +161,47 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   }, []);
 
   /**
-   * Admins can load all Report.com profiles.
+   * Admins can load the active profile list and staff directory.
    */
   useEffect(() => {
     const loadAvailableProfiles = async () => {
       if (!currentProfile?.is_admin) {
         setAvailableProfiles([]);
+        setDepartmentMembers([]);
         return;
       }
 
-      const { data, error } = await supabase
+      const [{ data: profileData, error: profileError }, { data: memberData, error: memberError }] = await Promise.all([
+        supabase
         .from('profiles')
         .select('*')
         .order('full_name', {
           ascending: true,
-        });
+        }),
+        supabase
+          .from('department_members')
+          .select('*')
+          .order('full_name', { ascending: true }),
+      ]);
 
-      if (error) {
+      if (profileError) {
         console.error(
           'Failed to load profiles:',
-          error
+          profileError
         );
-        return;
+      } else {
+        setAvailableProfiles(
+          (profileData || []) as Profile[]
+        );
       }
 
-      setAvailableProfiles(
-        (data || []) as Profile[]
-      );
+      if (memberError) {
+        console.error('Failed to load staff directory:', memberError);
+      } else {
+        setDepartmentMembers(
+          (memberData || []) as DepartmentMember[]
+        );
+      }
     };
 
     loadAvailableProfiles();
@@ -177,6 +209,163 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     currentProfile?.id,
     currentProfile?.is_admin,
   ]);
+
+  const createDepartmentMember = async (
+    member: DepartmentMemberInput
+  ) => {
+    if (!currentProfile?.is_admin) {
+      throw new Error('Only administrators can add department members.');
+    }
+
+    const normalizedEmail = member.email.trim().toLowerCase();
+    const trimmedName = member.full_name.trim();
+    const temporaryPassword = member.temporary_password?.trim();
+    let loginStatus: DepartmentMemberLoginStatus = 'not_created';
+
+    const loadedDuplicateMember = departmentMembers.find(
+      (existingMember) =>
+        existingMember.email.toLowerCase() === normalizedEmail
+    );
+
+    if (loadedDuplicateMember) {
+      throw new Error('This email is already in the staff directory.');
+    }
+
+    const { data: existingMember, error: existingMemberError } = await supabase
+      .from('department_members')
+      .select('id')
+      .eq('email', normalizedEmail)
+      .maybeSingle();
+
+    if (existingMemberError) {
+      throw new Error(
+        existingMemberError.message || 'The staff directory could not be checked.'
+      );
+    }
+
+    if (existingMember) {
+      throw new Error('This email is already in the staff directory.');
+    }
+
+    if (temporaryPassword) {
+      const provisioningClient = createProvisioningAuthClient();
+      const { data: authData, error: authError } = await provisioningClient.auth.signUp({
+        email: normalizedEmail,
+        password: temporaryPassword,
+        options: {
+          data: {
+            full_name: trimmedName,
+          },
+        },
+      });
+
+      await provisioningClient.auth.signOut();
+
+      if (authError) {
+        const alreadyExists = /already\s+(registered|exists)|user.*exists|user.*registered/i.test(
+          authError.message
+        );
+
+        if (!alreadyExists) {
+          throw new Error(
+            `The login account could not be created: ${authError.message}`
+          );
+        }
+
+        loginStatus = 'existing';
+      } else {
+        const identities = authData.user && 'identities' in authData.user
+          ? authData.user.identities
+          : undefined;
+
+        loginStatus = Array.isArray(identities) && identities.length === 0
+          ? 'existing'
+          : 'created';
+      }
+    }
+
+    const { data, error } = await supabase
+      .from('department_members')
+      .insert({
+        full_name: trimmedName,
+        email: normalizedEmail,
+        job_title: member.job_title.trim(),
+        primary_department: member.primary_department,
+        departments: member.departments,
+        is_assistant: member.is_assistant,
+        employment_status: member.employment_status,
+        created_by: currentProfile.id,
+      })
+      .select()
+      .single();
+
+    if (error || !data) {
+      throw new Error(error?.message || 'The staff member could not be saved.');
+    }
+
+    const createdMember = data as DepartmentMember;
+    setDepartmentMembers((current) =>
+      [...current, createdMember].sort((left, right) =>
+        left.full_name.localeCompare(right.full_name)
+      )
+    );
+    return { member: createdMember, loginStatus };
+  };
+
+  const updateDepartmentMember = async (
+    memberId: string,
+    member: DepartmentMemberInput
+  ) => {
+    if (!currentProfile?.is_admin) {
+      throw new Error('Only administrators can update department members.');
+    }
+
+    const { data, error } = await supabase
+      .from('department_members')
+      .update({
+        full_name: member.full_name.trim(),
+        email: member.email.trim().toLowerCase(),
+        job_title: member.job_title.trim(),
+        primary_department: member.primary_department,
+        departments: member.departments,
+        is_assistant: member.is_assistant,
+        employment_status: member.employment_status,
+      })
+      .eq('id', memberId)
+      .select()
+      .single();
+
+    if (error || !data) {
+      throw new Error(error?.message || 'The staff member could not be updated.');
+    }
+
+    const updatedMember = data as DepartmentMember;
+    setDepartmentMembers((current) =>
+      current
+        .map((item) => item.id === memberId ? updatedMember : item)
+        .sort((left, right) => left.full_name.localeCompare(right.full_name))
+    );
+    return updatedMember;
+  };
+
+  const deleteDepartmentMember = async (memberId: string) => {
+    if (!currentProfile?.is_admin) {
+      throw new Error('Only administrators can delete department members.');
+    }
+
+    const { error } = await supabase
+      .from('department_members')
+      .delete()
+      .eq('id', memberId);
+
+    if (error) {
+      throw new Error(error.message || 'The staff member could not be deleted.');
+    }
+
+    setDepartmentMembers((current) =>
+      current.filter((member) => member.id !== memberId)
+    );
+  };
 
   /**
    * Admin profile switching.
@@ -218,6 +407,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     setSession(null);
     setCurrentProfile(null);
     setAvailableProfiles([]);
+    setDepartmentMembers([]);
     setIsStudentMode(false);
   };
 
@@ -241,6 +431,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           activeDepartment:
             currentProfile.department,
           availableProfiles,
+          departmentMembers,
+          createDepartmentMember,
+          updateDepartmentMember,
+          deleteDepartmentMember,
           switchProfile,
           isStudentMode,
           setStudentMode:
@@ -271,6 +465,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           activeDepartment:
             null as unknown as DepartmentType,
           availableProfiles,
+          departmentMembers,
+          createDepartmentMember,
+          updateDepartmentMember,
+          deleteDepartmentMember,
           switchProfile,
           isStudentMode,
           setStudentMode:

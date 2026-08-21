@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import type { Application, DepartmentType, PartnerUniversity } from '../../types/database';
+import type {
+  Application,
+  DepartmentMember,
+  DepartmentMemberInput,
+  DepartmentType,
+  PartnerUniversity,
+} from '../../types/database';
 import { useApplication } from '../../context/ApplicationContext';
 import { useAuth } from '../../context/AuthContext';
 import { DashboardLayout } from '../dashboard/DashboardLayout';
@@ -23,11 +29,71 @@ import {
   X,
   Upload,
   Eye,
-  Trash2
+  Trash2,
+  UserPlus,
+  Pencil,
+  BriefcaseBusiness,
+  UserRoundCheck,
+  KeyRound,
+  EyeOff,
 } from 'lucide-react';
 
+const DEPARTMENT_OPTIONS: Array<{ value: DepartmentType; label: string }> = [
+  { value: 'admin', label: 'Administration' },
+  { value: 'marketing', label: 'Marketing' },
+  { value: 'admissions', label: 'Admissions' },
+  { value: 'counseling', label: 'Counseling' },
+  { value: 'data_applications', label: 'Data & Applications' },
+  { value: 'operations', label: 'Operations' },
+  { value: 'finance', label: 'Finance' },
+  { value: 'country_directors', label: 'Country Directors' },
+];
+
+const RESPONSIBILITY_OPTIONS = [
+  {
+    label: 'Senior',
+    value: false,
+    description: 'Primary owner or senior staff member for the assigned department.',
+  },
+  {
+    label: 'Assistant',
+    value: true,
+    description: 'Support member assisting senior staff with department tasks.',
+  },
+];
+
+type AdminTab = 'kpis' | 'drilldown' | 'partnerships' | 'staff';
+
+const ADMIN_TABS: Array<{ id: AdminTab; label: string }> = [
+  { id: 'kpis', label: 'Executive Dashboard' },
+  { id: 'drilldown', label: 'Department Drill-Down' },
+  { id: 'partnerships', label: 'Partner Universities & Agreements' },
+  { id: 'staff', label: 'Staff Accounts & RBAC' },
+];
+
+const emptyDepartmentMember: DepartmentMemberInput = {
+  full_name: '',
+  email: '',
+  job_title: '',
+  primary_department: 'admissions',
+  departments: ['admissions'],
+  is_assistant: false,
+  employment_status: 'active',
+  temporary_password: '',
+};
+
+const departmentLabel = (department: DepartmentType) =>
+  DEPARTMENT_OPTIONS.find((option) => option.value === department)?.label || department;
+
 export const AdminWorkspace: React.FC = () => {
-  const { currentProfile, logout } = useAuth();
+  const {
+    currentProfile,
+    logout,
+    departmentMembers,
+    createDepartmentMember,
+    updateDepartmentMember,
+    deleteDepartmentMember,
+  } = useAuth();
   const {
   applications,
   students,
@@ -46,9 +112,8 @@ export const AdminWorkspace: React.FC = () => {
   updateApplicationStatus,
   statusHistory
 } = useApplication();
-  const { availableProfiles } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'kpis' | 'drilldown' | 'partnerships' | 'staff'>('kpis');
+  const [activeTab, setActiveTab] = useState<AdminTab>('kpis');
   const [selectedDeptDrill, setSelectedDeptDrill] = useState<DepartmentType>('admissions');
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [reviewNote, setReviewNote] = useState('');
@@ -57,6 +122,24 @@ export const AdminWorkspace: React.FC = () => {
   const [partnerPendingDelete, setPartnerPendingDelete] =
     useState<PartnerUniversity | null>(null);
   const [deletingPartner, setDeletingPartner] = useState(false);
+  const [departmentMemberPendingDelete, setDepartmentMemberPendingDelete] =
+    useState<DepartmentMember | null>(null);
+  const [deletingDepartmentMember, setDeletingDepartmentMember] = useState(false);
+  const [departmentMemberDeleteError, setDepartmentMemberDeleteError] = useState('');
+  const [showDepartmentMemberModal, setShowDepartmentMemberModal] = useState(false);
+  const [editingDepartmentMember, setEditingDepartmentMember] =
+    useState<DepartmentMember | null>(null);
+  const [departmentMemberForm, setDepartmentMemberForm] =
+    useState<DepartmentMemberInput>(emptyDepartmentMember);
+  const [departmentMemberPasswordConfirm, setDepartmentMemberPasswordConfirm] =
+    useState('');
+  const [showDepartmentMemberPassword, setShowDepartmentMemberPassword] =
+    useState(false);
+  const [showDepartmentMemberPasswordConfirm, setShowDepartmentMemberPasswordConfirm] =
+    useState(false);
+  const [savingDepartmentMember, setSavingDepartmentMember] = useState(false);
+  const [departmentMemberError, setDepartmentMemberError] = useState('');
+  const [departmentMemberNotice, setDepartmentMemberNotice] = useState('');
 
   // New partner state
   const [pName, setPName] = useState('');
@@ -82,10 +165,10 @@ export const AdminWorkspace: React.FC = () => {
   const selectedDepartmentReports = departmentReports.filter(
     (report) => report.department === selectedDeptDrill
   );
-  const selectedDepartmentStaff = availableProfiles.filter(
-    (profile) =>
-      profile.department === selectedDeptDrill &&
-      profile.account_type === 'staff'
+  const selectedDepartmentStaff = departmentMembers.filter(
+    (member) =>
+      member.departments.includes(selectedDeptDrill) &&
+      member.employment_status !== 'inactive'
   );
 
   const urgentItems = [
@@ -235,6 +318,145 @@ export const AdminWorkspace: React.FC = () => {
     }
   };
 
+  const handleDeleteDepartmentMember = async () => {
+    if (!departmentMemberPendingDelete) return;
+
+    try {
+      setDeletingDepartmentMember(true);
+      setDepartmentMemberDeleteError('');
+      await deleteDepartmentMember(departmentMemberPendingDelete.id);
+      setDepartmentMemberNotice(
+        `${departmentMemberPendingDelete.full_name} has been removed from the staff directory and their department access has been revoked.`
+      );
+      setDepartmentMemberPendingDelete(null);
+    } catch (error) {
+      setDepartmentMemberDeleteError(
+        error instanceof Error
+          ? error.message
+          : 'The staff member could not be deleted.'
+      );
+    } finally {
+      setDeletingDepartmentMember(false);
+    }
+  };
+
+  const openAddDepartmentMember = () => {
+    setEditingDepartmentMember(null);
+    setDepartmentMemberForm(emptyDepartmentMember);
+    setDepartmentMemberPasswordConfirm('');
+    setShowDepartmentMemberPassword(false);
+    setShowDepartmentMemberPasswordConfirm(false);
+    setDepartmentMemberError('');
+    setDepartmentMemberNotice('');
+    setShowDepartmentMemberModal(true);
+  };
+
+  const openEditDepartmentMember = (member: DepartmentMember) => {
+    setEditingDepartmentMember(member);
+    setDepartmentMemberForm({
+      full_name: member.full_name,
+      email: member.email,
+      job_title: member.job_title,
+      primary_department: member.primary_department,
+      departments: member.departments,
+      is_assistant: member.is_assistant,
+      employment_status: member.employment_status,
+      temporary_password: '',
+    });
+    setDepartmentMemberPasswordConfirm('');
+    setShowDepartmentMemberPassword(false);
+    setShowDepartmentMemberPasswordConfirm(false);
+    setDepartmentMemberError('');
+    setDepartmentMemberNotice('');
+    setShowDepartmentMemberModal(true);
+  };
+
+  const toggleMemberDepartment = (department: DepartmentType) => {
+    setDepartmentMemberForm((current) => {
+      const departments = current.departments.includes(department)
+        ? current.departments.filter((item) => item !== department)
+        : [...current.departments, department];
+
+      return {
+        ...current,
+        departments,
+        primary_department: departments.includes(current.primary_department)
+          ? current.primary_department
+          : departments[0] || current.primary_department,
+      };
+    });
+  };
+
+  const handleSaveDepartmentMember = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setDepartmentMemberError('');
+
+    if (!departmentMemberForm.full_name.trim() || !departmentMemberForm.email.trim() || !departmentMemberForm.job_title.trim()) {
+      setDepartmentMemberError('Enter the member name, work email, and assigned job title.');
+      return;
+    }
+
+    if (!departmentMemberForm.departments.length) {
+      setDepartmentMemberError('Assign this member to at least one department.');
+      return;
+    }
+
+    if (!departmentMemberForm.departments.includes(departmentMemberForm.primary_department)) {
+      setDepartmentMemberError('The primary department must be one of the selected department assignments.');
+      return;
+    }
+
+    const temporaryPassword = departmentMemberForm.temporary_password?.trim() || '';
+
+    if (!editingDepartmentMember) {
+      if (!temporaryPassword) {
+        setDepartmentMemberError('Create the first login password for this department user.');
+        return;
+      }
+
+      if (temporaryPassword.length < 8) {
+        setDepartmentMemberError('Temporary password must be at least 8 characters.');
+        return;
+      }
+
+      if (temporaryPassword !== departmentMemberPasswordConfirm) {
+        setDepartmentMemberError('Temporary passwords do not match.');
+        return;
+      }
+    }
+
+    try {
+      setSavingDepartmentMember(true);
+      if (editingDepartmentMember) {
+        await updateDepartmentMember(editingDepartmentMember.id, departmentMemberForm);
+        setDepartmentMemberNotice(`${departmentMemberForm.full_name.trim()} has been updated.`);
+      } else {
+        const result = await createDepartmentMember({
+          ...departmentMemberForm,
+          temporary_password: temporaryPassword,
+        });
+
+        setDepartmentMemberNotice(
+          result.loginStatus === 'created'
+            ? `${result.member.full_name} can now sign in with the temporary password and change it from Profile Settings.`
+            : result.loginStatus === 'existing'
+              ? `${result.member.full_name} was added. This email already has a login account, so they should use their existing password or Forgot Password.`
+              : `${result.member.full_name} was added to the directory. Create their login account before they need department access.`
+        );
+      }
+      setShowDepartmentMemberModal(false);
+      setEditingDepartmentMember(null);
+      setDepartmentMemberForm(emptyDepartmentMember);
+      setDepartmentMemberPasswordConfirm('');
+    } catch (error) {
+      setDepartmentMemberError(
+        error instanceof Error ? error.message : 'The staff directory record could not be saved.'
+      );
+    } finally {
+      setSavingDepartmentMember(false);
+    }
+  };
+
   const sidebarNav = [
     { label: 'Overview', icon: <LayoutDashboard style={{ width: 18, height: 18 }} />, active: activeTab === 'kpis', onClick: () => setActiveTab('kpis') },
     { label: 'Departments', icon: <Building2 style={{ width: 18, height: 18 }} />, active: activeTab === 'drilldown', onClick: () => setActiveTab('drilldown') },
@@ -296,15 +518,10 @@ export const AdminWorkspace: React.FC = () => {
 
         {/* Tab Navigation */}
         <div style={{ display: 'flex', gap: '8px', marginTop: '16px', borderTop: '1px solid #f3f4f6', paddingTop: '12px' }}>
-          {[
-            { id: 'kpis', label: 'Executive Dashboard' },
-            { id: 'drilldown', label: 'Department Drill-Down' },
-            { id: 'partnerships', label: 'Partner Universities & Agreements' },
-            { id: 'staff', label: 'Staff Accounts & RBAC' }
-          ].map(tab => (
+          {ADMIN_TABS.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id)}
               className={`btn btn-sm ${activeTab === tab.id ? 'btn-primary' : 'btn-secondary'}`}
             >
               {tab.label}
@@ -970,31 +1187,319 @@ export const AdminWorkspace: React.FC = () => {
 
       {/* Tab 4: Staff Accounts & RBAC Matrix */}
       {activeTab === 'staff' && (
-        <div className="glass-panel" style={{ padding: '20px' }}>
-          <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '14px' }}>Staff Accounts & Department Role Assignments</h3>
-          <div className="custom-table-container">
-            <table className="custom-table">
-              <thead>
-                <tr>
-                  <th>Staff Name</th>
-                  <th>Email</th>
-                  <th>Department Scope</th>
-                  <th>System Role</th>
-                  <th>Account Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {availableProfiles.map(p => (
-                  <tr key={p.id}>
-                    <td style={{ fontWeight: 600, color: '#fff' }}>{p.full_name}</td>
-                    <td>{p.email}</td>
-                    <td><span className="badge badge-under_review">{p.department}</span></td>
-                    <td>{p.is_admin ? <span style={{ color: '#ef4444', fontWeight: 700 }}>Admin (Oversight)</span> : 'Staff Member'}</td>
-                    <td><span className="badge badge-documents_verified">Active</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div className="glass-panel" style={{ padding: '20px 24px' }}>
+            <div className="admin-team-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '18px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Users2 size={20} color="#2563eb" />
+                  <h3 style={{ margin: 0, fontSize: '1.05rem' }}>Team directory & department assignments</h3>
+                </div>
+                <p style={{ margin: '6px 0 0', fontSize: '0.82rem', color: '#64748b' }}>
+                  Add team members, assign their primary and supporting departments, define their role, and choose either Senior or Assistant before access is activated.
+                </p>
+              </div>
+              <button type="button" className="btn btn-primary" onClick={openAddDepartmentMember}>
+                <UserPlus size={16} />
+                Add team member
+              </button>
+            </div>
+
+            <div className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px', marginTop: '18px' }}>
+              <div style={{ padding: '13px', border: '1px solid #dbe5f3', borderRadius: '11px', background: '#f8fbff' }}>
+                <span style={{ display: 'block', color: '#64748b', fontSize: '12px', fontWeight: 700 }}>Directory members</span>
+                <strong style={{ display: 'block', marginTop: '3px', color: '#163d8f', fontSize: '22px' }}>{departmentMembers.length}</strong>
+              </div>
+              <div style={{ padding: '13px', border: '1px solid #bbf7d0', borderRadius: '11px', background: '#f0fdf4' }}>
+                <span style={{ display: 'block', color: '#166534', fontSize: '12px', fontWeight: 700 }}>Active members</span>
+                <strong style={{ display: 'block', marginTop: '3px', color: '#15803d', fontSize: '22px' }}>{departmentMembers.filter((member) => member.employment_status === 'active').length}</strong>
+              </div>
+              <div style={{ padding: '13px', border: '1px solid #fde68a', borderRadius: '11px', background: '#fffbeb' }}>
+                <span style={{ display: 'block', color: '#a16207', fontSize: '12px', fontWeight: 700 }}>Awaiting activation</span>
+                <strong style={{ display: 'block', marginTop: '3px', color: '#b45309', fontSize: '22px' }}>{departmentMembers.filter((member) => member.employment_status === 'pending_activation').length}</strong>
+              </div>
+            </div>
+
+            {departmentMemberNotice && (
+              <div className="department-member-form-success" role="status">
+                {departmentMemberNotice}
+              </div>
+            )}
+          </div>
+
+          <div className="glass-panel" style={{ padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <BriefcaseBusiness size={18} color="#2563eb" />
+              <h3 style={{ margin: 0, fontSize: '0.98rem' }}>Staff roles and department coverage</h3>
+            </div>
+            {departmentMembers.length === 0 ? (
+              <div style={{ padding: '34px 20px', border: '1px dashed #cbd5e1', borderRadius: '12px', background: '#f8fafc', textAlign: 'center' }}>
+                <UserRoundCheck size={30} color="#94a3b8" style={{ marginBottom: '8px' }} />
+                <p style={{ margin: 0, color: '#475569', fontWeight: 700 }}>Your staff directory is ready.</p>
+                <p style={{ margin: '5px 0 14px', color: '#64748b', fontSize: '13px' }}>Add the first team member to record their department assignments and role.</p>
+                <button type="button" className="btn btn-primary btn-sm" onClick={openAddDepartmentMember}><UserPlus size={14} /> Add team member</button>
+              </div>
+            ) : (
+              <div className="custom-table-container">
+                <table className="custom-table">
+                  <thead>
+                    <tr>
+                      <th>Team member</th>
+                      <th>Primary department</th>
+                      <th>Additional coverage</th>
+                      <th>Role</th>
+                      <th>Responsibility</th>
+                      <th>Onboarding status</th>
+                      <th aria-label="Actions" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {departmentMembers.map((member) => {
+                      const additionalDepartments = member.departments.filter(
+                        (department) => department !== member.primary_department
+                      );
+                      const status = member.employment_status === 'active'
+                        ? { label: 'Active', className: 'badge-documents_verified' }
+                        : member.employment_status === 'inactive'
+                          ? { label: 'Inactive', className: 'badge-rejected' }
+                          : { label: 'Pending activation', className: 'badge-documents_missing' };
+
+                      return (
+                        <tr key={member.id}>
+                          <td>
+                            <strong style={{ display: 'block', color: '#0f172a' }}>{member.full_name}</strong>
+                            <span style={{ color: '#64748b', fontSize: '12px' }}>{member.email}</span>
+                          </td>
+                          <td><span className="badge badge-under_review">{departmentLabel(member.primary_department)}</span></td>
+                          <td style={{ maxWidth: '205px' }}>
+                            {additionalDepartments.length ? (
+                              <span style={{ color: '#475569', fontSize: '12px', lineHeight: 1.45 }}>{additionalDepartments.map(departmentLabel).join(' · ')}</span>
+                            ) : (
+                              <span style={{ color: '#94a3b8', fontSize: '12px' }}>Primary only</span>
+                            )}
+                          </td>
+                          <td style={{ color: '#334155', fontWeight: 650 }}>{member.job_title}</td>
+                          <td>
+                            <span className={`badge ${member.is_assistant ? 'badge-submitted' : 'badge-draft'}`}>
+                              {member.is_assistant ? 'Assistant' : 'Senior'}
+                            </span>
+                          </td>
+                          <td><span className={`badge ${status.className}`}>{status.label}</span></td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                              <button type="button" className="btn btn-secondary btn-sm" onClick={() => openEditDepartmentMember(member)}>
+                                <Pencil size={14} /> Edit
+                              </button>
+                              <button type="button" className="btn btn-secondary btn-sm" style={{ color: '#dc2626', borderColor: '#fecaca' }} onClick={() => {
+                                setDepartmentMemberPendingDelete(member);
+                                setDepartmentMemberDeleteError('');
+                              }}>
+                                <Trash2 size={14} /> Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showDepartmentMemberModal && (
+        <div className="modal-overlay" role="presentation">
+          <section className="modal-content department-member-modal" role="dialog" aria-modal="true" aria-labelledby="department-member-modal-title" style={{ maxWidth: '650px', padding: 0 }}>
+            <header className="department-member-modal-header">
+              <div>
+                <span className="settings-eyebrow">Globe Scholars Pathways, LLC.</span>
+                <h2 id="department-member-modal-title">{editingDepartmentMember ? 'Update team member' : 'Add team member'}</h2>
+                <p>Record the member’s work identity, department coverage, and access readiness.</p>
+              </div>
+              <button type="button" className="settings-close-button" onClick={() => setShowDepartmentMemberModal(false)} aria-label="Close staff member form"><X size={20} /></button>
+            </header>
+
+            <form onSubmit={handleSaveDepartmentMember}>
+              <div className="department-member-modal-body">
+                <div className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                  <div>
+                    <label className="form-label" htmlFor="member-full-name">Full name</label>
+                    <input id="member-full-name" className="form-input" required value={departmentMemberForm.full_name} onChange={(event) => setDepartmentMemberForm((current) => ({ ...current, full_name: event.target.value }))} placeholder="e.g. Amina Bello" />
+                  </div>
+                  <div>
+                    <label className="form-label" htmlFor="member-email">Work email</label>
+                    <input id="member-email" className="form-input" type="email" required value={departmentMemberForm.email} onChange={(event) => setDepartmentMemberForm((current) => ({ ...current, email: event.target.value }))} placeholder="name@organisation.com" />
+                  </div>
+                </div>
+
+                <label className="form-label" htmlFor="member-job-title">Job title / assigned role</label>
+                <input id="member-job-title" className="form-input" required value={departmentMemberForm.job_title} onChange={(event) => setDepartmentMemberForm((current) => ({ ...current, job_title: event.target.value }))} placeholder="e.g. Senior Admissions Officer" />
+
+                {!editingDepartmentMember && (
+                  <section className="department-member-credentials">
+                    <div className="department-member-credentials-header">
+                      <KeyRound size={18} color="#1d4ed8" />
+                      <div>
+                        <h3>Initial login password</h3>
+                        <p>This temporary password lets the department user sign in. They can change it later from Profile Settings.</p>
+                      </div>
+                    </div>
+                    <div className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                      <div>
+                        <label className="form-label" htmlFor="member-temporary-password">Temporary password</label>
+                        <div className="department-member-password-field">
+                          <input
+                            id="member-temporary-password"
+                            className="form-input"
+                            type={showDepartmentMemberPassword ? 'text' : 'password'}
+                            required
+                            minLength={8}
+                            value={departmentMemberForm.temporary_password || ''}
+                            onChange={(event) => setDepartmentMemberForm((current) => ({ ...current, temporary_password: event.target.value }))}
+                            placeholder="Minimum 8 characters"
+                            autoComplete="new-password"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowDepartmentMemberPassword((visible) => !visible)}
+                            aria-label={showDepartmentMemberPassword ? 'Hide temporary password' : 'Show temporary password'}
+                          >
+                            {showDepartmentMemberPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="form-label" htmlFor="member-temporary-password-confirm">Confirm password</label>
+                        <div className="department-member-password-field">
+                          <input
+                            id="member-temporary-password-confirm"
+                            className="form-input"
+                            type={showDepartmentMemberPasswordConfirm ? 'text' : 'password'}
+                            required
+                            minLength={8}
+                            value={departmentMemberPasswordConfirm}
+                            onChange={(event) => setDepartmentMemberPasswordConfirm(event.target.value)}
+                            placeholder="Re-enter password"
+                            autoComplete="new-password"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowDepartmentMemberPasswordConfirm((visible) => !visible)}
+                            aria-label={showDepartmentMemberPasswordConfirm ? 'Hide confirmation password' : 'Show confirmation password'}
+                          >
+                            {showDepartmentMemberPasswordConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                )}
+
+                <div className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                  <div>
+                    <label className="form-label" htmlFor="member-primary-department">Primary department</label>
+                    <select id="member-primary-department" className="form-input" value={departmentMemberForm.primary_department} onChange={(event) => {
+                      const primaryDepartment = event.target.value as DepartmentType;
+                      setDepartmentMemberForm((current) => ({
+                        ...current,
+                        primary_department: primaryDepartment,
+                        departments: current.departments.includes(primaryDepartment) ? current.departments : [...current.departments, primaryDepartment],
+                      }));
+                    }}>
+                      {DEPARTMENT_OPTIONS.map((department) => <option key={department.value} value={department.value}>{department.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label" htmlFor="member-status">Onboarding status</label>
+                    <select id="member-status" className="form-input" value={departmentMemberForm.employment_status} onChange={(event) => setDepartmentMemberForm((current) => ({ ...current, employment_status: event.target.value as DepartmentMemberInput['employment_status'] }))}>
+                      <option value="pending_activation">Pending activation</option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+
+                <fieldset className="department-member-assignments">
+                  <legend>Department assignments</legend>
+                  <p>Choose every department this person supports. The primary department determines their principal workspace.</p>
+                  <div className="department-member-checkboxes">
+                    {DEPARTMENT_OPTIONS.map((department) => (
+                      <label key={department.value} className="department-member-checkbox">
+                        <input type="checkbox" checked={departmentMemberForm.departments.includes(department.value)} onChange={() => toggleMemberDepartment(department.value)} />
+                        <span>{department.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+
+                <fieldset className="department-member-responsibility">
+                  <legend>Responsibility level</legend>
+                  <p>Choose how this member should appear in the department directory.</p>
+                  <div className="department-member-role-options">
+                    {RESPONSIBILITY_OPTIONS.map((option) => {
+                      const selected = departmentMemberForm.is_assistant === option.value;
+
+                      return (
+                        <button
+                          key={option.label}
+                          type="button"
+                          className={selected ? 'is-selected' : ''}
+                          aria-pressed={selected}
+                          onClick={() =>
+                            setDepartmentMemberForm((current) => ({
+                              ...current,
+                              is_assistant: option.value,
+                            }))
+                          }
+                        >
+                          <strong>{option.label}</strong>
+                          <span>{option.description}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+
+                {departmentMemberError && <p className="department-member-form-error" role="alert">{departmentMemberError}</p>}
+              </div>
+              <footer className="department-member-modal-actions">
+                <button type="button" className="btn btn-secondary" disabled={savingDepartmentMember} onClick={() => setShowDepartmentMemberModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={savingDepartmentMember}><UserPlus size={16} />{savingDepartmentMember ? 'Saving…' : editingDepartmentMember ? 'Save changes' : 'Add team member'}</button>
+              </footer>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {/* Modal: Confirm Staff Member Removal */}
+      {departmentMemberPendingDelete && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.72)', zIndex: 330, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+          <div className="glass-panel animate-fade-in" style={{ width: '100%', maxWidth: '460px', padding: '24px', background: '#0f172a' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#fca5a5', marginBottom: '12px' }}>
+              <Trash2 style={{ width: '20px', height: '20px' }} />
+              <h3 style={{ margin: 0, fontSize: '1rem', color: '#fff' }}>Delete department member</h3>
+            </div>
+            <p style={{ margin: 0, color: '#cbd5e1', lineHeight: 1.55, fontSize: '0.88rem' }}>
+              Remove <strong style={{ color: '#fff' }}>{departmentMemberPendingDelete.full_name}</strong> from the staff directory? Their department access will be revoked from their profile.
+            </p>
+            <p style={{ margin: '10px 0 0', color: '#fbbf24', fontSize: '0.78rem' }}>
+              Their authentication login is not destroyed, but they will no longer enter a department workspace.
+            </p>
+            {departmentMemberDeleteError && (
+              <p className="department-member-form-error" role="alert" style={{ marginTop: '14px' }}>
+                {departmentMemberDeleteError}
+              </p>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+              <button type="button" onClick={() => setDepartmentMemberPendingDelete(null)} disabled={deletingDepartmentMember} className="btn btn-secondary btn-sm">Cancel</button>
+              <button type="button" onClick={handleDeleteDepartmentMember} disabled={deletingDepartmentMember} className="btn btn-primary btn-sm" style={{ background: '#dc2626' }}>
+                <Trash2 style={{ width: '14px', height: '14px' }} />
+                {deletingDepartmentMember ? 'Deleting...' : 'Delete member'}
+              </button>
+            </div>
           </div>
         </div>
       )}

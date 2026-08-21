@@ -1,5 +1,5 @@
 -- ============================================================
--- REPORT.COM
+-- GLOBE SCHOLARS PATHWAYS, LLC.
 -- Partner Universities & Agreements
 -- ============================================================
 
@@ -166,7 +166,7 @@ USING (
 -- ============================================================
 
 COMMENT ON TABLE public.partner_universities IS
-'Report.com partner universities and scholarship information.';
+'Globe Scholars Pathways, LLC. partner universities and scholarship information.';
 
 COMMENT ON TABLE public.partner_agreements IS
 'Agreements and MOU documents associated with partner universities.';

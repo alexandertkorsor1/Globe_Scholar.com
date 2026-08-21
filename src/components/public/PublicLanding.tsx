@@ -8,6 +8,7 @@ import {
   ShieldCheck,
   UsersRound,
 } from 'lucide-react';
+import brandLogo from '../../brand-logo.svg';
 
 interface PublicLandingProps {
   onSignIn: () => void;
@@ -60,8 +61,8 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
       .public-site { min-height: 100vh; background: #f7f9fc; color: #15213a; font-family: var(--font-body, Inter, Arial, sans-serif); }
       .public-shell { width: min(1160px, calc(100% - 40px)); margin: 0 auto; }
       .public-nav { height: 82px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-      .public-brand { display: inline-flex; align-items: center; gap: 11px; font-weight: 800; font-size: 1.05rem; color: #15213a; }
-      .public-mark { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #2563eb, #4f46e5); box-shadow: 0 9px 22px rgba(37,99,235,.2); }
+      .public-brand { display: inline-flex; align-items: center; color: #15213a; }
+      .public-brand-logo { display:block; width: 225px; height: 88px; object-fit: contain; object-position: left center; }
       .public-nav-links { display: flex; align-items: center; gap: 24px; color: #52627b; font-size: .88rem; font-weight: 650; }
       .public-link { color: inherit; text-decoration: none; cursor: pointer; background: none; border: 0; font: inherit; }
       .public-signin { border: 1px solid #cbd5e1; background: #fff; color: #1e3a8a; padding: 10px 15px; border-radius: 9px; font-weight: 750; cursor: pointer; }
@@ -92,14 +93,13 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
       .public-cta { padding:62px 0; background:#182d5c; color:#fff; }.public-cta-grid { display:flex; align-items:center; justify-content:space-between; gap:24px; }.public-cta h2 { margin:0 0 8px; font:800 clamp(1.7rem,3vw,2.45rem)/1.15 var(--font-heading, Inter, Arial, sans-serif); }.public-cta p { margin:0; color:#c6d3fa; line-height:1.55; }.public-cta .public-primary { background:#fff; color:#1f4fc3; box-shadow:none; }
       .public-footer { padding:30px 0; color:#73829a; font-size:.76rem; }.public-footer-row { display:flex; align-items:center; justify-content:space-between; gap:16px; }.public-footer-row strong { color:#43536d; }
       @media (max-width: 850px) { .public-nav-links { display:none; }.public-hero { padding:35px 0 55px; }.public-hero-grid,.public-story-grid { grid-template-columns:1fr; gap:32px; }.public-hero-card { max-width:600px; }.public-stories { grid-template-columns:1fr; }.public-leadership { grid-template-columns:repeat(2,1fr); }.public-cta-grid { align-items:flex-start; flex-direction:column; } }
-      @media (max-width: 520px) { .public-shell { width:min(100% - 28px, 1160px); }.public-nav { height:70px; }.public-signin { padding:9px 11px; }.public-hero h1 { font-size:2.55rem; }.public-leadership { grid-template-columns:1fr; }.public-footer-row { align-items:flex-start; flex-direction:column; }.public-hero-card { padding:21px; } }
+      @media (max-width: 520px) { .public-shell { width:min(100% - 28px, 1160px); }.public-nav { height:70px; }.public-brand-logo { width: 177px; height: 70px; }.public-signin { padding:9px 11px; }.public-hero h1 { font-size:2.55rem; }.public-leadership { grid-template-columns:1fr; }.public-footer-row { align-items:flex-start; flex-direction:column; }.public-hero-card { padding:21px; } }
     `}</style>
 
     <div className="public-shell">
       <nav className="public-nav" aria-label="Public site navigation">
         <div className="public-brand">
-          <span className="public-mark"><GraduationCap size={21} /></span>
-          Globe Scholar Pathways
+          <img className="public-brand-logo" src={brandLogo} alt="Globe Scholars Pathways, LLC." />
         </div>
         <div className="public-nav-links">
           <a className="public-link" href="#our-story">Our story</a>
@@ -114,7 +114,7 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
           <div>
             <span className="public-eyebrow"><Globe2 size={14} /> International education guidance</span>
             <h1>Your next chapter deserves a <span>clearer path.</span></h1>
-            <p className="public-lead">Globe Scholar Pathways brings students, counselors, admissions, and finance together in one transparent journey—from your first question to your final enrolment step.</p>
+            <p className="public-lead">Globe Scholars Pathways, LLC. brings students, counselors, admissions, and finance together in one transparent journey—from your first question to your final enrolment step.</p>
             <div className="public-actions">
               <button className="public-primary" type="button" onClick={onApply}>Start your application <ArrowRight size={17} /></button>
               <button className="public-secondary" type="button" onClick={onSignIn}>Access your portal</button>
@@ -143,7 +143,7 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
         <div className="public-section-header">
           <span className="public-eyebrow">Our story</span>
           <h2>Built around a simple belief: students deserve clarity.</h2>
-          <p>Globe Scholar Pathways was created to make international education guidance more personal, accountable, and easy to follow. Our team combines local understanding with a structured process, so each student receives the right support at the right time.</p>
+          <p>Globe Scholars Pathways, LLC. was created to make international education guidance more personal, accountable, and easy to follow. Our team combines local understanding with a structured process, so each student receives the right support at the right time.</p>
         </div>
         <div className="public-story-panel">
           <h3>What guides our work</h3>
@@ -201,6 +201,6 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
       </div>
     </section>
 
-    <footer className="public-footer"><div className="public-shell public-footer-row"><strong>Globe Scholar Pathways</strong><span>© 2026 Globe Scholar Pathways. Student guidance with purpose.</span></div></footer>
+    <footer className="public-footer"><div className="public-shell public-footer-row"><strong>Globe Scholars Pathways, LLC.</strong><span>© 2026 Globe Scholars Pathways, LLC. Student guidance with purpose.</span></div></footer>
   </main>
 );

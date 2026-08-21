@@ -244,7 +244,7 @@ export const AdmissionsWorkspace: React.FC = () => {
                 <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Decision Verdict</label>
                 <select
                   value={decisionChoice}
-                  onChange={e => setDecisionChoice(e.target.value as any)}
+                  onChange={e => setDecisionChoice(e.target.value as typeof decisionChoice)}
                   style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}
                 >
                   <option value="unconditional_offer">Grant Unconditional Offer</option>

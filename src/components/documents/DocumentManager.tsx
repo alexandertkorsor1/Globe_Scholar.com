@@ -57,12 +57,12 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({ applicationId 
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('DOCUMENT UPLOAD ERROR:', error);
 
       alert(
         `Document upload failed:\n\n${
-          error?.message || 'Unknown error'
+          error instanceof Error ? error.message : 'Unknown error'
         }`
       );
     }
@@ -231,7 +231,7 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({ applicationId 
                 <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Document Category</label>
                 <select
                   value={newDocType}
-                  onChange={e => setNewDocType(e.target.value as any)}
+                  onChange={e => setNewDocType(e.target.value as DocType)}
                   style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}
                 >
                   <option value="passport">Passport Biometric Page</option>

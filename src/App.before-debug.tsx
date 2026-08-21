@@ -57,7 +57,7 @@ const WorkspaceContainer: React.FC = () => {
           fontFamily: 'Arial, sans-serif',
         }}
       >
-        Loading Report.com...
+        Loading Globe Scholars Pathways, LLC....
       </div>
     );
   }

@@ -70,6 +70,9 @@ export interface Profile {
   avatar_url?: string;
   department: DepartmentType;
   is_admin: boolean;
+  job_title?: string;
+  is_assistant?: boolean;
+  assigned_departments?: DepartmentType[];
   account_type: 'staff' | 'student' | 'unassigned';
   phone?: string;
   first_name?: string;
@@ -77,6 +80,37 @@ export interface Profile {
   country_of_residence?: string;
   passport_number?: string;
   created_at: string;
+}
+
+export type DepartmentMemberStatus =
+  | 'pending_activation'
+  | 'active'
+  | 'inactive';
+
+export interface DepartmentMember {
+  id: string;
+  profile_id?: string | null;
+  full_name: string;
+  email: string;
+  job_title: string;
+  primary_department: DepartmentType;
+  departments: DepartmentType[];
+  is_assistant: boolean;
+  employment_status: DepartmentMemberStatus;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DepartmentMemberInput {
+  full_name: string;
+  email: string;
+  job_title: string;
+  primary_department: DepartmentType;
+  departments: DepartmentType[];
+  is_assistant: boolean;
+  employment_status: DepartmentMemberStatus;
+  temporary_password?: string;
 }
 
 export interface DepartmentPermission {
@@ -326,7 +360,7 @@ export interface AuditLog {
   action: string;
   entity_type: string;
   entity_id: string;
-  before_state?: any;
-  after_state?: any;
+  before_state?: unknown;
+  after_state?: unknown;
   created_at: string;
 }

@@ -70,7 +70,7 @@ const WorkspaceContainer: React.FC = () => {
             }}
           />
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-          Loading Globe Scholar Pathways...
+          Loading Globe Scholars Pathways, LLC...
         </div>
       </div>
     );
@@ -103,6 +103,33 @@ const WorkspaceContainer: React.FC = () => {
         initialMode={publicView}
         onBack={() => setPublicView('landing')}
       />
+    );
+  }
+
+  if (currentProfile.account_type === 'unassigned') {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+          gap: '12px',
+          color: '#111827',
+          textAlign: 'center',
+          padding: '40px',
+          background: '#f6f7f9',
+        }}
+      >
+        <h2>Account setup in progress</h2>
+        <p style={{ color: '#6b7280', maxWidth: '480px' }}>
+          Your account has been created, but a Globe Scholars Pathways, LLC. administrator still needs to activate your department access.
+        </p>
+        <button type="button" className="btn btn-secondary" onClick={() => void logout()}>
+          Sign out
+        </button>
+      </div>
     );
   }
 

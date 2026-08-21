@@ -139,7 +139,7 @@ return (
             fontWeight: 700,
           }}
         >
-          Report.com
+          Globe Scholars Pathways, LLC.
         </div>
 
         <div

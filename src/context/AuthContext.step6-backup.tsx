@@ -54,7 +54,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [loading, setLoading] = useState<boolean>(true);
 
   /**
-   * Load the Report.com profile belonging to the
+   * Load the Globe Scholars Pathways, LLC. profile belonging to the
    * currently authenticated Supabase user.
    */
   const loadProfile = async (authUser: User) => {
@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
     if (error || !data) {
       console.error(
-        'Failed to load Report.com profile:',
+        'Failed to load Globe Scholars Pathways, LLC. profile:',
         error
       );
 
@@ -134,7 +134,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   }, []);
 
   /**
-   * Admins can load all Report.com profiles.
+   * Admins can load all Globe Scholars Pathways, LLC. profiles.
    */
   useEffect(() => {
     const loadAvailableProfiles = async () => {

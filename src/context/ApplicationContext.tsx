@@ -8,6 +8,7 @@ import {
   InstitutionTask,
   FinancialRecord,
   PartnerUniversity,
+  PartnerAgreement,
   Communication,
   AuditLog,
   ApplicationStatusHistory,
@@ -95,7 +96,7 @@ uploadPartnerAgreement: (
   partnerId: string,
   file: File,
   expiryDate: string
-) => Promise<any>;
+) => Promise<PartnerAgreement>;
 deletePartnerUniversity: (partnerId: string) => Promise<void>;
 submitDepartmentReport: (
   report: DepartmentReportSubmission,
@@ -474,7 +475,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
           fontSize: '18px',
         }}
       >
-        Loading Globe Scholar Pathways...
+        Loading Globe Scholars Pathways, LLC...
       </div>
     );
   }
@@ -516,7 +517,13 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   // Helper for audit logging
-  const logAudit = (action: string, entityType: string, entityId: string, beforeState?: any, afterState?: any) => {
+  const logAudit = (
+    action: string,
+    entityType: string,
+    entityId: string,
+    beforeState?: unknown,
+    afterState?: unknown
+  ) => {
     const newLog: AuditLog = {
       id: `aud-${Date.now()}`,
       actor_name: currentProfile.full_name,
@@ -1282,11 +1289,6 @@ const createApplication = async (
     updated_at: now
   };
 
-  console.log(
-    'CREATING APPLICATION IN SUPABASE:',
-    applicationPayload
-  );
-
   const { data, error } = await supabase
     .from('applications')
     .insert(applicationPayload)
@@ -1464,7 +1466,7 @@ const createApplication = async (
     partnerId: string,
     file: File,
     expiryDate: string
-  ) => {
+  ): Promise<PartnerAgreement> => {
     if (!currentProfile) {
       throw new Error('You must be logged in to upload an agreement.');
     }
@@ -1518,6 +1520,8 @@ const createApplication = async (
       throw new Error(agreementError.message);
     }
 
+    const agreement = data as PartnerAgreement;
+
     setPartnerUniversities(prev =>
       prev.map(partner =>
         partner.id === partnerId
@@ -1525,7 +1529,7 @@ const createApplication = async (
               ...partner,
               agreements: [
                 ...(partner.agreements || []),
-                data
+                agreement
               ]
             }
           : partner
@@ -1535,7 +1539,7 @@ const createApplication = async (
     logAudit(
       'UPLOAD_PARTNER_AGREEMENT',
       'partner_agreements',
-      data.id,
+      agreement.id,
       null,
       {
         partner_id: partnerId,
@@ -1543,7 +1547,7 @@ const createApplication = async (
       }
     );
 
-    return data;
+    return agreement;
   };
 
   const submitDepartmentReport = async (

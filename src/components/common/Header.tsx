@@ -12,6 +12,7 @@ import {
   Building2
 } from 'lucide-react';
 import { DepartmentType } from '../../types/database';
+import brandLogo from '../../brand-logo.svg';
 
 interface HeaderProps {
   onOpenComms: () => void;
@@ -19,9 +20,8 @@ interface HeaderProps {
   onOpenAuditLogs: () => void;
 }
 
-const DEPT_LABELS: Record<
-  DepartmentType,
-  { name: string; badgeClass: string }
+const DEPT_LABELS: Partial<
+  Record<DepartmentType, { name: string; badgeClass: string }>
 > = {
   admin: {
     name: 'Admin Oversight',
@@ -54,19 +54,12 @@ const DEPT_LABELS: Record<
   finance: {
     name: 'Finance & Disbursements',
     badgeClass: 'dept-badge-finance'
-  },
-  it_support: {
-    name: 'IT Support',
-    badgeClass: 'dept-badge-admin'
-  },
-  legal_compliance: {
-    name: 'Legal & Compliance',
-    badgeClass: 'dept-badge-admin'
-  },
-  alumni_success: {
-    name: 'Alumni & Success',
-    badgeClass: 'dept-badge-admin'
   }
+};
+
+const fallbackDeptInfo = {
+  name: 'Department Workspace',
+  badgeClass: 'dept-badge-admin'
 };
 
 export const Header: React.FC<HeaderProps> = ({
@@ -92,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
   ).length;
 
   const currentDeptInfo =
-    DEPT_LABELS[currentProfile.department];
+    DEPT_LABELS[currentProfile.department] || fallbackDeptInfo;
 
   return (
     <header
@@ -124,28 +117,7 @@ export const Header: React.FC<HeaderProps> = ({
             gap: '14px'
           }}
         >
-          <div
-            style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '12px',
-              background:
-                'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow:
-                '0 4px 16px rgba(99, 102, 241, 0.4)'
-            }}
-          >
-            <Globe
-              style={{
-                color: '#ffffff',
-                width: '24px',
-                height: '24px'
-              }}
-            />
-          </div>
+          <img src={brandLogo} alt="Globe Scholars Pathways, LLC." style={{ width: '208px', height: '70px', objectFit: 'contain', objectPosition: 'left center' }} />
 
           <div>
             <div
@@ -162,7 +134,7 @@ export const Header: React.FC<HeaderProps> = ({
                   fontWeight: 800
                 }}
               >
-                Globe Scholar Pathways
+                Globe Scholars Pathways, LLC.
               </h1>
 
               <span
@@ -586,4 +558,3 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
-

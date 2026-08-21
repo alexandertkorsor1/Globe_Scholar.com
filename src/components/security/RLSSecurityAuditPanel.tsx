@@ -111,7 +111,7 @@ export const RLSSecurityAuditPanel: React.FC<RLSSecurityAuditPanelProps> = ({ is
           <div>
             <h2 style={{ fontSize: '1.25rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <ShieldCheck style={{ color: '#34d399', width: '24px', height: '24px' }} />
-              Automated RLS Policy Authorization & Denial Test Suite
+              RLS Policy Authorization & Denial Review
             </h2>
             <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>
               Execution of negative & positive Row-Level Security policy assertions on current Supabase schema.

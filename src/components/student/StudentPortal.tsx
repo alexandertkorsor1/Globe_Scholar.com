@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import brandLogo from '../../brand-logo.svg';
 import { useApplication } from '../../context/ApplicationContext';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
@@ -125,7 +126,7 @@ export const StudentPortal: React.FC = () => {
 
     try {
       const savedPreference = window.localStorage.getItem(
-        `report-com:student:${currentProfile?.id}:notifications`
+        `gsp:student:${currentProfile?.id}:notifications`
       );
       setStudentNotifications(savedPreference !== 'false');
     } catch {
@@ -334,7 +335,7 @@ export const StudentPortal: React.FC = () => {
 
     try {
       window.localStorage.setItem(
-        `report-com:student:${currentProfile.id}:notifications`,
+        `gsp:student:${currentProfile.id}:notifications`,
         String(studentNotifications)
       );
     } catch {
@@ -436,9 +437,9 @@ export const StudentPortal: React.FC = () => {
         <div className="student-portal-hero-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <GraduationCap style={{ color: '#6366f1', width: '28px', height: '28px' }} />
+              <img className="student-portal-brand-logo" src={brandLogo} alt="Globe Scholars Pathways, LLC." />
               <h2 style={{ fontSize: '1.4rem', color: '#ffffff', fontWeight: 800 }}>
-                Applicant Portal — Globe Scholar Pathways
+                Applicant Portal
               </h2>
             </div>
             <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '4px' }}>
@@ -666,7 +667,7 @@ export const StudentPortal: React.FC = () => {
                   setDocumentUploadMessage(
                     `${nextRequiredDocument.title} uploaded successfully.`
                   );
-                } catch (error: any) {
+                } catch (error) {
                   console.error(
                     'STUDENT DOCUMENT UPLOAD ERROR:',
                     error
@@ -674,7 +675,7 @@ export const StudentPortal: React.FC = () => {
 
                   alert(
                     `Document upload failed:\n\n${
-                      error?.message || 'Unknown error'
+                      error instanceof Error ? error.message : 'Unknown error'
                     }`
                   );
                 } finally {

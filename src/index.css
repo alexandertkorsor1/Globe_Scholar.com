@@ -717,6 +717,256 @@ button:disabled {
   font-weight: 700;
 }
 
+/* ─── Globe Scholars Pathways branding ─── */
+.dashboard-brand-logo {
+  display: block;
+  width: 184px;
+  height: 58px;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.auth-brand-logo {
+  display: block;
+  width: min(100%, 290px);
+  height: 112px;
+  object-fit: contain;
+  margin: 0 auto 14px;
+}
+
+.student-portal-brand-logo {
+  display: block;
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+/* ─── Administration: team directory ─── */
+.department-member-modal {
+  width: min(100%, 650px);
+}
+
+.department-member-modal-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 25px 28px 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.department-member-modal-header h2 {
+  color: #0f172a;
+  font-size: 21px;
+}
+
+.department-member-modal-header p {
+  margin-top: 5px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.department-member-modal-body {
+  display: grid;
+  gap: 16px;
+  padding: 22px 28px;
+}
+
+.department-member-assignments {
+  margin: 0;
+  padding: 15px;
+  border: 1px solid #dbe5f3;
+  border-radius: 12px;
+  background: #f8fbff;
+}
+
+.department-member-credentials {
+  display: grid;
+  gap: 14px;
+  padding: 15px;
+  border: 1px solid #c7d2fe;
+  border-radius: 12px;
+  background: #f8fbff;
+}
+
+.department-member-credentials-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.department-member-credentials-header h3 {
+  margin: 0;
+  color: #172554;
+  font-size: 14px;
+}
+
+.department-member-credentials-header p {
+  margin: 4px 0 0;
+  color: #526173;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.department-member-password-field {
+  position: relative;
+}
+
+.department-member-password-field .form-input {
+  padding-right: 44px;
+}
+
+.department-member-password-field button {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #315cc8;
+  cursor: pointer;
+}
+
+.department-member-password-field button:hover {
+  background: #e0e7ff;
+}
+
+.department-member-assignments legend {
+  padding: 0 5px;
+  color: #1e3a8a;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.department-member-assignments p {
+  margin: 0 0 12px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.department-member-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.department-member-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 7px 9px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.department-member-checkbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: #2563eb;
+  flex-shrink: 0;
+}
+
+.department-member-responsibility {
+  margin: 0;
+  padding: 15px;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  background: #eff6ff;
+}
+
+.department-member-responsibility legend {
+  padding: 0 5px;
+  color: #1e3a8a;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.department-member-responsibility p {
+  margin: 0 0 12px;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.department-member-role-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.department-member-role-options button {
+  display: grid;
+  gap: 4px;
+  min-height: 78px;
+  padding: 12px;
+  border: 1px solid #dbe5f3;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #334155;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.department-member-role-options button.is-selected {
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.department-member-role-options strong {
+  color: #1e3a8a;
+  font-size: 13px;
+}
+
+.department-member-role-options span {
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.department-member-form-error {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.department-member-form-success {
+  margin-top: 14px;
+  padding: 11px 13px;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  background: #f0fdf4;
+  color: #166534;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.department-member-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 28px 26px;
+}
+
 /* ─── Student Portal ─── */
 .student-portal {
   color: #1e293b;
@@ -1359,6 +1609,11 @@ button:disabled {
     font-size: 16px !important;
   }
 
+  .dashboard-brand-logo {
+    width: 145px;
+    height: 48px;
+  }
+
   .dashboard-sidebar-header > div:last-child > div:last-child {
     display: none;
   }
@@ -1605,6 +1860,49 @@ button:disabled {
   .auth-card {
     padding: 30px 22px !important;
     border-radius: 16px !important;
+  }
+
+  .auth-brand-logo {
+    width: min(100%, 240px);
+    height: 94px;
+  }
+
+  .student-portal-brand-logo {
+    width: 35px;
+    height: 35px;
+  }
+
+  .admin-team-header {
+    align-items: stretch !important;
+    flex-direction: column;
+  }
+
+  .admin-team-header .btn {
+    width: 100%;
+  }
+
+  .department-member-modal-header,
+  .department-member-modal-body,
+  .department-member-modal-actions {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .department-member-modal-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .department-member-modal-actions .btn {
+    width: 100%;
+  }
+
+  .department-member-checkboxes {
+    grid-template-columns: 1fr;
+  }
+
+  .department-member-role-options {
+    grid-template-columns: 1fr;
   }
 
   .department-communications-drawer {

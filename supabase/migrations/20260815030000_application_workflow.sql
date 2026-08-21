@@ -1,5 +1,5 @@
 -- ============================================================
--- REPORT.COM
+-- GLOBE SCHOLARS PATHWAYS, LLC.
 -- Application Workflow
 -- Applications + Documents + Versions + Status History
 -- ============================================================
