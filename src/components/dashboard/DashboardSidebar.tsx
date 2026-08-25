@@ -5,7 +5,7 @@ import {
   ChevronRight,
   HelpCircle,
 } from 'lucide-react';
-import brandLogo from '../../brand-logo.svg';
+import brandLogo from '../../brand-logo.jpg';
 
 export interface DashboardNavigationItem {
   label: string;

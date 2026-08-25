@@ -514,3 +514,65 @@ export interface VisaDocument {
   uploaded_at: string;
 }
 
+/* ─── HR Employee Management Types ─── */
+
+export type HrEmploymentType = 'full_time' | 'part_time' | 'contract' | 'intern';
+export type HrEmployeeStatus = 'active' | 'on_leave' | 'terminated' | 'resigned';
+
+export interface HrEmployeeRecord {
+  id: string;
+  member_id?: string | null;
+  full_name: string;
+  email: string;
+  phone?: string | null;
+  job_title: string;
+  department: DepartmentType;
+  employment_type: HrEmploymentType;
+  start_date: string;
+  end_date?: string | null;
+  status: HrEmployeeStatus;
+  salary_band?: string | null;
+  notes?: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type HrInterviewPlatform = 'google_meet' | 'zoom' | 'in_person';
+export type HrInterviewStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_show';
+
+export interface HrInterview {
+  id: string;
+  candidate_name: string;
+  candidate_email: string;
+  position: string;
+  department: DepartmentType;
+  interview_date: string;
+  interview_time: string;
+  platform: HrInterviewPlatform;
+  meeting_link?: string | null;
+  interviewer_name?: string | null;
+  status: HrInterviewStatus;
+  notes?: string | null;
+  created_by: string;
+  created_at: string;
+}
+
+export type HrLeaveType = 'annual' | 'sick' | 'personal' | 'maternity' | 'unpaid';
+export type HrLeaveStatus = 'pending' | 'approved' | 'denied';
+
+export interface HrLeaveRequest {
+  id: string;
+  employee_name: string;
+  employee_email: string;
+  department: DepartmentType;
+  leave_type: HrLeaveType;
+  start_date: string;
+  end_date: string;
+  reason?: string | null;
+  status: HrLeaveStatus;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  created_by: string;
+  created_at: string;
+}

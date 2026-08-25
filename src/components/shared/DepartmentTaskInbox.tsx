@@ -396,7 +396,8 @@ export const DepartmentTaskInbox: React.FC<DepartmentTaskInboxProps> = ({
         {(currentProfile?.department === 'admin' ||
           currentProfile?.is_admin ||
           currentProfile?.department === 'operations' ||
-          currentProfile?.department === 'management') && (
+          currentProfile?.department === 'management' ||
+          currentProfile?.department === 'human_resources') && (
           <button
             onClick={() => setShowAssignWorkModal(true)}
             className="btn btn-primary btn-sm"
@@ -682,7 +683,7 @@ export const DepartmentTaskInbox: React.FC<DepartmentTaskInboxProps> = ({
                                       alert('Failed to open assignment file: ' + (err instanceof Error ? err.message : 'Unknown error'));
                                     }
                                   } else {
-                                    downloadAssignmentPdf(assignment);
+                                    downloadAssignmentPdf(assignment, workAssignments);
                                   }
                                 }}
                                 className="btn btn-secondary btn-sm"
@@ -704,7 +705,7 @@ export const DepartmentTaskInbox: React.FC<DepartmentTaskInboxProps> = ({
                                        const notes = subComment ? subComment.comment.replace('[SUBMISSION]', '').trim() : 'Work completed successfully.';
                                        const author = subComment?.user_name || 'Department Staff';
                                        const date = subComment ? subComment.created_at : assignment.completed_at || assignment.updated_at || new Date().toISOString();
-                                       downloadSubmissionPdf(assignment, notes, author, date);
+                                       downloadSubmissionPdf(assignment, notes, author, date, workAssignments);
                                      }}
                                      className="btn btn-sm"
                                      style={{

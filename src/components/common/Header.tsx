@@ -12,7 +12,7 @@ import {
   Building2
 } from 'lucide-react';
 import { DepartmentType } from '../../types/database';
-import brandLogo from '../../brand-logo.svg';
+import brandLogo from '../../brand-logo.jpg';
 
 interface HeaderProps {
   onOpenComms: () => void;

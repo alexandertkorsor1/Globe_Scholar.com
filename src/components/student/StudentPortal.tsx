@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import jsPDF from 'jspdf';
-import brandLogo from '../../brand-logo.svg';
+import brandLogo from '../../brand-logo.jpg';
+import { drawLetterhead } from '../../lib/work-assignment-pdf';
 import { useApplication } from '../../context/ApplicationContext';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
@@ -592,29 +593,25 @@ export const StudentPortal: React.FC = () => {
 
     const pageWidth = pdf.internal.pageSize.getWidth();
 
-    // Header
-    pdf.setFillColor(11, 58, 91);
-    pdf.rect(0, 0, pageWidth, 42, 'F');
+    // Compute Series Number
+    const sortedReceipts = [...paymentReceipts]
+      .sort((a, b) => new Date(a.created_at || a.issued_at).getTime() - new Date(b.created_at || b.issued_at).getTime());
+    const index = sortedReceipts.findIndex((r) => r.id === receipt.id);
+    const seriesStr = index !== -1 ? String(index + 1).padStart(3, '0') : '001';
 
-    pdf.setTextColor(255, 255, 255);
-    pdf.setFontSize(20);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('Globe Scholars Pathways, LLC.', 20, 18);
+    // Draw Letterhead
+    drawLetterhead(pdf, 'finance', seriesStr);
 
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
-    pdf.text('Official Payment Receipt', 20, 27);
-
-    // Receipt number
+    // Receipt number title
     pdf.setTextColor(15, 23, 42);
-    pdf.setFontSize(16);
+    pdf.setFontSize(13);
     pdf.setFont('helvetica', 'bold');
-    pdf.text('PAYMENT RECEIPT', 20, 58);
+    pdf.text('PAYMENT RECEIPT', 20, 52);
 
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
 
-    let y = 72;
+    let y = 63;
 
     const addRow = (label: string, value: string) => {
       pdf.setFont('helvetica', 'bold');

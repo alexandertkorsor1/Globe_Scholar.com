@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import brandLogo from '../../brand-logo.svg';
+import brandLogo from '../../brand-logo.jpg';
 
 export type AuthMode = 'login' | 'student-signup' | 'forgot-password';
 

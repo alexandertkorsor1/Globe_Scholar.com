@@ -21,7 +21,7 @@ export const InstitutionalRelationsWorkspace: React.FC = () => {
     applications,
     workAssignments,
   } = useApplication();
-  const { currentProfile } = useAuth();
+  const { currentProfile, logout } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'funnel' | 'partners'>('funnel');
 
@@ -63,6 +63,7 @@ export const InstitutionalRelationsWorkspace: React.FC = () => {
       title="Partner Operations Portal"
       subtitle="Manage global university partnerships, coordinate student applications handoffs, and audit agreements."
       navigation={sidebarNav}
+      onLogout={logout}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         

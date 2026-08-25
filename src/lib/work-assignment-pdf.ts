@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import { WorkAssignment } from '../types/database';
+import { BRAND_LOGO_BASE64 } from './brand-logo-base64';
 
 const DEPARTMENT_LABELS: Record<string, string> = {
   admin: 'Administration',
@@ -33,38 +34,141 @@ const formatDate = (dateStr?: string | null) => {
   });
 };
 
+export const getCreatorDepartmentKey = (creatorName?: string): string => {
+  if (!creatorName) return 'operations';
+  const match = creatorName.match(/\(([^)]+)\)/);
+  return match ? match[1] : 'operations';
+};
+
+/**
+ * Draws the official Globe Scholars Pathways, LLC letterhead on a jsPDF instance
+ */
+export const drawLetterhead = (
+  pdf: jsPDF,
+  departmentKey: string,
+  seriesNumber: string
+) => {
+  const pageWidth = pdf.internal.pageSize.getWidth();
+
+  // Draw Left Logo
+  try {
+    pdf.addImage(BRAND_LOGO_BASE64, 'JPEG', 15, 6, 20, 20);
+  } catch (err) {
+    console.error('Failed to add left brand logo to letterhead:', err);
+  }
+
+  // Draw Right Logo
+  try {
+    pdf.addImage(BRAND_LOGO_BASE64, 'JPEG', 175, 6, 20, 20);
+  } catch (err) {
+    console.error('Failed to add right brand logo to letterhead:', err);
+  }
+
+  // Header Title: "GlobeScholars Pathways, LLC."
+  pdf.setTextColor(10, 25, 49); // Dark blue
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(18);
+  pdf.text('GlobeScholars Pathways, LLC.', pageWidth / 2, 12, { align: 'center' });
+
+  // Thin grey line below the main title
+  pdf.setDrawColor(180, 180, 180);
+  pdf.setLineWidth(0.3);
+  pdf.line(40, 14, 170, 14);
+
+  // Subtitle: "Educational Consultants"
+  pdf.setTextColor(216, 122, 43); // Orange/Brown
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(10.5);
+  pdf.text('Educational Consultants', pageWidth / 2, 19, { align: 'center' });
+
+  // Tagline: "Navigating Your Global Study Journey"
+  pdf.setTextColor(80, 80, 80);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(8.5);
+  pdf.text('Navigating Your Global Study Journey', pageWidth / 2, 23, { align: 'center' });
+
+  // Department name (Office of the ...)
+  const rawLabel = DEPARTMENT_LABELS[departmentKey] || departmentKey;
+  const formattedDept = rawLabel.toUpperCase().endsWith('DEPARTMENT') 
+    ? rawLabel.toUpperCase() 
+    : `${rawLabel.toUpperCase()} DEPARTMENT`;
+  
+  pdf.setTextColor(29, 78, 216); // Blue
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(9.5);
+  pdf.text(`OFFICE OF THE ${formattedDept}`, pageWidth / 2, 28, { align: 'center' });
+
+  // Address
+  pdf.setTextColor(80, 80, 80);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(7.5);
+  pdf.text('Monrovia City, Montserrado County, Republic of Liberia - 1000 LR', pageWidth / 2, 32, { align: 'center' });
+
+  // Contact info
+  pdf.text('Email: info@globescholarspathways.com   Phone: +231-8886326999', pageWidth / 2, 36, { align: 'center' });
+
+  // Series Number on the right side of the header area (always Red, Bold, and Italic)
+  pdf.setTextColor(220, 38, 38); // Red
+  pdf.setFont('helvetica', 'bolditalic');
+  pdf.setFontSize(9.5);
+  pdf.text(`Series No: ${seriesNumber}`, 195, 40, { align: 'right' });
+
+  // Tri-color horizontal lines (spanning margins 15mm to 195mm)
+  // Red line
+  pdf.setFillColor(220, 38, 38);
+  pdf.rect(15, 42, 180, 0.6, 'F');
+  // Yellow line
+  pdf.setFillColor(245, 158, 11);
+  pdf.rect(15, 42.7, 180, 0.6, 'F');
+  // Blue line
+  pdf.setFillColor(29, 78, 216);
+  pdf.rect(15, 43.4, 180, 0.6, 'F');
+};
+
 /**
  * Generates and downloads a PDF of the Work Assignment (Assigning Period)
  */
-export const downloadAssignmentPdf = (assignment: WorkAssignment) => {
+export const downloadAssignmentPdf = (
+  assignment: WorkAssignment,
+  allAssignments?: WorkAssignment[]
+) => {
   const pdf = new jsPDF();
   const pageWidth = pdf.internal.pageSize.getWidth();
 
-  // Dark blue banner header
-  pdf.setFillColor(15, 23, 42); // slate-900
-  pdf.rect(0, 0, pageWidth, 42, 'F');
+  const creatorDept = getCreatorDepartmentKey(assignment.creator_name);
 
-  // Title
-  pdf.setTextColor(255, 255, 255);
-  pdf.setFontSize(18);
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('GLOBE SCHOLARS PATHWAYS, LLC.', 20, 18);
+  // Compute Series Number
+  let seriesStr = '001';
+  if (allAssignments && allAssignments.length > 0) {
+    const deptAssignments = allAssignments
+      .filter((a) => getCreatorDepartmentKey(a.creator_name) === creatorDept)
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    
+    const index = deptAssignments.findIndex((a) => a.id === assignment.id);
+    if (index !== -1) {
+      seriesStr = String(index + 1).padStart(3, '0');
+    }
+  } else {
+    const parts = assignment.assignment_number.split('-');
+    const lastPart = parts[parts.length - 1];
+    if (lastPart && /^\d+$/.test(lastPart)) {
+      seriesStr = String(parseInt(lastPart, 10)).padStart(3, '0');
+    }
+  }
 
-  pdf.setFontSize(9);
-  pdf.setFont('helvetica', 'normal');
-  pdf.setTextColor(148, 163, 184); // slate-400
-  pdf.text('Official Cross-Department Operations Directive', 20, 27);
+  // Draw Letterhead
+  drawLetterhead(pdf, creatorDept, seriesStr);
 
   // Assignment badge
   pdf.setTextColor(15, 23, 42);
-  pdf.setFontSize(14);
+  pdf.setFontSize(13);
   pdf.setFont('helvetica', 'bold');
-  pdf.text('WORK DIRECTIVE / TASK ASSIGNMENT', 20, 56);
+  pdf.text('WORK DIRECTIVE / TASK ASSIGNMENT', 20, 52);
 
   pdf.setFontSize(10);
   pdf.setFont('helvetica', 'normal');
 
-  let y = 68;
+  let y = 63;
 
   const addRow = (label: string, value: string, highlightVal: boolean = false) => {
     pdf.setFont('helvetica', 'bold');
@@ -131,36 +235,46 @@ export const downloadSubmissionPdf = (
   assignment: WorkAssignment,
   submissionNotes: string,
   submittedBy: string,
-  submittedAt: string
+  submittedAt: string,
+  allAssignments?: WorkAssignment[]
 ) => {
   const pdf = new jsPDF();
   const pageWidth = pdf.internal.pageSize.getWidth();
 
-  // Dark green header banner (representing completion)
-  pdf.setFillColor(4, 120, 87); // emerald-700
-  pdf.rect(0, 0, pageWidth, 42, 'F');
+  const creatorDept = getCreatorDepartmentKey(assignment.creator_name);
 
-  // Title
-  pdf.setTextColor(255, 255, 255);
-  pdf.setFontSize(18);
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('GLOBE SCHOLARS PATHWAYS, LLC.', 20, 18);
+  // Compute Series Number
+  let seriesStr = '001';
+  if (allAssignments && allAssignments.length > 0) {
+    const deptAssignments = allAssignments
+      .filter((a) => getCreatorDepartmentKey(a.creator_name) === creatorDept)
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    
+    const index = deptAssignments.findIndex((a) => a.id === assignment.id);
+    if (index !== -1) {
+      seriesStr = String(index + 1).padStart(3, '0');
+    }
+  } else {
+    const parts = assignment.assignment_number.split('-');
+    const lastPart = parts[parts.length - 1];
+    if (lastPart && /^\d+$/.test(lastPart)) {
+      seriesStr = String(parseInt(lastPart, 10)).padStart(3, '0');
+    }
+  }
 
-  pdf.setFontSize(9);
-  pdf.setFont('helvetica', 'normal');
-  pdf.setTextColor(167, 243, 208); // emerald-200
-  pdf.text('Official Work Submission & Completion Receipt', 20, 27);
+  // Draw Letterhead
+  drawLetterhead(pdf, creatorDept, seriesStr);
 
   // Submission header
   pdf.setTextColor(15, 23, 42);
-  pdf.setFontSize(14);
+  pdf.setFontSize(13);
   pdf.setFont('helvetica', 'bold');
-  pdf.text('WORK COMPLETION SUBMISSION', 20, 56);
+  pdf.text('WORK COMPLETION SUBMISSION', 20, 52);
 
   pdf.setFontSize(10);
   pdf.setFont('helvetica', 'normal');
 
-  let y = 68;
+  let y = 63;
 
   const addRow = (label: string, value: string, highlightVal: boolean = false) => {
     pdf.setFont('helvetica', 'bold');

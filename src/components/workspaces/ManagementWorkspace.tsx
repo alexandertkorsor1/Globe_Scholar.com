@@ -33,7 +33,7 @@ export const ManagementWorkspace: React.FC = () => {
     departmentKpis,
     createWorkAssignment,
   } = useApplication();
-  const { currentProfile } = useAuth();
+  const { currentProfile, logout } = useAuth();
 
   // Navigation Scrolling helper
   const goTo = (sectionId: string) =>
@@ -69,7 +69,7 @@ export const ManagementWorkspace: React.FC = () => {
       setWaError('Please select a PDF file containing assignment instructions.');
       return;
     }
-    if (!currentProfile?.id) {
+    if (!currentProfile?.id || !currentProfile?.department) {
       setWaError('Session profile not found. Please log in again.');
       return;
     }
@@ -121,7 +121,7 @@ export const ManagementWorkspace: React.FC = () => {
       setWaPriority('medium');
       setWaDueDate('');
     } catch (err) {
-      setWaError(err instanceof Error ? err.message : 'Failed to create work assignment.');
+      setWaError(err instanceof Error ? err.message : 'Failed to assign work.');
     } finally {
       setWaSubmitting(false);
     }
@@ -170,6 +170,7 @@ export const ManagementWorkspace: React.FC = () => {
       title="Executive Overview"
       subtitle="Corporate Oversight, Strategic Performance Analytics, and Cross-Department Directives"
       navigation={sidebarNav}
+      onLogout={logout}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         

@@ -8,7 +8,7 @@ import {
   ShieldCheck,
   UsersRound,
 } from 'lucide-react';
-import brandLogo from '../../brand-logo.svg';
+import brandLogo from '../../brand-logo.jpg';
 
 interface PublicLandingProps {
   onSignIn: () => void;

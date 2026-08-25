@@ -28,7 +28,16 @@ import {
   WorkAssignmentPriority,
   WorkAssignmentStatus,
   VisaApplication,
-  VisaDocument
+  VisaDocument,
+  HrEmployeeRecord,
+  HrInterview,
+  HrLeaveRequest,
+  HrEmploymentType,
+  HrEmployeeStatus,
+  HrInterviewPlatform,
+  HrInterviewStatus,
+  HrLeaveType,
+  HrLeaveStatus
 } from '../types/database';
 import {
   INITIAL_APPLICATIONS,
@@ -170,6 +179,18 @@ getDepartmentReportDownloadUrl: (
     status: 'pending' | 'under_review' | 'approved' | 'rejected',
     instructions: string
   ) => Promise<void>;
+
+  // HR Management System state & methods
+  hrEmployeeRecords: HrEmployeeRecord[];
+  addHrEmployeeRecord: (record: Omit<HrEmployeeRecord, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => Promise<HrEmployeeRecord>;
+  updateHrEmployeeRecord: (id: string, record: Partial<HrEmployeeRecord>) => Promise<HrEmployeeRecord>;
+  deleteHrEmployeeRecord: (id: string) => Promise<void>;
+  hrInterviews: HrInterview[];
+  scheduleHrInterview: (interview: Omit<HrInterview, 'id' | 'created_at' | 'created_by'>) => Promise<HrInterview>;
+  updateHrInterview: (id: string, interview: Partial<HrInterview>) => Promise<HrInterview>;
+  hrLeaveRequests: HrLeaveRequest[];
+  submitHrLeaveRequest: (request: Omit<HrLeaveRequest, 'id' | 'created_at' | 'created_by' | 'status'>) => Promise<HrLeaveRequest>;
+  reviewHrLeaveRequest: (id: string, status: HrLeaveStatus, notes?: string | null) => Promise<void>;
 }
 
 const ApplicationContext = createContext<ApplicationContextType | undefined>(undefined);
@@ -225,8 +246,113 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [visaApplications, setVisaApplications] =
     useState<VisaApplication[]>([]);
 
-  const [studentApplicationsLoading, setStudentApplicationsLoading] =
-    useState(false);
+  const [studentApplicationsLoading, setStudentApplicationsLoading] = useState(false);
+  
+  // Mock data definitions for HR
+  const initialHrEmployees: HrEmployeeRecord[] = [
+    {
+      id: 'emp-01',
+      full_name: 'Olivia Martinez',
+      email: 'olivia.m@globescholars.com',
+      phone: '+1 (555) 019-2834',
+      job_title: 'Operations Director',
+      department: 'operations',
+      employment_type: 'full_time',
+      start_date: '2024-01-15',
+      status: 'active',
+      salary_band: 'Band D',
+      notes: 'Senior team member handling global directives.',
+      created_by: 'usr-admin-01',
+      created_at: new Date('2024-01-15').toISOString(),
+      updated_at: new Date('2024-01-15').toISOString()
+    },
+    {
+      id: 'emp-02',
+      full_name: 'Elena Rostova',
+      email: 'elena.r@globescholars.com',
+      phone: '+1 (555) 014-3829',
+      job_title: 'Senior Counselor',
+      department: 'counseling',
+      employment_type: 'full_time',
+      start_date: '2024-06-10',
+      status: 'active',
+      salary_band: 'Band C',
+      notes: 'Assigned to international student counseling.',
+      created_by: 'usr-admin-01',
+      created_at: new Date('2024-06-10').toISOString(),
+      updated_at: new Date('2024-06-10').toISOString()
+    },
+    {
+      id: 'emp-03',
+      full_name: 'Marcus Vance',
+      email: 'marcus.v@globescholars.com',
+      phone: '+1 (555) 012-9843',
+      job_title: 'Marketing Specialist',
+      department: 'marketing',
+      employment_type: 'contract',
+      start_date: '2025-03-01',
+      end_date: '2026-03-01',
+      status: 'active',
+      salary_band: 'Band B',
+      notes: 'Contractor for campaigns.',
+      created_by: 'usr-admin-01',
+      created_at: new Date('2025-03-01').toISOString(),
+      updated_at: new Date('2025-03-01').toISOString()
+    }
+  ];
+
+  const initialHrInterviews: HrInterview[] = [
+    {
+      id: 'int-01',
+      candidate_name: 'Sarah Jenkins',
+      candidate_email: 'sarah.j@gmail.com',
+      position: 'Junior Developer',
+      department: 'it_support',
+      interview_date: '2026-08-27',
+      interview_time: '10:00',
+      platform: 'google_meet',
+      meeting_link: 'https://meet.google.com/abc-defg-hij',
+      interviewer_name: 'David Carter (IT)',
+      status: 'scheduled',
+      created_by: 'usr-admin-01',
+      created_at: new Date().toISOString()
+    },
+    {
+      id: 'int-02',
+      candidate_name: 'Robert Chen',
+      candidate_email: 'r.chen@yahoo.com',
+      position: 'Admissions Officer',
+      department: 'admissions',
+      interview_date: '2026-08-28',
+      interview_time: '14:30',
+      platform: 'zoom',
+      meeting_link: 'https://zoom.us/j/9876543210',
+      interviewer_name: 'Sarah Paulson',
+      status: 'scheduled',
+      created_by: 'usr-admin-01',
+      created_at: new Date().toISOString()
+    }
+  ];
+
+  const initialHrLeaves: HrLeaveRequest[] = [
+    {
+      id: 'lv-01',
+      employee_name: 'Elena Rostova',
+      employee_email: 'elena.r@globescholars.com',
+      department: 'counseling',
+      leave_type: 'annual',
+      start_date: '2026-09-01',
+      end_date: '2026-09-07',
+      reason: 'Family vacation',
+      status: 'pending',
+      created_by: 'usr-cns-01',
+      created_at: new Date().toISOString()
+    }
+  ];
+
+  const [hrEmployeeRecords, setHrEmployeeRecords] = useState<HrEmployeeRecord[]>(initialHrEmployees);
+  const [hrInterviews, setHrInterviews] = useState<HrInterview[]>(initialHrInterviews);
+  const [hrLeaveRequests, setHrLeaveRequests] = useState<HrLeaveRequest[]>(initialHrLeaves);
 
   useEffect(() => {
     if (loading) return;
@@ -766,6 +892,73 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       void supabase.removeChannel(channel);
     };
   }, [loading, currentProfile?.id, currentProfile?.account_type]);
+
+  // ─── HR MANAGEMENT SYSTEM LOADERS ───
+  useEffect(() => {
+    if (loading || !currentProfile?.id || currentProfile.account_type === 'unassigned') {
+      setHrEmployeeRecords(initialHrEmployees);
+      setHrInterviews(initialHrInterviews);
+      setHrLeaveRequests(initialHrLeaves);
+      return;
+    }
+
+    const isHrOrAdmin =
+      currentProfile.is_admin ||
+      currentProfile.department === 'human_resources' ||
+      currentProfile.department === 'admin';
+
+    if (!isHrOrAdmin) {
+      return;
+    }
+
+    const loadHrData = async () => {
+      // 1. Employee records
+      try {
+        const { data, error } = await supabase
+          .from('hr_employee_records')
+          .select('*')
+          .order('full_name', { ascending: true });
+        if (!error && data && data.length > 0) {
+          setHrEmployeeRecords(data as HrEmployeeRecord[]);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch hr_employee_records (table might not exist yet):', err);
+      }
+
+      // 2. Interviews
+      try {
+        const { data, error } = await supabase
+          .from('hr_interviews')
+          .select('*')
+          .order('interview_date', { ascending: true });
+        if (!error && data && data.length > 0) {
+          setHrInterviews(data as HrInterview[]);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch hr_interviews (table might not exist yet):', err);
+      }
+
+      // 3. Leave Requests
+      try {
+        const { data, error } = await supabase
+          .from('hr_leave_requests')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (!error && data && data.length > 0) {
+          setHrLeaveRequests(data as HrLeaveRequest[]);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch hr_leave_requests (table might not exist yet):', err);
+      }
+    };
+
+    void loadHrData();
+  }, [
+    loading,
+    currentProfile?.id,
+    currentProfile?.department,
+    currentProfile?.is_admin
+  ]);
 
   if (loading) {
     return (
@@ -2593,6 +2786,203 @@ const createApplication = async (
     }
   };
 
+  // ─── HR MANAGEMENT SYSTEM CRUD METHODS ───
+
+  const addHrEmployeeRecord = async (record: Omit<HrEmployeeRecord, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => {
+    if (!currentProfile?.id) throw new Error('Not authenticated');
+    
+    const newRecord = {
+      ...record,
+      created_by: currentProfile.id,
+    };
+
+    try {
+      const { data, error } = await supabase
+        .from('hr_employee_records')
+        .insert(newRecord)
+        .select()
+        .single();
+
+      if (error) throw error;
+      const savedRecord = data as HrEmployeeRecord;
+      setHrEmployeeRecords(prev => [...prev.filter(r => r.id !== savedRecord.id), savedRecord].sort((a, b) => a.full_name.localeCompare(b.full_name)));
+      return savedRecord;
+    } catch (err) {
+      console.warn('Supabase insert failed, adding to local state only:', err);
+      const fallbackData: HrEmployeeRecord = {
+        id: `emp-fb-${Date.now()}`,
+        ...newRecord,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      setHrEmployeeRecords(prev => [...prev, fallbackData].sort((a, b) => a.full_name.localeCompare(b.full_name)));
+      return fallbackData;
+    }
+  };
+
+  const updateHrEmployeeRecord = async (id: string, record: Partial<HrEmployeeRecord>) => {
+    try {
+      const { data, error } = await supabase
+        .from('hr_employee_records')
+        .update(record)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      const savedRecord = data as HrEmployeeRecord;
+      setHrEmployeeRecords(prev => prev.map(r => r.id === id ? savedRecord : r));
+      return savedRecord;
+    } catch (err) {
+      console.warn('Supabase update failed, updating local state only:', err);
+      let updatedRecord: HrEmployeeRecord | null = null;
+      setHrEmployeeRecords(prev => prev.map(r => {
+        if (r.id === id) {
+          updatedRecord = { ...r, ...record, updated_at: new Date().toISOString() } as HrEmployeeRecord;
+          return updatedRecord;
+        }
+        return r;
+      }));
+      if (!updatedRecord) throw new Error('Record not found');
+      return updatedRecord;
+    }
+  };
+
+  const deleteHrEmployeeRecord = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('hr_employee_records')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    } catch (err) {
+      console.warn('Supabase delete failed, removing from local state only:', err);
+    }
+    setHrEmployeeRecords(prev => prev.filter(r => r.id !== id));
+  };
+
+  const scheduleHrInterview = async (interview: Omit<HrInterview, 'id' | 'created_at' | 'created_by'>) => {
+    if (!currentProfile?.id) throw new Error('Not authenticated');
+    
+    const newInterview = {
+      ...interview,
+      created_by: currentProfile.id,
+    };
+
+    try {
+      const { data, error } = await supabase
+        .from('hr_interviews')
+        .insert(newInterview)
+        .select()
+        .single();
+
+      if (error) throw error;
+      const savedInterview = data as HrInterview;
+      setHrInterviews(prev => [...prev.filter(i => i.id !== savedInterview.id), savedInterview].sort((a, b) => new Date(a.interview_date).getTime() - new Date(b.interview_date).getTime()));
+      return savedInterview;
+    } catch (err) {
+      console.warn('Supabase insert failed, scheduling locally only:', err);
+      const fallbackData: HrInterview = {
+        id: `int-fb-${Date.now()}`,
+        ...newInterview,
+        created_at: new Date().toISOString(),
+      };
+      setHrInterviews(prev => [...prev, fallbackData].sort((a, b) => new Date(a.interview_date).getTime() - new Date(b.interview_date).getTime()));
+      return fallbackData;
+    }
+  };
+
+  const updateHrInterview = async (id: string, interview: Partial<HrInterview>) => {
+    try {
+      const { data, error } = await supabase
+        .from('hr_interviews')
+        .update(interview)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      const saved = data as HrInterview;
+      setHrInterviews(prev => prev.map(item => item.id === id ? saved : item));
+      return saved;
+    } catch (err) {
+      console.warn('Supabase update failed, updating local state only:', err);
+      let updated: HrInterview | null = null;
+      setHrInterviews(prev => prev.map(item => {
+        if (item.id === id) {
+          updated = { ...item, ...interview } as HrInterview;
+          return updated;
+        }
+        return item;
+      }));
+      if (!updated) throw new Error('Interview not found');
+      return updated;
+    }
+  };
+
+  const submitHrLeaveRequest = async (request: Omit<HrLeaveRequest, 'id' | 'created_at' | 'created_by' | 'status'>) => {
+    if (!currentProfile?.id) throw new Error('Not authenticated');
+    
+    const newRequest = {
+      ...request,
+      status: 'pending' as const,
+      created_by: currentProfile.id,
+    };
+
+    try {
+      const { data, error } = await supabase
+        .from('hr_leave_requests')
+        .insert(newRequest)
+        .select()
+        .single();
+
+      if (error) throw error;
+      const saved = data as HrLeaveRequest;
+      setHrLeaveRequests(prev => [saved, ...prev]);
+      return saved;
+    } catch (err) {
+      console.warn('Supabase insert failed, submitting locally only:', err);
+      const fallbackData: HrLeaveRequest = {
+        id: `lv-fb-${Date.now()}`,
+        ...newRequest,
+        created_at: new Date().toISOString(),
+      };
+      setHrLeaveRequests(prev => [fallbackData, ...prev]);
+      return fallbackData;
+    }
+  };
+
+  const reviewHrLeaveRequest = async (id: string, status: HrLeaveStatus, notes?: string | null) => {
+    if (!currentProfile?.id) throw new Error('Not authenticated');
+
+    const updateFields = {
+      status,
+      reviewed_by: currentProfile.id,
+      reviewed_at: new Date().toISOString(),
+      ...(notes ? { reason: notes } : {})
+    };
+
+    try {
+      const { error } = await supabase
+        .from('hr_leave_requests')
+        .update(updateFields)
+        .eq('id', id);
+      if (error) throw error;
+    } catch (err) {
+      console.warn('Supabase update failed, updating locally only:', err);
+    }
+
+    setHrLeaveRequests(prev => prev.map(req => {
+      if (req.id === id) {
+        return {
+          ...req,
+          ...updateFields
+        };
+      }
+      return req;
+    }));
+  };
+
   return (
     <ApplicationContext.Provider
       value={{
@@ -2651,6 +3041,16 @@ const createApplication = async (
         uploadVisaDocument,
         deleteVisaDocument,
         reviewVisaApplication,
+        hrEmployeeRecords,
+        addHrEmployeeRecord,
+        updateHrEmployeeRecord,
+        deleteHrEmployeeRecord,
+        hrInterviews,
+        scheduleHrInterview,
+        updateHrInterview,
+        hrLeaveRequests,
+        submitHrLeaveRequest,
+        reviewHrLeaveRequest,
   }}
     >
       {children}
