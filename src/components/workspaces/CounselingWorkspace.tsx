@@ -2,11 +2,14 @@ import React, { useState } from 'react';
 import { useApplication } from '../../context/ApplicationContext';
 import { useAuth } from '../../context/AuthContext';
 import { DashboardLayout } from '../dashboard/DashboardLayout';
-import { Video, Calendar, Clock, Plus, Award, AlertTriangle, FileText, CheckCircle, Users } from 'lucide-react';
+import { Video, Calendar, Clock, Plus, Award, AlertTriangle, FileText, CheckCircle, Users, ClipboardList } from 'lucide-react';
 import { Student } from '../../types/database';
+import { formatRegisterDate, formatRegisterTime, getApplicationIntake } from '../../lib/department-registers';
+import { DepartmentTaskInbox } from '../shared/DepartmentTaskInbox';
 
 export const CounselingWorkspace: React.FC = () => {
   const {
+    applications,
     students,
     counselingSessions,
     scheduleCounselingSession,
@@ -27,6 +30,27 @@ export const CounselingWorkspace: React.FC = () => {
 
   const scopedSessionsResult = getScopedCounselingSessions();
   const visibleSessions = scopedSessionsResult.data || [];
+  const scheduledSessionsByTime = [...visibleSessions].sort(
+    (first, second) =>
+      new Date(first.scheduled_at).getTime() -
+      new Date(second.scheduled_at).getTime()
+  );
+  const counselingRegisterRows = applications.map((application) => {
+    const intake = getApplicationIntake(application, students);
+    const session = scheduledSessionsByTime.find(
+      (item) =>
+        item.student_id === application.student_id ||
+        item.student_name.toLowerCase() === application.student_name.toLowerCase()
+    );
+
+    return {
+      application,
+      intake,
+      session,
+      date: session ? formatRegisterDate(session.scheduled_at) : intake.applicationDate,
+      time: session ? formatRegisterTime(session.scheduled_at) : 'Not scheduled',
+    };
+  });
 
   const handleSchedule = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +74,7 @@ export const CounselingWorkspace: React.FC = () => {
   const sidebarNav = [
     { label: 'Sessions', icon: <Video style={{ width: 18, height: 18 }} />, active: true, onClick: () => goTo('counseling-sessions') },
     { label: 'Students', icon: <Users style={{ width: 18, height: 18 }} />, onClick: () => goTo('counseling-students') },
+    { label: 'Assigned Tasks', icon: <ClipboardList style={{ width: 18, height: 18 }} />, onClick: () => goTo('counseling-assigned-tasks') },
   ];
 
   return (
@@ -76,6 +101,87 @@ export const CounselingWorkspace: React.FC = () => {
               Academic advising, Google Meet session scheduling, meeting timelines per student, and scholarship recommendation tracking.
             </p>
           </div>
+        </div>
+      </div>
+
+      <div id="counseling-assigned-tasks">
+        <DepartmentTaskInbox />
+      </div>
+
+      {/* Counseling Intake Register */}
+      <div className="glass-panel" style={{ padding: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', marginBottom: '14px', flexWrap: 'wrap' }}>
+          <div>
+            <h3 style={{ fontSize: '1rem', color: '#fff' }}>Counseling Intake & Session Register</h3>
+            <p style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '4px' }}>
+              New student accounts land here immediately so Counseling can schedule advisory sessions and track appointment status.
+            </p>
+          </div>
+          <span className="badge badge-submitted">{counselingRegisterRows.length} Students</span>
+        </div>
+
+        <div className="custom-table-container">
+          <table className="custom-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Name</th>
+                <th>Age</th>
+                <th>Gender</th>
+                <th>Country</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Phone</th>
+                <th>Counselor</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {counselingRegisterRows.map(({ application, intake, session, date, time }) => (
+                <tr key={application.id}>
+                  <td style={{ minWidth: '210px' }}>{intake.email}</td>
+                  <td style={{ fontWeight: 600 }}>{intake.name}</td>
+                  <td>{intake.age}</td>
+                  <td>{intake.gender}</td>
+                  <td>{intake.country}</td>
+                  <td>{date}</td>
+                  <td>{time}</td>
+                  <td>{intake.phone}</td>
+                  <td>{session?.counselor_name || intake.student?.assigned_counselor_name || 'Not assigned'}</td>
+                  <td>
+                    <span className={`badge badge-${session ? 'documents_verified' : 'draft'}`}>
+                      {session ? session.status.toUpperCase() : 'PENDING SCHEDULE'}
+                    </span>
+                  </td>
+                  <td>
+                    {intake.student ? (
+                      <button
+                        onClick={() => {
+                          setSelectedStudent(intake.student || null);
+                          setShowScheduleModal(true);
+                        }}
+                        className="btn btn-primary btn-sm"
+                        style={{ fontSize: '0.72rem' }}
+                      >
+                        <Video style={{ width: '12px', height: '12px' }} />
+                        Schedule
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Profile intake</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {counselingRegisterRows.length === 0 && (
+                <tr>
+                  <td colSpan={11} style={{ padding: '28px', textAlign: 'center', color: '#94a3b8' }}>
+                    No student intake records are available yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

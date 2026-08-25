@@ -19,7 +19,16 @@ import {
   DepartmentReport,
   DepartmentReportStatus,
   DepartmentReportSubmission,
-  DepartmentType
+  DepartmentType,
+  DepartmentKpiRecord,
+  DepartmentKpiInput,
+  PaymentReceipt,
+  WorkAssignment,
+  WorkAssignmentComment,
+  WorkAssignmentPriority,
+  WorkAssignmentStatus,
+  VisaApplication,
+  VisaDocument
 } from '../types/database';
 import {
   INITIAL_APPLICATIONS,
@@ -31,7 +40,9 @@ import {
   INITIAL_PARTNER_UNIVERSITIES,
   INITIAL_COMMUNICATIONS,
   INITIAL_AUDIT_LOGS,
-  INITIAL_STATUS_HISTORY
+  INITIAL_STATUS_HISTORY,
+  INITIAL_DEPARTMENT_KPIS,
+  INITIAL_PAYMENT_RECEIPTS
 } from '../lib/mock-data';
 import { useAuth } from './AuthContext';
 import { RLSSimulationEngine, RLSPermissionResult } from '../lib/rls-simulation';
@@ -45,9 +56,13 @@ interface ApplicationContextType {
   financialRecords: FinancialRecord[];
   partnerUniversities: PartnerUniversity[];
   departmentReports: DepartmentReport[];
+  departmentKpis: DepartmentKpiRecord[];
+  paymentReceipts: PaymentReceipt[];
   communications: Communication[];
   auditLogs: AuditLog[];
   statusHistory: ApplicationStatusHistory[];
+  workAssignments: WorkAssignment[];
+  workAssignmentComments: WorkAssignmentComment[];
   studentApplicationsLoading: boolean;
   
   // RLS-scoped getters
@@ -65,7 +80,12 @@ interface ApplicationContextType {
   toggleMissingDocFlag: (docId: string, isMissing: boolean) => void;
   scheduleCounselingSession: (studentId: string, scheduledAt: string, meetLink: string, notes: string) => void;
   createInstitutionTask: (appId: string, title: string, description: string, assigneeName: string, deadline: string) => void;
-  processFeePayment: (appId: string, amount: number, paymentRef: string) => Promise<FinancialRecord>;
+  processFeePayment: (
+    appId: string,
+    amount: number,
+    paymentRef: string,
+    paymentType?: 'registration_fee' | 'tuition_fee' | 'admission_fee'
+  ) => Promise<FinancialRecord>;
   createFinancialRecord: (
     record: Omit<FinancialRecord, 'id' | 'created_at' | 'approved_by_name'>
   ) => Promise<FinancialRecord>;
@@ -74,6 +94,12 @@ interface ApplicationContextType {
     approved: boolean,
     note?: string
   ) => Promise<FinancialRecord>;
+  generatePaymentReceipt: (recordId: string) => Promise<PaymentReceipt>;
+  saveDepartmentKpi: (
+    record: DepartmentKpiInput,
+    id?: string
+  ) => Promise<DepartmentKpiRecord>;
+  deleteDepartmentKpi: (recordId: string) => Promise<void>;
   addCommunication: (
     type: CommunicationType,
     title: string,
@@ -110,6 +136,40 @@ reviewDepartmentReport: (
 getDepartmentReportDownloadUrl: (
   report: DepartmentReport
 ) => Promise<string>;
+
+  // Work assignment methods
+  createWorkAssignment: (
+    title: string,
+    description: string,
+    assignedDepartment: DepartmentType,
+    priority: WorkAssignmentPriority,
+    dueDate?: string
+  ) => Promise<WorkAssignment>;
+  updateWorkAssignmentStatus: (
+    assignmentId: string,
+    status: WorkAssignmentStatus
+  ) => Promise<void>;
+  reviewWorkAssignment: (
+    assignmentId: string,
+    reviewStatus: 'approved' | 'revision_requested',
+    notes: string
+  ) => Promise<void>;
+  addWorkAssignmentComment: (
+    assignmentId: string,
+    comment: string
+  ) => Promise<WorkAssignmentComment>;
+
+  // Visa application methods
+  visaApplications: VisaApplication[];
+  applyForVisa: (applicationId: string) => Promise<VisaApplication>;
+  loadVisaDocuments: (visaApplicationId: string) => Promise<VisaDocument[]>;
+  uploadVisaDocument: (visaApplicationId: string, documentType: string, file: File) => Promise<void>;
+  deleteVisaDocument: (documentId: string, filePath: string) => Promise<void>;
+  reviewVisaApplication: (
+    visaApplicationId: string,
+    status: 'pending' | 'under_review' | 'approved' | 'rejected',
+    instructions: string
+  ) => Promise<void>;
 }
 
 const ApplicationContext = createContext<ApplicationContextType | undefined>(undefined);
@@ -141,6 +201,12 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [departmentReports, setDepartmentReports] =
     useState<DepartmentReport[]>([]);
 
+  const [departmentKpis, setDepartmentKpis] =
+    useState<DepartmentKpiRecord[]>(INITIAL_DEPARTMENT_KPIS);
+
+  const [paymentReceipts, setPaymentReceipts] =
+    useState<PaymentReceipt[]>(INITIAL_PAYMENT_RECEIPTS);
+
   const [communications, setCommunications] =
     useState<Communication[]>(INITIAL_COMMUNICATIONS);
 
@@ -149,6 +215,15 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   const [statusHistory, setStatusHistory] =
     useState<ApplicationStatusHistory[]>(INITIAL_STATUS_HISTORY);
+
+  const [workAssignments, setWorkAssignments] =
+    useState<WorkAssignment[]>([]);
+
+  const [workAssignmentComments, setWorkAssignmentComments] =
+    useState<WorkAssignmentComment[]>([]);
+
+  const [visaApplications, setVisaApplications] =
+    useState<VisaApplication[]>([]);
 
   const [studentApplicationsLoading, setStudentApplicationsLoading] =
     useState(false);
@@ -280,8 +355,39 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       );
     };
 
+    const loadPaymentReceipts = async () => {
+      const mayViewPaymentReceipts =
+        currentProfile?.account_type === 'student' ||
+        currentProfile?.is_admin ||
+        currentProfile?.department === 'finance';
+
+      if (!currentProfile?.id || currentProfile.account_type === 'unassigned' || !mayViewPaymentReceipts) {
+        setPaymentReceipts([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('payment_receipts')
+        .select('*')
+        .order('issued_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading payment receipts:', error);
+        return;
+      }
+
+      setPaymentReceipts(
+        (data || []).map((receipt) => ({
+          ...receipt,
+          amount: Number(receipt.amount),
+          status: receipt.status as PaymentReceipt['status'],
+        })) as PaymentReceipt[]
+      );
+    };
+
     loadApplications();
     loadFinancialRecords();
+    loadPaymentReceipts();
 
     const loadPartnerUniversities = async () => {
       const { data: universities, error: universitiesError } = await supabase
@@ -400,8 +506,208 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       );
     };
 
+    const loadDepartmentKpis = async () => {
+      if (
+        !currentProfile?.id ||
+        currentProfile.account_type === 'student' ||
+        currentProfile.account_type === 'unassigned'
+      ) {
+        setDepartmentKpis([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('department_kpis')
+        .select('*')
+        .order('updated_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading department KPI records:', error);
+        return;
+      }
+
+      setDepartmentKpis(
+        (data || []).map((record) => ({
+          ...record,
+          department: record.department as DepartmentType,
+          rating: record.rating as DepartmentKpiRecord['rating'],
+          kpi_lead_management: Number(record.kpi_lead_management),
+          kpi_conversion: Number(record.kpi_conversion),
+          kpi_communications: Number(record.kpi_communications),
+          kpi_reporting: Number(record.kpi_reporting),
+          kpi_teamwork: Number(record.kpi_teamwork),
+          kpi_discipline: Number(record.kpi_discipline),
+          total_score: Number(record.total_score),
+          consecutive_missed_reports: Number(record.consecutive_missed_reports),
+        })) as DepartmentKpiRecord[]
+      );
+    };
+
     loadPartnerUniversities();
     loadDepartmentReports();
+    loadDepartmentKpis();
+
+    const loadWorkAssignments = async () => {
+      if (
+        !currentProfile?.id ||
+        currentProfile.account_type === 'student' ||
+        currentProfile.account_type === 'unassigned'
+      ) {
+        setWorkAssignments([]);
+        setWorkAssignmentComments([]);
+        return;
+      }
+
+      // Privileged roles see all assignments; regular departments only see
+      // tasks assigned TO their department or tasks they personally created.
+      const isPrivileged =
+        currentProfile.is_admin ||
+        currentProfile.department === 'admin' ||
+        currentProfile.department === 'operations' ||
+        currentProfile.department === 'management';
+
+      let query = supabase
+        .from('department_work_assignments')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!isPrivileged) {
+        // Use Supabase OR filter: assigned to my department OR I created it
+        query = query.or(
+          `assigned_department.eq.${currentProfile.department},created_by.eq.${currentProfile.id}`
+        );
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error loading work assignments:', error);
+        return;
+      }
+
+      const rows = data || [];
+      const creatorIds = [...new Set(rows.map((r) => r.created_by).filter(Boolean))];
+      const creatorNames = new Map<string, string>();
+
+      if (creatorIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, department')
+          .in('id', creatorIds);
+
+        (profiles || []).forEach((p) => {
+          creatorNames.set(p.id, `${p.full_name} (${p.department})`);
+        });
+      }
+
+      setWorkAssignments(
+        rows.map((row) => ({
+          ...row,
+          assigned_department: row.assigned_department as DepartmentType,
+          priority: row.priority as WorkAssignment['priority'],
+          status: row.status as WorkAssignment['status'],
+          creator_name: creatorNames.get(row.created_by) || 'Operations',
+        })) as WorkAssignment[]
+      );
+
+      // Load comments for all visible assignments
+      const assignmentIds = rows.map((r) => r.id);
+      if (assignmentIds.length > 0) {
+        const { data: commentRows, error: commentError } = await supabase
+          .from('department_work_comments')
+          .select('*')
+          .in('assignment_id', assignmentIds)
+          .order('created_at', { ascending: true });
+
+        if (commentError) {
+          console.error('Error loading work assignment comments:', commentError);
+        } else {
+          const commenterIds = [...new Set((commentRows || []).map((c) => c.user_id))];
+          const commenterNames = new Map<string, string>();
+
+          if (commenterIds.length > 0) {
+            const { data: cProfiles } = await supabase
+              .from('profiles')
+              .select('id, full_name')
+              .in('id', commenterIds);
+
+            (cProfiles || []).forEach((p) => {
+              commenterNames.set(p.id, p.full_name);
+            });
+          }
+
+          setWorkAssignmentComments(
+            (commentRows || []).map((c) => ({
+              ...c,
+              user_name: commenterNames.get(c.user_id) || 'Staff',
+            })) as WorkAssignmentComment[]
+          );
+        }
+      }
+    };
+
+    loadWorkAssignments();
+  }, [
+    loading,
+    currentProfile?.id,
+    currentProfile?.account_type,
+    currentProfile?.department,
+    currentProfile?.is_admin,
+  ]);
+
+  useEffect(() => {
+    if (loading || !currentProfile?.id || currentProfile.account_type === 'unassigned') {
+      setVisaApplications([]);
+      return;
+    }
+
+    const loadVisaApplications = async () => {
+      const isStaffOrAdmin =
+        currentProfile.is_admin || currentProfile.department === 'admissions';
+
+      let query = supabase.from('student_visa_applications').select('*');
+      if (!isStaffOrAdmin) {
+        query = query.eq('student_id', currentProfile.id);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+      if (error) {
+        console.error('Failed to load visa applications:', error);
+        return;
+      }
+
+      const rows = data || [];
+      if (isStaffOrAdmin && rows.length > 0) {
+        const studentIds = [...new Set(rows.map((r) => r.student_id).filter(Boolean))];
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', studentIds);
+
+        const profileMap = new Map<string, { name: string; email: string }>();
+        (profiles || []).forEach((p) => {
+          profileMap.set(p.id, { name: p.full_name, email: p.email });
+        });
+
+        setVisaApplications(
+          rows.map((row) => ({
+            ...row,
+            student_name: profileMap.get(row.student_id)?.name || 'Unknown Student',
+            student_email: profileMap.get(row.student_id)?.email || '',
+          })) as VisaApplication[]
+        );
+      } else {
+        setVisaApplications(
+          rows.map((row) => ({
+            ...row,
+            student_name: currentProfile.full_name,
+            student_email: currentProfile.email,
+          })) as VisaApplication[]
+        );
+      }
+    };
+
+    loadVisaApplications();
   }, [
     loading,
     currentProfile?.id,
@@ -955,7 +1261,12 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   // Records a payment confirmation only. Card details stay with the payment
   // provider; Finance confirms the payment in its secure ledger.
-  const processFeePayment = async (appId: string, amount: number, paymentRef: string) => {
+  const processFeePayment = async (
+    appId: string,
+    amount: number,
+    paymentRef: string,
+    paymentType: 'registration_fee' | 'tuition_fee' | 'admission_fee' = 'registration_fee'
+  ) => {
     const app = applications.find(a => a.id === appId);
     if (!app || !currentProfile || currentProfile.account_type !== 'student') {
       throw new Error('Only the student who owns this application can submit a payment confirmation.');
@@ -968,7 +1279,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
         application_number: app.application_number,
         student_id: app.student_id,
         student_name: app.student_name,
-        record_type: 'registration_fee',
+        record_type: paymentType,
         amount,
         currency: 'USD',
         status: 'pending',
@@ -987,7 +1298,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       ...data,
       amount: Number(data.amount),
       status: data.status as FinancialRecord['status'],
-      record_type: 'registration_fee',
+      record_type: data.record_type as FinancialRecord['record_type'],
     };
 
     setFinancialRecords(prev => [newRecord, ...prev]);
@@ -995,19 +1306,110 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     addCommunication(
       'notification',
       `Registration fee confirmation: ${app.application_number}`,
-      `${app.student_name} submitted a $${amount.toFixed(2)} USD registration-fee payment confirmation (${paymentRef}). Finance verification is required.`,
+      `${app.student_name} submitted a $${amount.toFixed(2)} USD ${paymentType.replace(/_/g, ' ')} payment confirmation (${paymentRef}). Finance verification is required.`,
       'high',
       'finance'
     );
     addCommunication(
       'notification',
       `Payment status updated: ${app.application_number}`,
-      `${app.student_name} submitted a registration-fee payment confirmation. The application may proceed while Finance verifies it.`,
+      `${app.student_name} submitted a ${paymentType.replace(/_/g, ' ')} payment confirmation. The application may proceed while Finance verifies it.`,
       'medium',
       'admissions'
     );
     logAudit('SUBMIT_REGISTRATION_FEE_CONFIRMATION', 'financial_records', newRecord.id, null, { amount, ref: paymentRef });
     return newRecord;
+  };
+
+  const normalizeReceipt = (receipt: PaymentReceipt): PaymentReceipt => ({
+    ...receipt,
+    amount: Number(receipt.amount),
+    status: receipt.status as PaymentReceipt['status'],
+  });
+
+  const createPaymentReceiptFromRecord = async (
+    record: FinancialRecord,
+    notes = ''
+  ): Promise<PaymentReceipt> => {
+    if (!currentProfile || (!currentProfile.is_admin && currentProfile.department !== 'finance')) {
+      throw new Error('Only Finance or an administrator can generate a receipt.');
+    }
+
+    const existingReceipt = paymentReceipts.find(
+      (receipt) => receipt.financial_record_id === record.id
+    );
+
+    if (existingReceipt) {
+      return existingReceipt;
+    }
+
+    if (!['paid', 'approved'].includes(record.status)) {
+      throw new Error('A receipt can only be generated after Finance approves the payment.');
+    }
+
+    const now = new Date();
+    const receiptNumber = `GSP-RCPT-${now.getFullYear()}-${String(Date.now()).slice(-6)}`;
+
+    const { data, error } = await supabase
+      .from('payment_receipts')
+      .insert({
+        receipt_number: receiptNumber,
+        financial_record_id: record.id,
+        application_id: record.application_id,
+        application_number: record.application_number,
+        student_id: record.student_id,
+        student_name: record.student_name,
+        amount: Number(record.amount),
+        currency: record.currency,
+        payment_reference: record.payment_reference || null,
+        issued_by: currentProfile.id,
+        issued_by_name: currentProfile.full_name,
+        status: 'issued',
+        notes: notes || `Receipt issued for ${record.record_type.replace(/_/g, ' ')}.`,
+      })
+      .select('*')
+      .single();
+
+    if (error || !data) {
+      const { data: fallbackReceipt } = await supabase
+        .from('payment_receipts')
+        .select('*')
+        .eq('financial_record_id', record.id)
+        .maybeSingle();
+
+      if (fallbackReceipt) {
+        const existing = normalizeReceipt(fallbackReceipt as PaymentReceipt);
+        setPaymentReceipts((previous) => [
+          existing,
+          ...previous.filter((receipt) => receipt.id !== existing.id),
+        ]);
+        return existing;
+      }
+
+      console.error('Unable to generate payment receipt:', error);
+      throw new Error(error?.message || 'The payment receipt could not be generated.');
+    }
+
+    const receipt = normalizeReceipt(data as PaymentReceipt);
+    setPaymentReceipts((previous) => [
+      receipt,
+      ...previous.filter((item) => item.id !== receipt.id),
+    ]);
+    logAudit('GENERATE_PAYMENT_RECEIPT', 'payment_receipts', receipt.id, null, {
+      receipt_number: receipt.receipt_number,
+      financial_record_id: record.id,
+    });
+
+    return receipt;
+  };
+
+  const generatePaymentReceipt = async (recordId: string): Promise<PaymentReceipt> => {
+    const record = financialRecords.find((item) => item.id === recordId);
+    if (!record) {
+      throw new Error('The financial record could not be found.');
+    }
+
+    return createPaymentReceiptFromRecord(record);
   };
 
   const reviewRegistrationPayment = async (
@@ -1057,17 +1459,36 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       previous.map((record) => record.id === recordId ? reviewedRecord : record)
     );
     setStudents((previous) => previous.map((student) =>
+      reviewedRecord.record_type === 'registration_fee' &&
       student.id === reviewedRecord.student_id
         ? { ...student, registration_fee_paid: approved }
         : student
     ));
+    const paymentLabel = reviewedRecord.record_type.replace(/_/g, ' ');
     addCommunication(
       'notification',
       `Finance ${approved ? 'verified' : 'rejected'} fee: ${reviewedRecord.application_number}`,
-      `Finance ${approved ? 'verified' : 'rejected'} ${reviewedRecord.student_name}'s registration-fee payment. ${verificationNote}`,
+      `Finance ${approved ? 'verified' : 'rejected'} ${reviewedRecord.student_name}'s ${paymentLabel} payment. ${verificationNote}`,
       approved ? 'medium' : 'high',
       'admissions'
     );
+    if (approved) {
+      try {
+        const receipt = await createPaymentReceiptFromRecord(
+          reviewedRecord,
+          verificationNote
+        );
+        await addCommunication(
+          'notification',
+          `Receipt issued: ${reviewedRecord.application_number}`,
+          `Finance issued receipt ${receipt.receipt_number} for ${reviewedRecord.student_name}'s verified payment.`,
+          'medium',
+          'admissions'
+        );
+      } catch (receiptError) {
+        console.error('Payment approved but receipt generation failed:', receiptError);
+      }
+    }
     logAudit('REVIEW_REGISTRATION_FEE', 'financial_records', recordId, { status: existingRecord.status }, { status });
     return reviewedRecord;
   };
@@ -1179,6 +1600,102 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     );
   };
 
+  const saveDepartmentKpi = async (
+    record: DepartmentKpiInput,
+    id?: string
+  ): Promise<DepartmentKpiRecord> => {
+    if (!currentProfile || currentProfile.department !== 'operations' || currentProfile.account_type !== 'staff') {
+      throw new Error('Only Operations can enter or update department KPI records.');
+    }
+
+    const payload = {
+      evaluation_period: record.evaluation_period,
+      staff_name: record.staff_name.trim(),
+      staff_email: record.staff_email?.trim() || null,
+      department: record.department,
+      role_title: record.role_title.trim(),
+      kpi_lead_management: Number(record.kpi_lead_management),
+      kpi_conversion: Number(record.kpi_conversion),
+      kpi_communications: Number(record.kpi_communications),
+      kpi_reporting: Number(record.kpi_reporting),
+      kpi_teamwork: Number(record.kpi_teamwork),
+      kpi_discipline: Number(record.kpi_discipline),
+      daily_report_submitted: record.daily_report_submitted,
+      weekly_report_submitted: record.weekly_report_submitted,
+      monthly_report_submitted: record.monthly_report_submitted,
+      consecutive_missed_reports: Number(record.consecutive_missed_reports),
+      formal_review_required: record.formal_review_required,
+      notes_actions: record.notes_actions?.trim() || null,
+      created_by: currentProfile.id,
+      created_by_name: currentProfile.full_name,
+    };
+
+    const query = id
+      ? supabase
+          .from('department_kpis')
+          .update(payload)
+          .eq('id', id)
+          .select('*')
+          .single()
+      : supabase
+          .from('department_kpis')
+          .insert(payload)
+          .select('*')
+          .single();
+
+    const { data, error } = await query;
+
+    if (error || !data) {
+      console.error('Unable to save KPI record:', error);
+      throw new Error(error?.message || 'The KPI record could not be saved.');
+    }
+
+    const savedRecord: DepartmentKpiRecord = {
+      ...data,
+      department: data.department as DepartmentType,
+      rating: data.rating as DepartmentKpiRecord['rating'],
+      kpi_lead_management: Number(data.kpi_lead_management),
+      kpi_conversion: Number(data.kpi_conversion),
+      kpi_communications: Number(data.kpi_communications),
+      kpi_reporting: Number(data.kpi_reporting),
+      kpi_teamwork: Number(data.kpi_teamwork),
+      kpi_discipline: Number(data.kpi_discipline),
+      total_score: Number(data.total_score),
+      consecutive_missed_reports: Number(data.consecutive_missed_reports),
+    };
+
+    setDepartmentKpis((previous) => [
+      savedRecord,
+      ...previous.filter((item) => item.id !== savedRecord.id),
+    ]);
+    logAudit(id ? 'UPDATE_DEPARTMENT_KPI' : 'CREATE_DEPARTMENT_KPI', 'department_kpis', savedRecord.id, null, {
+      department: savedRecord.department,
+      staff_name: savedRecord.staff_name,
+      total_score: savedRecord.total_score,
+    });
+
+    return savedRecord;
+  };
+
+  const deleteDepartmentKpi = async (recordId: string): Promise<void> => {
+    if (!currentProfile || currentProfile.department !== 'operations' || currentProfile.account_type !== 'staff') {
+      throw new Error('Only Operations can delete department KPI records.');
+    }
+
+    const { error } = await supabase
+      .from('department_kpis')
+      .delete()
+      .eq('id', recordId);
+
+    if (error) {
+      console.error('Unable to delete KPI record:', error);
+      throw new Error(error.message);
+    }
+
+    setDepartmentKpis((previous) => previous.filter((item) => item.id !== recordId));
+    logAudit('DELETE_DEPARTMENT_KPI', 'department_kpis', recordId);
+  };
+
   // Admissions Decision
   const makeAdmissionsDecision = (appId: string, decision: 'conditional_offer' | 'unconditional_offer' | 'rejected', notes: string) => {
     setApplications(prev =>
@@ -1265,6 +1782,19 @@ const createApplication = async (
     student_id: studentId,
     student_name: studentName,
     student_email: studentEmail,
+    student_phone:
+      appData.student_phone || currentProfile.phone || null,
+    student_age:
+      appData.student_age ?? currentProfile.age ?? null,
+    student_gender:
+      appData.student_gender || currentProfile.gender || null,
+    student_current_address:
+      appData.student_current_address || currentProfile.current_address || null,
+    student_country:
+      appData.student_country ||
+      currentProfile.country_of_residence ||
+      appData.target_country ||
+      'United Kingdom',
     status: appData.status || 'draft',
     target_country: appData.target_country || 'United Kingdom',
     target_university:
@@ -1312,6 +1842,16 @@ const createApplication = async (
     student_id: data.student_id,
     student_name: data.student_name,
     student_email: data.student_email,
+    student_phone:
+      data.student_phone || undefined,
+    student_age:
+      data.student_age ?? undefined,
+    student_gender:
+      data.student_gender || undefined,
+    student_current_address:
+      data.student_current_address || undefined,
+    student_country:
+      data.student_country || undefined,
     status: data.status as ApplicationStatus,
     target_country: data.target_country,
     target_university: data.target_university,
@@ -1742,6 +2282,317 @@ const createApplication = async (
     return data.signedUrl;
   };
 
+  // ===== Work Assignment CRUD =====
+
+  const createWorkAssignment = async (
+    title: string,
+    description: string,
+    assignedDepartment: DepartmentType,
+    priority: WorkAssignmentPriority,
+    dueDate?: string
+  ): Promise<WorkAssignment> => {
+    if (!currentProfile?.id) {
+      throw new Error('Sign in before creating a work assignment.');
+    }
+
+    const { data, error } = await supabase
+      .from('department_work_assignments')
+      .insert({
+        title: title.trim(),
+        description: description.trim() || null,
+        assigned_department: assignedDepartment,
+        created_by: currentProfile.id,
+        priority,
+        status: 'assigned',
+        due_date: dueDate || null,
+      })
+      .select('*')
+      .single();
+
+    if (error || !data) {
+      console.error('Failed to create work assignment:', error);
+      throw new Error(error?.message || 'The work assignment could not be created.');
+    }
+
+    const newAssignment: WorkAssignment = {
+      ...data,
+      assigned_department: data.assigned_department as DepartmentType,
+      priority: data.priority as WorkAssignmentPriority,
+      status: data.status as WorkAssignmentStatus,
+      creator_name: `${currentProfile.full_name} (${currentProfile.department})`,
+    };
+
+    setWorkAssignments((prev) => [newAssignment, ...prev]);
+    logAudit('CREATE_WORK_ASSIGNMENT', 'department_work_assignments', newAssignment.id, null, {
+      title,
+      assigned_department: assignedDepartment,
+      priority,
+    });
+
+    return newAssignment;
+  };
+
+  const updateWorkAssignmentStatus = async (
+    assignmentId: string,
+    status: WorkAssignmentStatus
+  ): Promise<void> => {
+    if (!currentProfile?.id) {
+      throw new Error('Sign in before updating a work assignment.');
+    }
+
+    const updatePayload: Record<string, unknown> = { status };
+    if (status === 'completed') {
+      updatePayload.completed_at = new Date().toISOString();
+    }
+
+    const { error } = await supabase
+      .from('department_work_assignments')
+      .update(updatePayload)
+      .eq('id', assignmentId);
+
+    if (error) {
+      console.error('Failed to update work assignment status:', error);
+      throw new Error(error.message);
+    }
+
+    setWorkAssignments((prev) =>
+      prev.map((a) =>
+        a.id === assignmentId
+          ? {
+              ...a,
+              status,
+              completed_at: status === 'completed' ? new Date().toISOString() : a.completed_at,
+              updated_at: new Date().toISOString(),
+            }
+          : a
+      )
+    );
+
+    logAudit('UPDATE_WORK_ASSIGNMENT_STATUS', 'department_work_assignments', assignmentId, null, {
+      status,
+    });
+  };
+
+  const reviewWorkAssignment = async (
+    assignmentId: string,
+    reviewStatus: 'approved' | 'revision_requested',
+    notes: string
+  ): Promise<void> => {
+    if (!currentProfile?.id) {
+      throw new Error('Sign in before reviewing a work assignment.');
+    }
+
+    const isApprove = reviewStatus === 'approved';
+    const updatePayload: Record<string, unknown> = {
+      review_status: reviewStatus,
+      review_notes: notes,
+      reviewed_by: currentProfile.id,
+      reviewed_at: new Date().toISOString(),
+    };
+
+    if (!isApprove) {
+      updatePayload.status = 'in_progress';
+      updatePayload.completed_at = null;
+    }
+
+    const { error } = await supabase
+      .from('department_work_assignments')
+      .update(updatePayload)
+      .eq('id', assignmentId);
+
+    if (error) {
+      console.error('Failed to review work assignment:', error);
+      throw new Error(error.message);
+    }
+
+    const commentPrefix = isApprove ? '[APPROVED]' : '[REVISION_REQUESTED]';
+    await addWorkAssignmentComment(assignmentId, `${commentPrefix} ${notes}`);
+
+    setWorkAssignments((prev) =>
+      prev.map((a) =>
+        a.id === assignmentId
+          ? {
+              ...a,
+              review_status: reviewStatus,
+              review_notes: notes,
+              reviewed_by: currentProfile.id,
+              reviewed_at: new Date().toISOString(),
+              status: isApprove ? a.status : ('in_progress' as WorkAssignmentStatus),
+              completed_at: isApprove ? a.completed_at : null,
+              updated_at: new Date().toISOString(),
+            }
+          : a
+      )
+    );
+
+    logAudit('REVIEW_WORK_ASSIGNMENT', 'department_work_assignments', assignmentId, null, {
+      review_status: reviewStatus,
+      status: isApprove ? 'completed' : 'in_progress',
+    });
+  };
+
+  const addWorkAssignmentComment = async (
+    assignmentId: string,
+    comment: string
+  ): Promise<WorkAssignmentComment> => {
+    if (!currentProfile?.id) {
+      throw new Error('Sign in before commenting on a work assignment.');
+    }
+
+    const { data, error } = await supabase
+      .from('department_work_comments')
+      .insert({
+        assignment_id: assignmentId,
+        user_id: currentProfile.id,
+        comment: comment.trim(),
+      })
+      .select('*')
+      .single();
+
+    if (error || !data) {
+      console.error('Failed to add work assignment comment:', error);
+      throw new Error(error?.message || 'The comment could not be added.');
+    }
+
+    const newComment: WorkAssignmentComment = {
+      ...data,
+      user_name: currentProfile.full_name,
+    };
+
+    setWorkAssignmentComments((prev) => [...prev, newComment]);
+
+    return newComment;
+  };
+
+  const applyForVisa = async (applicationId: string): Promise<VisaApplication> => {
+    if (!currentProfile?.id) throw new Error('Sign in before applying for a visa.');
+
+    const { data, error } = await supabase
+      .from('student_visa_applications')
+      .insert({
+        student_id: currentProfile.id,
+        application_id: applicationId,
+        status: 'pending',
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error('Failed to create visa application:', error);
+      throw new Error(error.message);
+    }
+
+    const newVisaApp = {
+      ...data,
+      student_name: currentProfile.full_name,
+      student_email: currentProfile.email,
+    } as VisaApplication;
+
+    setVisaApplications((prev) => [newVisaApp, ...prev]);
+    return newVisaApp;
+  };
+
+  const loadVisaDocuments = async (visaApplicationId: string): Promise<VisaDocument[]> => {
+    const { data, error } = await supabase
+      .from('student_visa_documents')
+      .select('*')
+      .eq('visa_application_id', visaApplicationId)
+      .order('uploaded_at', { ascending: false });
+
+    if (error) {
+      console.error('Failed to load visa documents:', error);
+      throw error;
+    }
+
+    return data || [];
+  };
+
+  const uploadVisaDocument = async (
+    visaApplicationId: string,
+    documentType: string,
+    file: File
+  ): Promise<void> => {
+    if (!currentProfile?.id) throw new Error('Sign in before uploading document.');
+
+    const timestamp = Date.now();
+    const cleanFileName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+    const storagePath = `visa-applications/${currentProfile.id}/${documentType}/${timestamp}_${cleanFileName}`;
+
+    const { error: uploadErr } = await supabase.storage
+      .from('department-reports')
+      .upload(storagePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: 'application/pdf',
+      });
+
+    if (uploadErr) throw new Error(`Upload failed: ${uploadErr.message}`);
+
+    const { error: dbErr } = await supabase.from('student_visa_documents').insert({
+      visa_application_id: visaApplicationId,
+      document_type: documentType,
+      file_name: file.name,
+      file_path: storagePath,
+      file_size: file.size,
+    });
+
+    if (dbErr) throw new Error(`Failed to save document record: ${dbErr.message}`);
+  };
+
+  const deleteVisaDocument = async (documentId: string, filePath: string): Promise<void> => {
+    const { error: storageErr } = await supabase.storage.from('department-reports').remove([filePath]);
+    if (storageErr) {
+      console.error('Failed to delete file from storage:', storageErr);
+    }
+
+    const { error: dbErr } = await supabase
+      .from('student_visa_documents')
+      .delete()
+      .eq('id', documentId);
+
+    if (dbErr) throw dbErr;
+  };
+
+  const reviewVisaApplication = async (
+    visaApplicationId: string,
+    status: 'pending' | 'under_review' | 'approved' | 'rejected',
+    instructions: string
+  ): Promise<void> => {
+    if (!currentProfile?.id) throw new Error('Sign in before reviewing.');
+
+    const { error } = await supabase
+      .from('student_visa_applications')
+      .update({
+        status,
+        admissions_instructions: instructions,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', visaApplicationId);
+
+    if (error) throw error;
+
+    setVisaApplications((prev) =>
+      prev.map((app) =>
+        app.id === visaApplicationId
+          ? { ...app, status, admissions_instructions: instructions }
+          : app
+      )
+    );
+
+    const targetApp = visaApplications.find((a) => a.id === visaApplicationId);
+    if (targetApp) {
+      void addCommunication(
+        'notification',
+        `Visa Application Status Update: ${status.toUpperCase()}`,
+        `Admissions updated ${targetApp.student_name || 'a student'}'s visa application status to ${status.toUpperCase()}. The student can view the latest status in their portal. Instructions: ${instructions || 'No additional instructions.'}`,
+        status === 'approved' ? 'medium' : 'high',
+        'data_applications'
+      ).catch((notificationError) => {
+        console.error('Failed to send visa status notification:', notificationError);
+      });
+    }
+  };
+
   return (
     <ApplicationContext.Provider
       value={{
@@ -1753,6 +2604,8 @@ const createApplication = async (
         financialRecords,
         partnerUniversities,
         departmentReports,
+        departmentKpis,
+        paymentReceipts,
         communications,
         auditLogs,
         statusHistory,
@@ -1772,6 +2625,9 @@ const createApplication = async (
         processFeePayment,
         createFinancialRecord,
         reviewRegistrationPayment,
+        generatePaymentReceipt,
+        saveDepartmentKpi,
+        deleteDepartmentKpi,
         addCommunication,
         markCommunicationRead,
         makeAdmissionsDecision,
@@ -1783,6 +2639,18 @@ const createApplication = async (
         submitDepartmentReport,
         reviewDepartmentReport,
         getDepartmentReportDownloadUrl,
+        workAssignments,
+        workAssignmentComments,
+        createWorkAssignment,
+        updateWorkAssignmentStatus,
+        reviewWorkAssignment,
+        addWorkAssignmentComment,
+        visaApplications,
+        applyForVisa,
+        loadVisaDocuments,
+        uploadVisaDocument,
+        deleteVisaDocument,
+        reviewVisaApplication,
   }}
     >
       {children}

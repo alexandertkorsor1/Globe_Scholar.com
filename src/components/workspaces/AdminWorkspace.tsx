@@ -5,11 +5,17 @@ import type {
   DepartmentMemberInput,
   DepartmentType,
   PartnerUniversity,
+  VisaApplication,
+  VisaDocument,
 } from '../../types/database';
 import { useApplication } from '../../context/ApplicationContext';
 import { useAuth } from '../../context/AuthContext';
 import { DashboardLayout } from '../dashboard/DashboardLayout';
+import { supabase } from '../../lib/supabase';
 import { AdminDepartmentReports } from '../reports/AdminDepartmentReports';
+import { CrmRegister } from '../shared/CrmRegister';
+import { KpiPerformanceTracker } from '../shared/KpiPerformanceTracker';
+import { DepartmentTaskInbox } from '../shared/DepartmentTaskInbox';
 import {
   Building2,
   LayoutDashboard,
@@ -20,6 +26,7 @@ import {
   FileCheck,
   TrendingUp,
   AlertOctagon,
+  ShieldCheck,
   Award,
   Globe,
   Plus,
@@ -36,6 +43,7 @@ import {
   UserRoundCheck,
   KeyRound,
   EyeOff,
+  ClipboardList,
 } from 'lucide-react';
 
 const DEPARTMENT_OPTIONS: Array<{ value: DepartmentType; label: string }> = [
@@ -62,11 +70,14 @@ const RESPONSIBILITY_OPTIONS = [
   },
 ];
 
-type AdminTab = 'kpis' | 'drilldown' | 'partnerships' | 'staff';
+type AdminTab = 'kpis' | 'crm' | 'performance' | 'drilldown' | 'partnerships' | 'staff' | 'work_assignments' | 'visa_applications';
 
 const ADMIN_TABS: Array<{ id: AdminTab; label: string }> = [
   { id: 'kpis', label: 'Executive Dashboard' },
+  { id: 'crm', label: 'CRM Register' },
+  { id: 'performance', label: 'KPI Performance Tracker' },
   { id: 'drilldown', label: 'Department Drill-Down' },
+  { id: 'work_assignments', label: 'Work Assignments' },
   { id: 'partnerships', label: 'Partner Universities & Agreements' },
   { id: 'staff', label: 'Staff Accounts & RBAC' },
 ];
@@ -101,6 +112,7 @@ export const AdminWorkspace: React.FC = () => {
   verifyDocument,
   documents,
   financialRecords,
+  departmentKpis,
   partnerUniversities,
   addPartnerUniversity,
   deletePartnerUniversity,
@@ -110,7 +122,9 @@ export const AdminWorkspace: React.FC = () => {
   reviewDepartmentReport,
   addCommunication,
   updateApplicationStatus,
-  statusHistory
+  statusHistory,
+  visaApplications,
+  loadVisaDocuments
 } = useApplication();
 
   const [activeTab, setActiveTab] = useState<AdminTab>('kpis');
@@ -127,6 +141,19 @@ export const AdminWorkspace: React.FC = () => {
   const [deletingDepartmentMember, setDeletingDepartmentMember] = useState(false);
   const [departmentMemberDeleteError, setDepartmentMemberDeleteError] = useState('');
   const [showDepartmentMemberModal, setShowDepartmentMemberModal] = useState(false);
+  const [selectedAdminVisaApp, setSelectedAdminVisaApp] = useState<VisaApplication | null>(null);
+  const [adminVisaDocs, setAdminVisaDocs] = useState<VisaDocument[]>([]);
+  const [loadingAdminVisaDocs, setLoadingAdminVisaDocs] = useState(false);
+
+  React.useEffect(() => {
+    if (selectedAdminVisaApp?.id) {
+      setLoadingAdminVisaDocs(true);
+      loadVisaDocuments(selectedAdminVisaApp.id)
+        .then(setAdminVisaDocs)
+        .catch(err => console.error(err))
+        .finally(() => setLoadingAdminVisaDocs(false));
+    }
+  }, [selectedAdminVisaApp?.id]);
   const [editingDepartmentMember, setEditingDepartmentMember] =
     useState<DepartmentMember | null>(null);
   const [departmentMemberForm, setDepartmentMemberForm] =
@@ -459,9 +486,13 @@ export const AdminWorkspace: React.FC = () => {
 
   const sidebarNav = [
     { label: 'Overview', icon: <LayoutDashboard style={{ width: 18, height: 18 }} />, active: activeTab === 'kpis', onClick: () => setActiveTab('kpis') },
+    { label: 'CRM', icon: <BriefcaseBusiness style={{ width: 18, height: 18 }} />, active: activeTab === 'crm', onClick: () => setActiveTab('crm') },
+    { label: 'KPI Tracker', icon: <TrendingUp style={{ width: 18, height: 18 }} />, active: activeTab === 'performance', onClick: () => setActiveTab('performance') },
     { label: 'Departments', icon: <Building2 style={{ width: 18, height: 18 }} />, active: activeTab === 'drilldown', onClick: () => setActiveTab('drilldown') },
+    { label: 'Work Assignments', icon: <ClipboardList style={{ width: 18, height: 18 }} />, active: activeTab === 'work_assignments', onClick: () => setActiveTab('work_assignments') },
     { label: 'Partnerships', icon: <GraduationCap style={{ width: 18, height: 18 }} />, active: activeTab === 'partnerships', onClick: () => setActiveTab('partnerships') },
     { label: 'Staff & RBAC', icon: <Users2 style={{ width: 18, height: 18 }} />, active: activeTab === 'staff', onClick: () => setActiveTab('staff') },
+    { label: 'Visa Applications', icon: <ShieldCheck style={{ width: 18, height: 18 }} />, active: activeTab === 'visa_applications', onClick: () => setActiveTab('visa_applications') },
   ];
 
   return (
@@ -661,6 +692,24 @@ export const AdminWorkspace: React.FC = () => {
           </div>
 
         </div>
+      )}
+
+      {activeTab === 'crm' && (
+        <CrmRegister
+          applications={applications}
+          students={students}
+          financialRecords={financialRecords}
+          title="Admin CRM Register"
+          description="Executive CRM sheet showing the full student journey across intake, payment, department owner, and next required action."
+        />
+      )}
+
+      {activeTab === 'performance' && (
+        <KpiPerformanceTracker
+          records={departmentKpis}
+          currentProfile={currentProfile}
+          departmentMembers={departmentMembers}
+        />
       )}
 
       {/* Tab 2: Department Drill-Down */}
@@ -1185,6 +1234,15 @@ export const AdminWorkspace: React.FC = () => {
         </div>
       )}
 
+      {/* Tab: Work Assignments */}
+      {activeTab === 'work_assignments' && (
+        <DepartmentTaskInbox
+          showAll
+          title="Cross-Department Work Assignments"
+          description="Full administrative oversight of all work assignments dispatched by Operations to departments. Monitor progress, review status updates, and ensure accountability."
+        />
+      )}
+
       {/* Tab 4: Staff Accounts & RBAC Matrix */}
       {activeTab === 'staff' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -1306,6 +1364,81 @@ export const AdminWorkspace: React.FC = () => {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {activeTab === 'visa_applications' && (
+        <div className="glass-panel" style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px', marginBottom: '18px' }}>
+            <div>
+              <h3 style={{ fontSize: '1.05rem', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ShieldCheck style={{ color: '#00D8FF66' }} /> Student Visa Application Dossiers
+              </h3>
+              <p style={{ fontSize: '0.78rem', color: '#cbd5e1', marginTop: '2px' }}>
+                Executive view of all student visa compliance submissions and Admissions status.
+              </p>
+            </div>
+            <span style={{ fontSize: '0.75rem', color: '#cbd5e1', background: 'rgba(255,255,255,0.05)', padding: '4px 10px', borderRadius: '12px' }}>
+              {visaApplications.length} Submissions
+            </span>
+          </div>
+
+          {visaApplications.length === 0 ? (
+            <p style={{ fontSize: '0.82rem', color: '#94a3b8', textAlign: 'center', padding: '20px' }}>
+              No student visa applications have been initialized yet.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {visaApplications.map((visaApp) => (
+                <div
+                  key={visaApp.id}
+                  style={{
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <strong style={{ color: '#fff', fontSize: '0.9rem' }}>{visaApp.student_name}</strong>
+                      <span style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>({visaApp.student_email})</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '14px', marginTop: '6px', fontSize: '0.75rem', color: '#94a3b8' }}>
+                      <span>Application ID: {visaApp.application_id ? visaApp.application_id.substring(0, 8) + '...' : 'N/A'}</span>
+                      <span>Created: {new Date(visaApp.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span
+                      className={`dept-badge ${
+                        visaApp.status === 'approved'
+                          ? 'dept-badge-active'
+                          : visaApp.status === 'rejected'
+                          ? 'dept-badge-inactive'
+                          : 'dept-badge-pending'
+                      }`}
+                      style={{ textTransform: 'uppercase', fontSize: '0.7rem' }}
+                    >
+                      {visaApp.status.replace('_', ' ')}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAdminVisaApp(visaApp)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <Eye style={{ width: 12, height: 12 }} /> View Dossier Files
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -1556,6 +1689,96 @@ export const AdminWorkspace: React.FC = () => {
                 <button type="submit" className="btn btn-primary btn-sm">Add Partner</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Admin View Visa Dossier */}
+      {selectedAdminVisaApp && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="glass-panel animate-fade-in" style={{ width: '540px', padding: '24px', background: '#0f172a', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '1.05rem', color: '#fff', fontWeight: 700 }}>
+                Visa Dossier Details: {selectedAdminVisaApp.student_name}
+              </h3>
+              <button type="button" onClick={() => setSelectedAdminVisaApp(null)} className="btn btn-secondary btn-sm">Close</button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem' }}>
+                  <span style={{ color: '#cbd5e1' }}>Status:</span>
+                  <span
+                    className={`dept-badge ${
+                      selectedAdminVisaApp.status === 'approved'
+                        ? 'dept-badge-active'
+                        : selectedAdminVisaApp.status === 'rejected'
+                        ? 'dept-badge-inactive'
+                        : 'dept-badge-pending'
+                    }`}
+                    style={{ textTransform: 'uppercase', fontSize: '0.7rem' }}
+                  >
+                    {selectedAdminVisaApp.status.replace('_', ' ')}
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.85rem', color: '#cbd5e1', marginTop: '12px' }}>
+                  <strong>Admissions Feedback & Guidance:</strong>
+                  <p style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '6px', marginTop: '6px', fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5 }}>
+                    {selectedAdminVisaApp.admissions_instructions || 'No feedback or instructions recorded yet.'}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <h4 style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: 600, marginBottom: '8px' }}>Uploaded Dossier Files (PDFs)</h4>
+                {loadingAdminVisaDocs ? (
+                  <p style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>Loading dossier files...</p>
+                ) : adminVisaDocs.length === 0 ? (
+                  <p style={{ fontSize: '0.78rem', color: '#ef4444' }}>No files uploaded by the student yet.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {adminVisaDocs.map((doc) => (
+                      <div
+                        key={doc.id}
+                        style={{
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid var(--border-color)',
+                          padding: '10px 14px',
+                          borderRadius: '6px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <div>
+                          <strong style={{ fontSize: '0.8rem', color: '#fff', textTransform: 'capitalize' }}>
+                            {doc.document_type.replace('_', ' ')}:
+                          </strong>
+                          <span style={{ fontSize: '0.75rem', color: '#cbd5e1', marginLeft: '6px', display: 'inline-block', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {doc.file_name}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const { data } = supabase.storage
+                              .from('department-reports')
+                              .getPublicUrl(doc.file_path);
+                            if (data?.publicUrl) {
+                              window.open(data.publicUrl, '_blank');
+                            }
+                          }}
+                          className="btn btn-secondary btn-sm"
+                          style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                        >
+                          <Eye style={{ width: 12, height: 12 }} /> View
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

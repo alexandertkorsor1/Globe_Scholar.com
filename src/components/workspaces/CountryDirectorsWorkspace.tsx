@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useApplication } from '../../context/ApplicationContext';
 import { useAuth } from '../../context/AuthContext';
 import { DashboardLayout } from '../dashboard/DashboardLayout';
-import { Globe, MapPin, ShieldCheck, Filter, BarChart3 } from 'lucide-react';
+import { Globe, MapPin, ShieldCheck, Filter, BarChart3, ClipboardList } from 'lucide-react';
+import { DepartmentTaskInbox } from '../shared/DepartmentTaskInbox';
 
 export const CountryDirectorsWorkspace: React.FC = () => {
   const { getScopedApplications, getScopedStudents, partnerUniversities } = useApplication();
@@ -23,6 +24,7 @@ export const CountryDirectorsWorkspace: React.FC = () => {
   const sidebarNav = [
     { label: 'Regional View', icon: <Globe style={{ width: 18, height: 18 }} />, active: true, onClick: () => goTo('regional-applications') },
     { label: 'Analytics', icon: <BarChart3 style={{ width: 18, height: 18 }} />, onClick: () => goTo('regional-analytics') },
+    { label: 'Assigned Tasks', icon: <ClipboardList style={{ width: 18, height: 18 }} />, onClick: () => goTo('directors-assigned-tasks') },
   ];
 
   return (
@@ -66,6 +68,10 @@ export const CountryDirectorsWorkspace: React.FC = () => {
             </select>
           </div>
         </div>
+      </div>
+
+      <div id="directors-assigned-tasks">
+        <DepartmentTaskInbox />
       </div>
 
       {/* Region Overview Stats */}

@@ -9,7 +9,10 @@ export type DepartmentType =
   | 'country_directors'
   | 'it_support'
   | 'legal_compliance'
-  | 'alumni_success';
+  | 'alumni_success'
+  | 'management'
+  | 'institutional_relations'
+  | 'human_resources';
 
 export type ApplicationStatus =
   | 'draft'
@@ -77,6 +80,9 @@ export interface Profile {
   phone?: string;
   first_name?: string;
   last_name?: string;
+  age?: number | null;
+  gender?: string | null;
+  current_address?: string | null;
   country_of_residence?: string;
   passport_number?: string;
   created_at: string;
@@ -140,6 +146,9 @@ export interface Student {
   last_name: string;
   email: string;
   phone?: string;
+  age?: number | null;
+  gender?: string | null;
+  current_address?: string | null;
   country_of_residence: string;
   passport_number?: string;
   gpa: number;
@@ -156,6 +165,11 @@ export interface Application {
   student_id: string;
   student_name: string;
   student_email: string;
+  student_phone?: string | null;
+  student_age?: number | null;
+  student_gender?: string | null;
+  student_current_address?: string | null;
+  student_country?: string | null;
   status: ApplicationStatus;
   target_country: string;
   target_university: string;
@@ -255,13 +269,87 @@ export interface FinancialRecord {
   application_number: string;
   student_id: string;
   student_name: string;
-  record_type: 'registration_fee' | 'scholarship_disbursement' | 'refund' | 'operational_spend';
+  record_type: 'registration_fee' | 'tuition_fee' | 'admission_fee' | 'scholarship_disbursement' | 'refund' | 'operational_spend';
   amount: number;
   currency: string;
   status: 'pending' | 'paid' | 'approved' | 'rejected';
   payment_reference?: string;
   approved_by_name?: string;
   notes?: string;
+  verified_at?: string;
+  created_at: string;
+}
+
+export type KpiRating =
+  | 'Excellent'
+  | 'Very Good'
+  | 'Good'
+  | 'Needs Improvement'
+  | 'Formal Review';
+
+export interface DepartmentKpiRecord {
+  id: string;
+  evaluation_period: string;
+  staff_name: string;
+  staff_email?: string | null;
+  department: DepartmentType;
+  role_title: string;
+  kpi_lead_management: number;
+  kpi_conversion: number;
+  kpi_communications: number;
+  kpi_reporting: number;
+  kpi_teamwork: number;
+  kpi_discipline: number;
+  total_score: number;
+  rating: KpiRating;
+  daily_report_submitted: boolean;
+  weekly_report_submitted: boolean;
+  monthly_report_submitted: boolean;
+  consecutive_missed_reports: number;
+  formal_review_required: boolean;
+  notes_actions?: string | null;
+  created_by?: string | null;
+  created_by_name?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DepartmentKpiInput {
+  evaluation_period: string;
+  staff_name: string;
+  staff_email?: string;
+  department: DepartmentType;
+  role_title: string;
+  kpi_lead_management: number;
+  kpi_conversion: number;
+  kpi_communications: number;
+  kpi_reporting: number;
+  kpi_teamwork: number;
+  kpi_discipline: number;
+  daily_report_submitted: boolean;
+  weekly_report_submitted: boolean;
+  monthly_report_submitted: boolean;
+  consecutive_missed_reports: number;
+  formal_review_required: boolean;
+  notes_actions?: string;
+}
+
+export interface PaymentReceipt {
+  id: string;
+  receipt_number: string;
+  financial_record_id: string;
+  application_id: string;
+  application_number: string;
+  student_id: string;
+  student_name: string;
+  amount: number;
+  currency: string;
+  payment_reference?: string | null;
+  issued_by?: string | null;
+  issued_by_name?: string | null;
+  issued_at: string;
+  status: 'issued' | 'voided';
+  notes?: string | null;
   created_at: string;
 }
 
@@ -364,3 +452,65 @@ export interface AuditLog {
   after_state?: unknown;
   created_at: string;
 }
+
+export type WorkAssignmentPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export type WorkAssignmentStatus =
+  | 'assigned'
+  | 'in_progress'
+  | 'completed'
+  | 'overdue'
+  | 'cancelled';
+
+export interface WorkAssignment {
+  id: string;
+  assignment_number: string;
+  title: string;
+  description?: string;
+  assigned_department: DepartmentType;
+  assigned_to?: string | null;
+  created_by: string;
+  creator_name?: string;
+  priority: WorkAssignmentPriority;
+  status: WorkAssignmentStatus;
+  due_date?: string | null;
+  completed_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  review_status?: 'pending' | 'approved' | 'revision_requested';
+  review_notes?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+}
+
+export interface WorkAssignmentComment {
+  id: string;
+  assignment_id: string;
+  user_id: string;
+  user_name?: string;
+  comment: string;
+  created_at: string;
+}
+
+export interface VisaApplication {
+  id: string;
+  student_id: string;
+  student_name?: string;
+  student_email?: string;
+  application_id?: string | null;
+  status: 'pending' | 'under_review' | 'approved' | 'rejected';
+  admissions_instructions?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VisaDocument {
+  id: string;
+  visa_application_id: string;
+  document_type: string;
+  file_name: string;
+  file_path: string;
+  file_size: number;
+  uploaded_at: string;
+}
+

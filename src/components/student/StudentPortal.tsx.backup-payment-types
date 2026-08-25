@@ -23,10 +23,9 @@ import {
   LockKeyhole,
   Bell,
   Download,
-  X,
-  Eye
+  X
 } from 'lucide-react';
-import { Application, ApplicationStatus, StudyLevel, FinancialRecord, VisaApplication, VisaDocument } from '../../types/database';
+import { Application, ApplicationStatus, StudyLevel, FinancialRecord } from '../../types/database';
 import {
   DOCUMENT_REQUIREMENTS,
   STUDY_LEVEL_OPTIONS,
@@ -45,11 +44,6 @@ export const StudentPortal: React.FC = () => {
     statusHistory,
     createApplication,
     studentApplicationsLoading,
-    visaApplications,
-    applyForVisa,
-    loadVisaDocuments,
-    uploadVisaDocument,
-    deleteVisaDocument,
   } = useApplication();
 
   const { currentProfile, logout } = useAuth();
@@ -77,15 +71,6 @@ export const StudentPortal: React.FC = () => {
   );
 
   const [paymentProvider, setPaymentProvider] = useState('Bank transfer');
-  const [cardType, setCardType] = useState<'debit' | 'credit'>('debit');
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCvv, setCardCvv] = useState('');
-  const [cardTermsAccepted, setCardTermsAccepted] = useState(false);
-  const [paymentType, setPaymentType] = useState<
-    'registration_fee' | 'tuition_fee' | 'admission_fee'
-  >('registration_fee');
-  const [paymentAmount, setPaymentAmount] = useState('150.00');
   const [paymentReference, setPaymentReference] = useState('');
   const [feePaidSuccess, setFeePaidSuccess] = useState(false);
   const [feePaymentMessage, setFeePaymentMessage] = useState('');
@@ -106,69 +91,7 @@ export const StudentPortal: React.FC = () => {
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState('');
-  const [uploadedVisaDocs, setUploadedVisaDocs] = useState<VisaDocument[]>([]);
-  const [visaDocsLoading, setVisaDocsLoading] = useState(false);
-  const [uploadingVisaDocType, setUploadingVisaDocType] = useState<string | null>(null);
-  const [visaUploadError, setVisaUploadError] = useState('');
-  const [initializingVisa, setInitializingVisa] = useState(false);
-
   const initialApplicationStartedRef = useRef(false);
-
-  const myVisaApp = visaApplications.find(a => a.student_id === currentProfile?.id);
-
-  React.useEffect(() => {
-    if (activeStep === 6 && myVisaApp?.id) {
-      setVisaDocsLoading(true);
-      loadVisaDocuments(myVisaApp.id)
-        .then(setUploadedVisaDocs)
-        .catch(err => console.error(err))
-        .finally(() => setVisaDocsLoading(false));
-    }
-  }, [activeStep, myVisaApp?.id]);
-
-  const handleVisaFileUpload = async (docType: string, file: File) => {
-    if (!myVisaApp?.id) return;
-    if (file.type !== 'application/pdf') {
-      setVisaUploadError('Only PDF files are allowed for visa submissions.');
-      return;
-    }
-    
-    setVisaUploadError('');
-    setUploadingVisaDocType(docType);
-    try {
-      await uploadVisaDocument(myVisaApp.id, docType, file);
-      const docs = await loadVisaDocuments(myVisaApp.id);
-      setUploadedVisaDocs(docs);
-    } catch (err: any) {
-      setVisaUploadError(err.message || 'Failed to upload document.');
-    } finally {
-      setUploadingVisaDocType(null);
-    }
-  };
-
-  const handleVisaFileDelete = async (docId: string, filePath: string) => {
-    try {
-      await deleteVisaDocument(docId, filePath);
-      if (myVisaApp?.id) {
-        const docs = await loadVisaDocuments(myVisaApp.id);
-        setUploadedVisaDocs(docs);
-      }
-    } catch (err) {
-      console.error('Failed to delete visa document:', err);
-    }
-  };
-
-  const handleInitializeVisa = async () => {
-    if (!myApp?.id) return;
-    setInitializingVisa(true);
-    try {
-      await applyForVisa(myApp.id);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setInitializingVisa(false);
-    }
-  };
 
   const myDocs = myApp
     ? documents.filter((document) => document.application_id === myApp.id)
@@ -207,10 +130,6 @@ export const StudentPortal: React.FC = () => {
       ? registrationFeeReceipt
       : undefined;
   const hasPaymentConfirmation = feePaidSuccess || Boolean(registrationFeeRecord);
-  const formatPaymentType = (value: string) =>
-    value
-      .replace(/_/g, ' ')
-      .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
   // All financial records belonging to this student's application.
   // This includes registration fees and any future student payments.
@@ -496,72 +415,24 @@ export const StudentPortal: React.FC = () => {
 
   const handlePayFee = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const isCardPayment = paymentProvider === 'Card payment';
-    let reference = paymentReference.trim();
-    const amount = Number(paymentAmount);
-
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setFeePaymentMessage('Enter a valid payment amount greater than zero.');
-      return;
-    }
-
-    if (isCardPayment) {
-      const digitsOnly = cardNumber.replace(/\D/g, '');
-      const expiryIsValid = /^(0[1-9]|1[0-2])\s*\/\s*\d{2}$/.test(cardExpiry.trim());
-      const cvvIsValid = /^\d{3,4}$/.test(cardCvv.trim());
-
-      if (digitsOnly.length < 12 || digitsOnly.length > 19) {
-        setFeePaymentMessage('Enter a valid debit or credit card number.');
-        return;
-      }
-
-      if (!expiryIsValid) {
-        setFeePaymentMessage('Enter a valid card expiry date in MM / YY format.');
-        return;
-      }
-
-      if (!cvvIsValid) {
-        setFeePaymentMessage('Enter a valid CVV.');
-        return;
-      }
-
-      if (!cardTermsAccepted) {
-        setFeePaymentMessage('Please agree to the payment terms before continuing.');
-        return;
-      }
-
-      reference = `${cardType.toUpperCase()} card ending ${digitsOnly.slice(-4)} - ${Date.now()}`;
-    }
-
-    if (!isCardPayment && !reference) {
+    const reference = paymentReference.trim();
+    if (!reference) {
       setFeePaymentMessage('Enter the reference issued by your payment provider.');
       return;
     }
 
     setIsSubmittingFee(true);
     setFeePaymentMessage('');
-
     try {
       const record = await processFeePayment(
         myApp.id,
-        amount,
-        `${isCardPayment ? `Card payment (${cardType})` : paymentProvider}: ${reference}`,
-        paymentType
+        150.00,
+        `${paymentProvider}: ${reference}`
       );
-
       setFeePaidSuccess(true);
-      setPaymentReference('');
-      setCardNumber('');
-      setCardExpiry('');
-      setCardCvv('');
-      setCardTermsAccepted(false);
-
       setFeePaymentMessage(
-        `${formatPaymentType(paymentType)} payment of $${amount.toFixed(2)} submitted successfully. Finance must verify it before the PDF receipt is issued.`
+        `Payment confirmation ${record.payment_reference} is now visible in the Finance ledger and Admissions queue.`
       );
-
-      console.log('Payment submitted:', record);
     } catch (error) {
       setFeePaymentMessage(
         error instanceof Error
@@ -599,7 +470,7 @@ export const StudentPortal: React.FC = () => {
     pdf.setTextColor(255, 255, 255);
     pdf.setFontSize(20);
     pdf.setFont('helvetica', 'bold');
-    pdf.text('Globe Scholars Pathways, LLC.', 20, 18);
+    pdf.text('Globe Scholar Pathways', 20, 18);
 
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
@@ -633,7 +504,7 @@ export const StudentPortal: React.FC = () => {
     addRow('Application No.:', receipt.application_number);
     addRow(
       'Payment Type:',
-      formatPaymentType(record.record_type)
+      record.record_type.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
     );
     addRow('Payment Reference:', receipt.payment_reference || record.payment_reference || 'N/A');
     addRow('Payment Status:', 'PAID / VERIFIED');
@@ -689,14 +560,9 @@ export const StudentPortal: React.FC = () => {
 
     pdf.setTextColor(100, 116, 139);
     pdf.text(
-      'This is an electronically generated receipt from the Globe Scholars Pathways, LLC. student portal.',
+      'This is an electronically generated receipt from the Globe Scholar Pathways student portal.',
       20,
       y
-    );
-    pdf.text(
-      'Card details, PINs, CVV/CVC values, and passwords are never printed or stored on receipts.',
-      20,
-      y + 6
     );
 
     pdf.save(
@@ -711,7 +577,91 @@ export const StudentPortal: React.FC = () => {
       return;
     }
 
-    downloadPaymentReceiptPdf(registrationFeeRecord, approvedRegistrationFeeReceipt);
+    const escapeHtml = (value: string | number | undefined | null) =>
+      String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+
+    const receiptHtml = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>${escapeHtml(approvedRegistrationFeeReceipt.receipt_number)}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f3f6fb; color: #0f172a; }
+    .receipt { max-width: 760px; margin: 40px auto; background: #fff; border: 1px solid #dbe5f3; border-radius: 18px; overflow: hidden; box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12); }
+    .header { background: #0b3a5b; color: white; padding: 28px 34px; }
+    .header h1 { margin: 0; font-size: 24px; }
+    .header p { margin: 7px 0 0; color: #c7d7e8; }
+    .body { padding: 30px 34px; }
+    .badge { display: inline-block; padding: 7px 12px; border-radius: 999px; background: #dcfce7; color: #047857; font-weight: 800; font-size: 12px; text-transform: uppercase; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 24px; }
+    .item { border: 1px solid #e5edf7; border-radius: 12px; padding: 14px; }
+    .label { color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+    .value { margin-top: 5px; font-size: 16px; font-weight: 800; }
+    .amount { font-size: 30px; color: #047857; }
+    .footer { padding: 18px 34px 28px; color: #64748b; font-size: 12px; line-height: 1.6; }
+    @media print { body { background: white; } .receipt { margin: 0; box-shadow: none; border-radius: 0; } }
+  </style>
+</head>
+<body>
+  <main class="receipt">
+    <section class="header">
+      <h1>Globe Scholars Pathways, LLC.</h1>
+      <p>Official Student Payment Receipt</p>
+    </section>
+    <section class="body">
+      <span class="badge">Finance Approved</span>
+      <div class="grid">
+        <div class="item">
+          <div class="label">Receipt Number</div>
+          <div class="value">${escapeHtml(approvedRegistrationFeeReceipt.receipt_number)}</div>
+        </div>
+        <div class="item">
+          <div class="label">Application Number</div>
+          <div class="value">${escapeHtml(myApp.application_number)}</div>
+        </div>
+        <div class="item">
+          <div class="label">Student Name</div>
+          <div class="value">${escapeHtml(myApp.student_name)}</div>
+        </div>
+        <div class="item">
+          <div class="label">Payment Reference</div>
+          <div class="value">${escapeHtml(approvedRegistrationFeeReceipt.payment_reference || registrationFeeRecord.payment_reference || 'N/A')}</div>
+        </div>
+        <div class="item">
+          <div class="label">Issued Date</div>
+          <div class="value">${escapeHtml(new Date(approvedRegistrationFeeReceipt.issued_at).toLocaleString())}</div>
+        </div>
+        <div class="item">
+          <div class="label">Issued By</div>
+          <div class="value">${escapeHtml(approvedRegistrationFeeReceipt.issued_by_name || 'Finance Department')}</div>
+        </div>
+        <div class="item" style="grid-column: 1 / -1;">
+          <div class="label">Amount Paid</div>
+          <div class="value amount">${escapeHtml(approvedRegistrationFeeReceipt.currency)} ${escapeHtml(approvedRegistrationFeeReceipt.amount.toFixed(2))}</div>
+        </div>
+      </div>
+    </section>
+    <section class="footer">
+      This receipt was generated after Finance approved the student payment in the Globe Scholars Pathways, LLC. portal. Keep this receipt for your records.
+    </section>
+  </main>
+</body>
+</html>`;
+
+    const blob = new Blob([receiptHtml], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${approvedRegistrationFeeReceipt.receipt_number}-${myApp.application_number}.html`.replace(/[^a-z0-9._-]+/gi, '-');
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
   };
 
   // Milestone Progress Tracker Logic
@@ -845,8 +795,7 @@ export const StudentPortal: React.FC = () => {
           { step: 2, label: '2. Document Uploads' },
           { step: 3, label: '3. Registration Fee Payment' },
           { step: 4, label: '4. Review & Final Submit' },
-          { step: 5, label: '5. Payments & Receipts' },
-          { step: 6, label: '6. Visa Application' }
+          { step: 5, label: '5. Payments & Receipts' }
         ].map(s => (
           <button
             key={s.step}
@@ -1112,7 +1061,7 @@ export const StudentPortal: React.FC = () => {
               Registration Fee Confirmation
             </h3>
             <p style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-              Select the type of payment you are making, enter the amount you paid, and provide the payment reference. Finance will verify the payment before it is marked as paid and a receipt is issued.
+              Standard application processing fee: <strong style={{ color: '#34d399' }}>$150.00 USD</strong>. Submit the reference from your payment provider; Finance verifies it before it is marked as paid.
             </p>
           </div>
 
@@ -1154,187 +1103,22 @@ export const StudentPortal: React.FC = () => {
               )}
             </div>
           ) : (
-            <form onSubmit={handlePayFee} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '14px' }}>
-              <div>
-                <label
-                  style={{
-                    fontSize: '0.75rem',
-                    color: '#94a3b8',
-                    display: 'block',
-                    marginBottom: '4px'
-                  }}
-                >
-                  Payment type
-                </label>
-
-                <select
-                  value={paymentType}
-                  onChange={e =>
-                    setPaymentType(
-                      e.target.value as
-                        | 'registration_fee'
-                        | 'tuition_fee'
-                        | 'admission_fee'
-                    )
-                  }
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    background: 'rgba(255,255,255,0.05)',
-                    color: '#fff',
-                    border: '1px solid var(--border-color)'
-                  }}
-                >
-                  <option value="registration_fee">
-                    Registration Fee
-                  </option>
-                  <option value="tuition_fee">
-                    Tuition Fee
-                  </option>
-                  <option value="admission_fee">
-                    Admission Fee
-                  </option>
-                </select>
-              </div>
-
-              <div>
-                <label
-                  style={{
-                    fontSize: '0.75rem',
-                    color: '#94a3b8',
-                    display: 'block',
-                    marginBottom: '4px'
-                  }}
-                >
-                  Amount paid (USD)
-                </label>
-
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  required
-                  value={paymentAmount}
-                  onChange={e => setPaymentAmount(e.target.value)}
-                  placeholder="Enter amount paid"
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    background: 'rgba(255,255,255,0.05)',
-                    color: '#fff',
-                    border: '1px solid var(--border-color)'
-                  }}
-                />
-              </div>
+            <form onSubmit={handlePayFee} style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '480px' }}>
               <div>
                 <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Payment provider</label>
                 <select value={paymentProvider} onChange={e => setPaymentProvider(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}>
                   <option value="Bank transfer">Bank transfer</option>
-                  <option value="Card payment">Card payment</option>
+                  <option value="Mobile money">Mobile money</option>
                   <option value="Online payment provider">Online payment provider</option>
                 </select>
               </div>
-              </div>
-
-              {paymentProvider === 'Card payment' && (
-                <div style={{ border: '1px solid rgba(59, 130, 246, 0.35)', borderRadius: '14px', overflow: 'hidden', background: 'rgba(15, 23, 42, 0.45)' }}>
-                  <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(148, 163, 184, 0.22)', display: 'flex', alignItems: 'center', gap: '8px', color: '#fff', fontWeight: 800 }}>
-                    <CreditCard style={{ width: '18px', height: '18px', color: '#60a5fa' }} />
-                    Card Payment
-                  </div>
-                  <div
-                    style={{
-                      padding: '18px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '14px'
-                    }}
-                  >
-                    <div style={{ padding: '12px 14px', border: '1px solid rgba(96, 165, 250, 0.45)', borderRadius: '10px', color: '#bfdbfe', fontSize: '0.82rem', background: 'rgba(37, 99, 235, 0.08)' }}>
-                      Your payment information is handled securely. Globe Scholars Pathways, LLC. does not store your card number, CVV/CVC, PIN, or password.
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                      {[
-                        { value: 'debit', label: 'Debit Card' },
-                        { value: 'credit', label: 'Credit Card' },
-                      ].map((option) => (
-                        <label key={option.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
-                          <input
-                            type="radio"
-                            checked={cardType === option.value}
-                            onChange={() => setCardType(option.value as 'debit' | 'credit')}
-                          />
-                          {option.label}
-                        </label>
-                      ))}
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '0.75rem', color: '#cbd5e1', display: 'block', marginBottom: '4px', fontWeight: 700 }}>Card number</label>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={cardNumber}
-                        onChange={(event) => setCardNumber(event.target.value.replace(/[^\d\s-]/g, '').slice(0, 23))}
-                        placeholder="Enter card number"
-                        autoComplete="cc-number"
-                        style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}
-                      />
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                      <div>
-                        <label style={{ fontSize: '0.75rem', color: '#cbd5e1', display: 'block', marginBottom: '4px', fontWeight: 700 }}>Expiry date</label>
-                        <input
-                          type="text"
-                          value={cardExpiry}
-                          onChange={(event) => setCardExpiry(event.target.value.replace(/[^\d/ ]/g, '').slice(0, 7))}
-                          placeholder="MM / YY"
-                          autoComplete="cc-exp"
-                          style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.75rem', color: '#cbd5e1', display: 'block', marginBottom: '4px', fontWeight: 700 }}>CVV</label>
-                        <input
-                          type="password"
-                          inputMode="numeric"
-                          value={cardCvv}
-                          onChange={(event) => setCardCvv(event.target.value.replace(/\D/g, '').slice(0, 4))}
-                          placeholder="Enter CVV"
-                          autoComplete="cc-csc"
-                          style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}
-                        />
-                      </div>
-                    </div>
-
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#cbd5e1', fontSize: '0.8rem', lineHeight: 1.5 }}>
-                      <input
-                        type="checkbox"
-                        checked={cardTermsAccepted}
-                        onChange={(event) => setCardTermsAccepted(event.target.checked)}
-                        style={{ width: '18px', height: '18px' }}
-                      />
-                      I agree with the privacy policy and payment terms. Finance will issue the official PDF receipt only after approval.
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              {paymentProvider !== 'Card payment' && (
               <div>
                 <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Payment reference</label>
                 <input type="text" required value={paymentReference} onChange={e => setPaymentReference(e.target.value)} placeholder="Enter the receipt or transfer reference" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }} />
                 <p style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '6px' }}>For your security, do not enter card numbers, PINs, passwords, or CVC codes here.</p>
               </div>
-              )}
               <button type="submit" disabled={isSubmittingFee} className="btn btn-primary" style={{ marginTop: '10px' }}>
-                {isSubmittingFee ? 'Submitting confirmation…' : paymentProvider === 'Card payment' ? 'Pay Now' : 'Send payment confirmation'}
+                {isSubmittingFee ? 'Submitting confirmation…' : 'Send payment confirmation'}
               </button>
             </form>
           )}
@@ -1681,7 +1465,7 @@ export const StudentPortal: React.FC = () => {
                         >
                           {record.record_type
                             .replace(/_/g, ' ')
-                            .replace(/\b\w/g, (c) => c.toUpperCase())}
+                            .replace(/\\b\\w/g, (c) => c.toUpperCase())}
                         </div>
 
                         <div
@@ -1785,221 +1569,6 @@ export const StudentPortal: React.FC = () => {
                   </div>
                 );
               })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {activeStep === 6 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {!registrationFeeRecord || registrationFeeRecord.status !== 'paid' ? (
-            <div className="glass-panel" style={{ padding: '48px 24px', textAlign: 'center', color: '#94a3b8' }}>
-              <LockKeyhole style={{ width: 48, height: 48, margin: '0 auto 16px', color: '#ef4444' }} />
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff', marginBottom: '8px' }}>Visa Application Restricted</h3>
-              <p style={{ maxWidth: '500px', margin: '0 auto 20px', fontSize: '0.88rem', lineHeight: 1.6 }}>
-                Access to the visa application module is locked. You must pay and verify your registration fee ($150.00) first to unlock this section.
-              </p>
-              <button
-                type="button"
-                onClick={() => setActiveStep(3)}
-                className="btn btn-primary"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-              >
-                Go to Payment Portal <ArrowRight style={{ width: 16, height: 16 }} />
-              </button>
-            </div>
-          ) : !myVisaApp ? (
-            <div className="glass-panel" style={{ padding: '48px 24px', textAlign: 'center', color: '#94a3b8' }}>
-              <ShieldCheck style={{ width: 48, height: 48, margin: '0 auto 16px', color: '#3366FF' }} />
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff', marginBottom: '8px' }}>Start Your Visa Application</h3>
-              <p style={{ maxWidth: '500px', margin: '0 auto 20px', fontSize: '0.88rem', lineHeight: 1.6 }}>
-                Your registration fee payment has been verified. You can now initialize and submit your visa application dossier for admissions review.
-              </p>
-              <button
-                type="button"
-                onClick={handleInitializeVisa}
-                disabled={initializingVisa}
-                className="btn btn-primary"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-              >
-                {initializingVisa ? 'Initializing...' : 'Initialize Visa Application Dossier'}
-                <ArrowRight style={{ width: 16, height: 16 }} />
-              </button>
-            </div>
-          ) : (
-            <div className="glass-panel" style={{ padding: '28px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', marginBottom: '20px' }}>
-                <div>
-                  <h3 style={{ fontSize: '1.15rem', color: '#fff', fontWeight: 700 }}>Student Visa Application Dossier</h3>
-                  <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>
-                    Prepare and upload your visa compliance files. Uploads are strictly limited to PDF format.
-                  </p>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Dossier Status:</span>
-                  <span
-                    className={`dept-badge ${
-                      myVisaApp.status === 'approved'
-                        ? 'dept-badge-active'
-                        : myVisaApp.status === 'rejected'
-                        ? 'dept-badge-inactive'
-                        : 'dept-badge-pending'
-                    }`}
-                    style={{ textTransform: 'uppercase', fontWeight: 700 }}
-                  >
-                    {myVisaApp.status.replace('_', ' ')}
-                  </span>
-                </div>
-              </div>
-
-              {/* Admissions Guidance Message Box */}
-              <div
-                style={{
-                  background: 'rgba(51, 102, 255, 0.05)',
-                  border: '1px solid rgba(51, 102, 255, 0.15)',
-                  borderRadius: '10px',
-                  padding: '16px',
-                  marginBottom: '24px'
-                }}
-              >
-                <h4 style={{ fontSize: '0.85rem', color: '#3366FF', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Bell style={{ width: 14, height: 14 }} /> Admissions Department Guidance
-                </h4>
-                <p style={{ fontSize: '0.82rem', color: '#cbd5e1', marginTop: '8px', lineHeight: 1.5 }}>
-                  {myVisaApp.admissions_instructions || 'Please upload the requested files for review.'}
-                </p>
-              </div>
-
-              {visaUploadError && (
-                <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '12px 16px', borderRadius: '8px', color: '#f87171', fontSize: '0.82rem', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <AlertCircle style={{ width: 16, height: 16 }} />
-                  {visaUploadError}
-                </div>
-              )}
-
-              {/* Visa Document Requirements List */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <h4 style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 600 }}>Required Visa Documents (PDF Only)</h4>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {[
-                    { type: 'passport', label: 'Biometric Passport Page', desc: 'Valid photo-information page of your passport.' },
-                    { type: 'proof_of_funds', label: 'Proof of Financial Support', desc: 'Bank statement or certified sponsor letter showing sufficient balance.' },
-                    { type: 'visa_form', label: 'Visa Application Form', desc: 'Completed, dated, and signed official visa form.' },
-                    { type: 'offer_letter', label: 'Acceptance / Offer Letter', desc: 'Official letter of admission issued to you.' },
-                    { type: 'other', label: 'Other Supporting Files', desc: 'Any additional files requested by Admissions.' }
-                  ].map((docReq) => {
-                    const uploadedFile = uploadedVisaDocs.find(d => d.document_type === docReq.type);
-                    const isUploading = uploadingVisaDocType === docReq.type;
-                    
-                    return (
-                      <div
-                        key={docReq.type}
-                        style={{
-                          background: 'rgba(255, 255, 255, 0.02)',
-                          border: '1px solid var(--border-color)',
-                          borderRadius: '10px',
-                          padding: '16px',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          gap: '16px'
-                        }}
-                      >
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#fff' }}>{docReq.label}</span>
-                            {uploadedFile ? (
-                              <span style={{ color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', fontWeight: 600 }}>
-                                <CheckCircle2 style={{ width: 12, height: 12 }} /> UPLOADED
-                              </span>
-                            ) : (
-                              <span style={{ color: '#94a3b8', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem' }}>
-                                <Clock style={{ width: 12, height: 12 }} /> PENDING
-                              </span>
-                            )}
-                          </div>
-                          <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>{docReq.desc}</p>
-                          
-                          {uploadedFile && (
-                            <div style={{ marginTop: '10px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                              <FileText style={{ width: 12, height: 12, color: '#3366FF' }} />
-                              <span style={{ fontSize: '0.75rem', color: '#cbd5e1', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {uploadedFile.file_name}
-                              </span>
-                              <span style={{ fontSize: '0.7' + 'rem', color: '#64748b' }}>
-                                ({(uploadedFile.file_size / 1024).toFixed(1)} KB)
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          {uploadedFile ? (
-                            <>
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  const { data } = supabase.storage
-                                    .from('department-reports')
-                                    .getPublicUrl(uploadedFile.file_path);
-                                  if (data?.publicUrl) {
-                                    window.open(data.publicUrl, '_blank');
-                                  }
-                                }}
-                                className="btn btn-secondary btn-sm"
-                                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                              >
-                                <Eye style={{ width: 12, height: 12 }} /> View
-                              </button>
-                              
-                              {myVisaApp.status !== 'approved' && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleVisaFileDelete(uploadedFile.id, uploadedFile.file_path)}
-                                  className="btn btn-secondary btn-sm"
-                                  style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '6px' }}
-                                >
-                                  <X style={{ width: 12, height: 12 }} /> Remove
-                                </button>
-                              )}
-                            </>
-                          ) : (
-                            <div style={{ position: 'relative' }}>
-                              <button
-                                type="button"
-                                disabled={isUploading || myVisaApp.status === 'approved'}
-                                className="btn btn-primary btn-sm"
-                                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                              >
-                                <Upload style={{ width: 12, height: 12 }} /> {isUploading ? 'Uploading...' : 'Upload PDF'}
-                              </button>
-                              <input
-                                type="file"
-                                accept="application/pdf"
-                                disabled={isUploading || myVisaApp.status === 'approved'}
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handleVisaFileUpload(docReq.type, file);
-                                }}
-                                style={{
-                                  position: 'absolute',
-                                  top: 0,
-                                  left: 0,
-                                  opacity: 0,
-                                  width: '100%',
-                                  height: '100%',
-                                  cursor: 'pointer'
-                                }}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
             </div>
           )}
         </div>

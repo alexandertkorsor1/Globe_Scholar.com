@@ -19,6 +19,9 @@ import { DataApplicationsWorkspace } from './components/workspaces/DataApplicati
 import { OperationsWorkspace } from './components/workspaces/OperationsWorkspace';
 import { CountryDirectorsWorkspace } from './components/workspaces/CountryDirectorsWorkspace';
 import { FinanceWorkspace } from './components/workspaces/FinanceWorkspace';
+import { ManagementWorkspace } from './components/workspaces/ManagementWorkspace';
+import { InstitutionalRelationsWorkspace } from './components/workspaces/InstitutionalRelationsWorkspace';
+import { HrWorkspace } from './components/workspaces/HrWorkspace';
 
 import { StudentPortal } from './components/student/StudentPortal';
 
@@ -163,39 +166,47 @@ const WorkspaceContainer: React.FC = () => {
       case 'finance':
         return <FinanceWorkspace />;
 
-default:
-  return (
-    <div
-      style={{
-        minHeight: '60vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexDirection: 'column',
-        gap: '12px',
-        color: '#111827',
-        textAlign: 'center',
-        padding: '40px',
-      }}
-    >
-      <h2>
-        {currentProfile.account_type === 'unassigned'
-          ? 'Account setup in progress'
-          : 'Access Restricted'}
-      </h2>
+      case 'management':
+        return <ManagementWorkspace />;
 
-      <p style={{ color: '#6b7280' }}>
-        {currentProfile.account_type === 'unassigned'
-          ? 'Your sign-in has been created, but an administrator still needs to assign your department and access level.'
-          : 'Your account is not assigned to a valid department.'}
-      </p>
+      case 'institutional_relations':
+        return <InstitutionalRelationsWorkspace />;
 
-      <p style={{ color: '#9ca3af', fontSize: '13px' }}>
-        Please contact the administrator.
-      </p>
-    </div>
-  );
+      case 'human_resources':
+        return <HrWorkspace />;
 
+      default:
+        return (
+          <div
+            style={{
+              minHeight: '60vh',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexDirection: 'column',
+              gap: '12px',
+              color: '#111827',
+              textAlign: 'center',
+              padding: '40px',
+            }}
+          >
+            <h2>
+              {currentProfile.account_type === 'unassigned'
+                ? 'Account setup in progress'
+                : 'Access Restricted'}
+            </h2>
+
+            <p style={{ color: '#6b7280' }}>
+              {currentProfile.account_type === 'unassigned'
+                ? 'Your sign-in has been created, but an administrator still needs to assign your department and access level.'
+                : 'Your account is not assigned to a valid department.'}
+            </p>
+
+            <p style={{ color: '#9ca3af', fontSize: '13px' }}>
+              Please contact the administrator.
+            </p>
+          </div>
+        );
     }
   };
 

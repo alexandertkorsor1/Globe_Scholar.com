@@ -2,12 +2,22 @@ import React, { useState } from 'react';
 import { useApplication } from '../../context/ApplicationContext';
 import { useAuth } from '../../context/AuthContext';
 import { DashboardLayout } from '../dashboard/DashboardLayout';
-import { Layers, FileCheck, AlertTriangle, Eye, CheckCircle2, RefreshCw, Kanban } from 'lucide-react';
+import { Layers, FileCheck, AlertTriangle, Eye, CheckCircle2, RefreshCw, Kanban, ClipboardList } from 'lucide-react';
 import { DocumentManager } from '../documents/DocumentManager';
 import { ApplicationStatus, Application } from '../../types/database';
+import { getApplicationIntake } from '../../lib/department-registers';
+import { CrmRegister } from '../shared/CrmRegister';
+import { KpiPerformanceTracker } from '../shared/KpiPerformanceTracker';
+import { DepartmentTaskInbox } from '../shared/DepartmentTaskInbox';
 
 export const DataApplicationsWorkspace: React.FC = () => {
-  const { applications, updateApplicationStatus } = useApplication();
+  const {
+    applications,
+    students,
+    financialRecords,
+    departmentKpis,
+    updateApplicationStatus,
+  } = useApplication();
   const { currentProfile, logout } = useAuth();
 
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
@@ -27,6 +37,9 @@ export const DataApplicationsWorkspace: React.FC = () => {
   const sidebarNav = [
     { label: 'Pipeline', icon: <Layers style={{ width: 18, height: 18 }} />, active: true, onClick: () => { setViewMode('table'); goTo('data-pipeline'); } },
     { label: 'Kanban', icon: <Kanban style={{ width: 18, height: 18 }} />, onClick: () => { setViewMode('kanban'); goTo('data-pipeline'); } },
+    { label: 'CRM', icon: <FileCheck style={{ width: 18, height: 18 }} />, onClick: () => goTo('data-crm') },
+    { label: 'KPI', icon: <CheckCircle2 style={{ width: 18, height: 18 }} />, onClick: () => goTo('data-kpi') },
+    { label: 'Assigned Tasks', icon: <ClipboardList style={{ width: 18, height: 18 }} />, onClick: () => goTo('data-assigned-tasks') },
   ];
 
   return (
@@ -69,6 +82,27 @@ export const DataApplicationsWorkspace: React.FC = () => {
             </button>
           </div>
         </div>
+      </div>
+
+      <div id="data-assigned-tasks">
+        <DepartmentTaskInbox />
+      </div>
+
+      <div id="data-crm">
+        <CrmRegister
+          applications={applications}
+          students={students}
+          financialRecords={financialRecords}
+          title="Data & Applications CRM Register"
+          description="Student relationship register for intake, document status, data readiness, payment signal, owner department, and next action."
+        />
+      </div>
+
+      <div id="data-kpi">
+        <KpiPerformanceTracker
+          records={departmentKpis}
+          currentProfile={currentProfile}
+        />
       </div>
 
       {/* Kanban Board View */}
@@ -137,43 +171,65 @@ export const DataApplicationsWorkspace: React.FC = () => {
       {/* Grid View */}
       {viewMode === 'table' && (
         <div className="glass-panel" style={{ padding: '20px' }}>
-          <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '14px' }}>Data Volume & Verification Status Grid</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', marginBottom: '14px', flexWrap: 'wrap' }}>
+            <div>
+              <h3 style={{ fontSize: '1rem', color: '#fff' }}>Data & Applications Intake Register</h3>
+              <p style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '4px' }}>
+                Every new student account appears here first for data capture, document verification, and application readiness tracking.
+              </p>
+            </div>
+            <span className="badge badge-submitted">{applications.length} Records</span>
+          </div>
           <div className="custom-table-container">
             <table className="custom-table">
               <thead>
                 <tr>
                   <th>App #</th>
-                  <th>Student Name</th>
-                  <th>Target University</th>
-                  <th>Degree Program</th>
-                  <th>Missing Docs Count</th>
-                  <th>Current Status</th>
-                  <th>Inspect & Verify</th>
+                  <th>Email</th>
+                  <th>Name</th>
+                  <th>Age</th>
+                  <th>Gender</th>
+                  <th>Date of Application</th>
+                  <th>Country</th>
+                  <th>Target Institution</th>
+                  <th>Program</th>
+                  <th>Status</th>
+                  <th>Missing Docs</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {applications.map(app => (
-                  <tr key={app.id}>
-                    <td><strong style={{ color: '#06b6d4' }}>{app.application_number}</strong></td>
-                    <td style={{ fontWeight: 600, color: '#fff' }}>{app.student_name}</td>
-                    <td>{app.target_university}</td>
-                    <td style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>{app.degree_program}</td>
-                    <td>
-                      {app.missing_documents_count > 0 ? (
-                        <span className="badge badge-documents_missing">{app.missing_documents_count} Flagged</span>
-                      ) : (
-                        <span className="badge badge-documents_verified">0 Flagged</span>
-                      )}
-                    </td>
-                    <td><span className={`badge badge-${app.status}`}>{app.status}</span></td>
-                    <td>
-                      <button onClick={() => setSelectedApp(app)} className="btn btn-primary btn-sm" style={{ fontSize: '0.72rem' }}>
-                        <Eye style={{ width: '12px', height: '12px' }} />
-                        Verify Documents
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {applications.map(app => {
+                  const intake = getApplicationIntake(app, students);
+
+                  return (
+                    <tr key={app.id}>
+                      <td><strong style={{ color: '#06b6d4' }}>{app.application_number}</strong></td>
+                      <td style={{ minWidth: '210px' }}>{intake.email}</td>
+                      <td style={{ fontWeight: 600 }}>{intake.name}</td>
+                      <td>{intake.age}</td>
+                      <td>{intake.gender}</td>
+                      <td>{intake.applicationDate}</td>
+                      <td>{intake.country}</td>
+                      <td>{app.target_university}</td>
+                      <td style={{ fontSize: '0.8rem' }}>{app.degree_program}</td>
+                      <td><span className={`badge badge-${app.status}`}>{app.status}</span></td>
+                      <td>
+                        {app.missing_documents_count > 0 ? (
+                          <span className="badge badge-documents_missing">{app.missing_documents_count} Flagged</span>
+                        ) : (
+                          <span className="badge badge-documents_verified">0 Flagged</span>
+                        )}
+                      </td>
+                      <td>
+                        <button onClick={() => setSelectedApp(app)} className="btn btn-primary btn-sm" style={{ fontSize: '0.72rem' }}>
+                          <Eye style={{ width: '12px', height: '12px' }} />
+                          Verify Documents
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

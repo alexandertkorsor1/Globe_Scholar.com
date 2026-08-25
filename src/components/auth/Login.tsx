@@ -17,6 +17,11 @@ export const Login: React.FC<LoginProps> = ({
   const [mode, setMode] = useState<AuthMode>(initialMode);
 
   const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [age, setAge] = useState('');
+  const [gender, setGender] = useState('');
+  const [country, setCountry] = useState('');
+  const [currentAddress, setCurrentAddress] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -62,6 +67,20 @@ export const Login: React.FC<LoginProps> = ({
       return;
     }
 
+    if (!phone.trim() || !age.trim() || !gender.trim() || !country.trim() || !currentAddress.trim()) {
+      setError('Please complete your phone, age, gender, country, and current address.');
+      setLoading(false);
+      return;
+    }
+
+    const studentAge = Number(age);
+
+    if (!Number.isInteger(studentAge) || studentAge < 10 || studentAge > 90) {
+      setError('Please enter a valid student age between 10 and 90.');
+      setLoading(false);
+      return;
+    }
+
     if (password.length < 6) {
       setError(
         'Password must be at least 6 characters long.'
@@ -76,6 +95,10 @@ export const Login: React.FC<LoginProps> = ({
       return;
     }
 
+    const nameParts = fullName.trim().split(/\s+/);
+    const firstName = nameParts[0] || fullName.trim();
+    const lastName = nameParts.slice(1).join(' ');
+
     const { data, error } =
       await supabase.auth.signUp({
         email: email.trim(),
@@ -83,6 +106,13 @@ export const Login: React.FC<LoginProps> = ({
         options: {
           data: {
             full_name: fullName.trim(),
+            first_name: firstName,
+            last_name: lastName,
+            phone: phone.trim(),
+            age: studentAge,
+            gender: gender.trim(),
+            country_of_residence: country.trim(),
+            current_address: currentAddress.trim(),
             account_type: 'student',
           },
         },
@@ -124,6 +154,11 @@ export const Login: React.FC<LoginProps> = ({
     );
 
     setFullName('');
+    setPhone('');
+    setAge('');
+    setGender('');
+    setCountry('');
+    setCurrentAddress('');
     setEmail('');
     setPassword('');
     setConfirmPassword('');
@@ -160,6 +195,11 @@ export const Login: React.FC<LoginProps> = ({
     setSuccess('');
     setPassword('');
     setConfirmPassword('');
+    setPhone('');
+    setAge('');
+    setGender('');
+    setCountry('');
+    setCurrentAddress('');
     setShowPassword(false);
     setShowConfirmPassword(false);
   };
@@ -472,6 +512,86 @@ export const Login: React.FC<LoginProps> = ({
                 e.target.style.borderColor = '#e5e7eb';
                 e.target.style.boxShadow = 'none';
               }}
+            />
+
+            <label htmlFor="student-phone" style={labelStyle}>
+              Phone number
+            </label>
+            <input
+              id="student-phone"
+              type="tel"
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+              placeholder="+1 555 0100"
+              autoComplete="tel"
+              required
+              style={inputStyle}
+            />
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label htmlFor="student-age" style={labelStyle}>
+                  Age
+                </label>
+                <input
+                  id="student-age"
+                  type="number"
+                  min={10}
+                  max={90}
+                  value={age}
+                  onChange={(event) => setAge(event.target.value)}
+                  placeholder="Age"
+                  required
+                  style={inputStyle}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="student-gender" style={labelStyle}>
+                  Gender
+                </label>
+                <select
+                  id="student-gender"
+                  value={gender}
+                  onChange={(event) => setGender(event.target.value)}
+                  required
+                  style={inputStyle}
+                >
+                  <option value="">Select</option>
+                  <option value="Female">Female</option>
+                  <option value="Male">Male</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <label htmlFor="student-country" style={labelStyle}>
+              Country
+            </label>
+            <input
+              id="student-country"
+              type="text"
+              value={country}
+              onChange={(event) => setCountry(event.target.value)}
+              placeholder="Country of residence"
+              autoComplete="country-name"
+              required
+              style={inputStyle}
+            />
+
+            <label htmlFor="student-address" style={labelStyle}>
+              Current address
+            </label>
+            <textarea
+              id="student-address"
+              value={currentAddress}
+              onChange={(event) => setCurrentAddress(event.target.value)}
+              placeholder="Street, city, state/province"
+              autoComplete="street-address"
+              required
+              rows={3}
+              style={{ ...inputStyle, resize: 'vertical' }}
             />
 
             <label

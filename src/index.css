@@ -127,6 +127,10 @@ h1, h2, h3, h4, h5, h6 {
 .dept-badge-operations { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
 .dept-badge-country_directors { background: #f0fdf4; color: #0d9488; border: 1px solid #99f6e4; }
 .dept-badge-finance { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+.dept-badge-management { background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4; }
+.dept-badge-institutional_relations { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; }
+.dept-badge-human_resources { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
+
 
 /* ─── Button Styles ─── */
 .btn {

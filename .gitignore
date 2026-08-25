@@ -34,3 +34,4 @@ mock-data.before-account-type.ts
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+supabase/functions/.env

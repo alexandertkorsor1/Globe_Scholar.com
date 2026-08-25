@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import { useApplication } from '../../context/ApplicationContext';
 import { useAuth } from '../../context/AuthContext';
 import { DashboardLayout } from '../dashboard/DashboardLayout';
-import { DollarSign, ShieldAlert, CheckCircle2, Lock, FileSpreadsheet, Plus, Receipt } from 'lucide-react';
+import { DollarSign, ShieldAlert, CheckCircle2, Lock, FileSpreadsheet, Plus, Receipt, ClipboardList } from 'lucide-react';
+import { formatUsd, getApplicationIntake, getRegistrationFeeSummary, REGISTRATION_FEE_TARGET_USD } from '../../lib/department-registers';
+import type { FinancialRecord } from '../../types/database';
+import { DepartmentTaskInbox } from '../shared/DepartmentTaskInbox';
 
 export const FinanceWorkspace: React.FC = () => {
   const {
@@ -10,8 +13,11 @@ export const FinanceWorkspace: React.FC = () => {
     getScopedCounselingSessions,
     financialRecords,
     applications,
+    students,
+    paymentReceipts,
     createFinancialRecord,
     reviewRegistrationPayment,
+    generatePaymentReceipt,
   } = useApplication();
   const { currentProfile, logout } = useAuth();
 
@@ -33,6 +39,18 @@ export const FinanceWorkspace: React.FC = () => {
     .filter(f => f.record_type === 'registration_fee' && f.status === 'paid')
     .reduce((acc, f) => acc + f.amount, 0);
   const totalDisbursements = financialRecords.filter(f => f.record_type === 'scholarship_disbursement' && f.status === 'approved').reduce((acc, f) => acc + f.amount, 0);
+  const studentFeeTypes: FinancialRecord['record_type'][] = ['registration_fee', 'tuition_fee', 'admission_fee'];
+  const financeEligibleApplications = applications.filter((application) =>
+    financialRecords.some((record) =>
+      record.application_id === application.id &&
+      studentFeeTypes.includes(record.record_type) &&
+      record.status !== 'rejected'
+    )
+  );
+  const receiptForRecord = (recordId?: string) =>
+    recordId
+      ? paymentReceipts.find((receipt) => receipt.financial_record_id === recordId && receipt.status === 'issued')
+      : undefined;
 
   const handleCreateDisbursement = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,15 +83,26 @@ export const FinanceWorkspace: React.FC = () => {
   const handlePaymentReview = async (recordId: string, approved: boolean) => {
     try {
       await reviewRegistrationPayment(recordId, approved);
-      setFinanceMessage(approved ? 'Payment verified. Admissions can now see the cleared status.' : 'Payment was rejected and Admissions has been notified.');
+      setFinanceMessage(approved ? 'Payment verified and receipt issued. The student can now download the PDF receipt.' : 'Payment was rejected and the student record has been updated.');
     } catch (error) {
       setFinanceMessage(error instanceof Error ? error.message : 'The payment review could not be saved.');
     }
   };
 
+  const handleGenerateReceipt = async (recordId: string) => {
+    try {
+      const receipt = await generatePaymentReceipt(recordId);
+      setFinanceMessage(`Receipt ${receipt.receipt_number} is ready for the student.`);
+    } catch (error) {
+      setFinanceMessage(error instanceof Error ? error.message : 'The receipt could not be generated.');
+    }
+  };
+
   const sidebarNav = [
-    { label: 'Ledger', icon: <DollarSign style={{ width: 18, height: 18 }} />, active: true, onClick: () => goTo('finance-ledger') },
+    { label: 'Payment Register', icon: <FileSpreadsheet style={{ width: 18, height: 18 }} />, active: true, onClick: () => goTo('finance-register') },
+    { label: 'Ledger', icon: <DollarSign style={{ width: 18, height: 18 }} />, onClick: () => goTo('finance-ledger') },
     { label: 'Disbursements', icon: <Receipt style={{ width: 18, height: 18 }} />, onClick: () => setShowDisburseModal(true) },
+    { label: 'Assigned Tasks', icon: <ClipboardList style={{ width: 18, height: 18 }} />, onClick: () => goTo('finance-assigned-tasks') },
   ];
 
   return (
@@ -106,6 +135,10 @@ export const FinanceWorkspace: React.FC = () => {
             Approve Financial Disbursement
           </button>
         </div>
+      </div>
+
+      <div id="finance-assigned-tasks">
+        <DepartmentTaskInbox />
       </div>
 
       {/* RLS Strict Isolation Banner */}
@@ -157,6 +190,98 @@ export const FinanceWorkspace: React.FC = () => {
         </div>
       </div>
 
+      {/* Student Fee Register */}
+      <div id="finance-register" className="glass-panel" style={{ padding: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', marginBottom: '14px', flexWrap: 'wrap' }}>
+          <div>
+            <h3 style={{ fontSize: '1rem', color: '#fff' }}>Finance Student Payment Register</h3>
+            <p style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '4px' }}>
+              Finance sees students only after a registration-fee record exists. Balance is calculated against the {formatUsd(REGISTRATION_FEE_TARGET_USD)} registration fee.
+            </p>
+          </div>
+          <span className="badge badge-submitted">{financeEligibleApplications.length} Payment Records</span>
+        </div>
+
+        <div className="custom-table-container">
+          <table className="custom-table">
+            <thead>
+              <tr>
+                <th>App #</th>
+                <th>Email</th>
+                <th>Name</th>
+                <th>Age</th>
+                <th>Gender</th>
+                <th>Address</th>
+                <th>Amount Paid</th>
+                <th>Balance</th>
+                <th>Status</th>
+                <th>Reference</th>
+                <th>Receipt</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {financeEligibleApplications.map((application) => {
+                const intake = getApplicationIntake(application, students);
+                const feeSummary = getRegistrationFeeSummary(application.id, financialRecords);
+                const latestRecord = feeSummary.latestRecord;
+                const receipt = receiptForRecord(latestRecord?.id);
+
+                return (
+                  <tr key={application.id}>
+                    <td><strong style={{ color: '#34d399' }}>{application.application_number}</strong></td>
+                    <td style={{ minWidth: '210px' }}>{intake.email}</td>
+                    <td style={{ fontWeight: 600 }}>{intake.name}</td>
+                    <td>{intake.age}</td>
+                    <td>{intake.gender}</td>
+                    <td style={{ minWidth: '220px' }}>{intake.currentAddress}</td>
+                    <td style={{ fontWeight: 800, color: '#059669' }}>{formatUsd(feeSummary.verifiedAmount)}</td>
+                    <td style={{ fontWeight: 800, color: feeSummary.balance === 0 ? '#059669' : '#d97706' }}>
+                      {formatUsd(feeSummary.balance)}
+                    </td>
+                    <td>
+                      <span className={`badge badge-${feeSummary.isCleared ? 'approved' : latestRecord?.status === 'pending' ? 'under_review' : 'draft'}`}>
+                        {feeSummary.isCleared ? 'CLEARED' : latestRecord?.status === 'pending' ? 'PENDING VERIFY' : feeSummary.status.toUpperCase()}
+                      </span>
+                    </td>
+                    <td>{latestRecord?.payment_reference || 'Awaiting reference'}</td>
+                    <td>
+                      {receipt ? (
+                        <span style={{ color: '#2563eb', fontWeight: 800 }}>{receipt.receipt_number}</span>
+                      ) : latestRecord && ['paid', 'approved'].includes(latestRecord.status) ? (
+                        <button onClick={() => void handleGenerateReceipt(latestRecord.id)} className="btn btn-secondary btn-sm">
+                          <Receipt style={{ width: '12px', height: '12px' }} />
+                          Generate
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Pending approval</span>
+                      )}
+                    </td>
+                    <td>
+                      {latestRecord && studentFeeTypes.includes(latestRecord.record_type) && latestRecord.status === 'pending' ? (
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button onClick={() => void handlePaymentReview(latestRecord.id, true)} className="btn btn-primary btn-sm">Verify</button>
+                          <button onClick={() => void handlePaymentReview(latestRecord.id, false)} className="btn btn-secondary btn-sm">Reject</button>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>No action</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+              {financeEligibleApplications.length === 0 && (
+                <tr>
+                  <td colSpan={12} style={{ padding: '28px', textAlign: 'center', color: '#94a3b8' }}>
+                    No student payment records are ready for Finance yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* Financial Records Ledger Table */}
       <div id="finance-ledger" className="glass-panel" style={{ padding: '20px' }}>
         <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '14px' }}>Financial Transactions & Student Fee Ledger</h3>
@@ -193,7 +318,7 @@ export const FinanceWorkspace: React.FC = () => {
                   <td style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{f.approved_by_name || 'Finance Lead'}</td>
                   <td><span className={`badge badge-${f.status === 'paid' || f.status === 'approved' ? 'approved' : f.status === 'rejected' ? 'rejected' : 'under_review'}`}>{f.status.toUpperCase()}</span></td>
                   <td>
-                    {f.record_type === 'registration_fee' && f.status === 'pending' ? (
+                    {studentFeeTypes.includes(f.record_type) && f.status === 'pending' ? (
                       <div style={{ display: 'flex', gap: '6px' }}>
                         <button onClick={() => void handlePaymentReview(f.id, true)} className="btn btn-primary btn-sm">Verify</button>
                         <button onClick={() => void handlePaymentReview(f.id, false)} className="btn btn-secondary btn-sm">Reject</button>
@@ -204,6 +329,54 @@ export const FinanceWorkspace: React.FC = () => {
                   </td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="glass-panel" style={{ padding: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', marginBottom: '14px', flexWrap: 'wrap' }}>
+          <div>
+            <h3 style={{ fontSize: '1rem', color: '#fff' }}>Issued Receipt Register</h3>
+            <p style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '4px' }}>
+              Receipts are generated by Finance after verified student payments and are visible to the student portal.
+            </p>
+          </div>
+          <span className="badge badge-approved">{paymentReceipts.length} Receipts</span>
+        </div>
+
+        <div className="custom-table-container">
+          <table className="custom-table">
+            <thead>
+              <tr>
+                <th>Receipt #</th>
+                <th>Student</th>
+                <th>Application</th>
+                <th>Amount</th>
+                <th>Payment Reference</th>
+                <th>Issued By</th>
+                <th>Issued Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paymentReceipts.map((receipt) => (
+                <tr key={receipt.id}>
+                  <td><strong style={{ color: '#2563eb' }}>{receipt.receipt_number}</strong></td>
+                  <td>{receipt.student_name}</td>
+                  <td>{receipt.application_number}</td>
+                  <td style={{ fontWeight: 800, color: '#059669' }}>{formatUsd(receipt.amount)}</td>
+                  <td>{receipt.payment_reference || '—'}</td>
+                  <td>{receipt.issued_by_name || 'Finance'}</td>
+                  <td>{new Date(receipt.issued_at).toLocaleString()}</td>
+                </tr>
+              ))}
+              {paymentReceipts.length === 0 && (
+                <tr>
+                  <td colSpan={7} style={{ padding: '28px', textAlign: 'center', color: '#94a3b8' }}>
+                    No receipts have been issued yet.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

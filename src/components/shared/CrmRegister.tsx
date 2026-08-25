@@ -1,0 +1,127 @@
+import React from 'react';
+import { Application, FinancialRecord, Student } from '../../types/database';
+import {
+  formatRegisterDate,
+  getApplicationIntake,
+  getRegistrationFeeSummary,
+} from '../../lib/department-registers';
+
+interface CrmRegisterProps {
+  applications: Application[];
+  students: Student[];
+  financialRecords: FinancialRecord[];
+  title?: string;
+  description?: string;
+}
+
+const ownerForStatus = (status: Application['status']) => {
+  if (['admissions_review', 'decision_pending', 'approved', 'rejected'].includes(status)) {
+    return 'Admissions';
+  }
+
+  if (['ready_for_processing', 'submitted_to_institution'].includes(status)) {
+    return 'Operations';
+  }
+
+  if (['documents_missing', 'documents_verified', 'under_review', 'submitted'].includes(status)) {
+    return 'Data & Applications';
+  }
+
+  return 'Counseling / Data Intake';
+};
+
+const nextActionForApplication = (application: Application, feeStatus: string) => {
+  if (application.missing_documents_count > 0) {
+    return `Collect ${application.missing_documents_count} missing document(s)`;
+  }
+
+  if (!application.handed_off_to_admissions && feeStatus === 'not_submitted') {
+    return 'Confirm fee and route when ready';
+  }
+
+  if (feeStatus === 'pending') {
+    return 'Finance payment verification';
+  }
+
+  if (application.status === 'admissions_review') {
+    return 'Admissions decision follow-up';
+  }
+
+  if (application.status === 'approved') {
+    return 'Prepare final onboarding';
+  }
+
+  return 'Continue student follow-up';
+};
+
+export const CrmRegister: React.FC<CrmRegisterProps> = ({
+  applications,
+  students,
+  financialRecords,
+  title = 'CRM Student Pipeline Register',
+  description = 'Central relationship view for every student lead, application status, payment signal, department owner, and next action.',
+}) => (
+  <div className="glass-panel" style={{ padding: '20px' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', marginBottom: '14px', flexWrap: 'wrap' }}>
+      <div>
+        <h3 style={{ fontSize: '1rem', color: '#fff' }}>{title}</h3>
+        <p style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '4px' }}>{description}</p>
+      </div>
+      <span className="badge badge-submitted">{applications.length} CRM Records</span>
+    </div>
+
+    <div className="custom-table-container">
+      <table className="custom-table">
+        <thead>
+          <tr>
+            <th>CRM / App #</th>
+            <th>Student</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Country</th>
+            <th>Target Institution</th>
+            <th>Stage</th>
+            <th>Payment</th>
+            <th>Department Owner</th>
+            <th>Last Touch</th>
+            <th>Next Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {applications.map((application) => {
+            const intake = getApplicationIntake(application, students);
+            const fee = getRegistrationFeeSummary(application.id, financialRecords);
+            const owner = ownerForStatus(application.status);
+
+            return (
+              <tr key={application.id}>
+                <td><strong style={{ color: '#2563eb' }}>{application.application_number}</strong></td>
+                <td style={{ fontWeight: 700 }}>{intake.name}</td>
+                <td style={{ minWidth: '210px' }}>{intake.email}</td>
+                <td>{intake.phone}</td>
+                <td>{intake.country}</td>
+                <td>{application.target_university}</td>
+                <td><span className={`badge badge-${application.status}`}>{application.status.replace(/_/g, ' ')}</span></td>
+                <td>
+                  <span className={`badge badge-${fee.isCleared ? 'approved' : fee.status === 'pending' ? 'under_review' : 'draft'}`}>
+                    {fee.isCleared ? 'paid' : fee.status.replace(/_/g, ' ')}
+                  </span>
+                </td>
+                <td>{owner}</td>
+                <td>{formatRegisterDate(application.updated_at || application.created_at)}</td>
+                <td style={{ minWidth: '220px' }}>{nextActionForApplication(application, fee.status)}</td>
+              </tr>
+            );
+          })}
+          {applications.length === 0 && (
+            <tr>
+              <td colSpan={11} style={{ padding: '28px', textAlign: 'center', color: '#94a3b8' }}>
+                No CRM records are available yet.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>
+);

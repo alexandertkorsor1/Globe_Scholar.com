@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { useApplication } from '../../context/ApplicationContext';
 import { useAuth } from '../../context/AuthContext';
 import { DashboardLayout } from '../dashboard/DashboardLayout';
-import { Megaphone, UserPlus, Send, Lock, ArrowRight, CheckCircle2, ShieldAlert, LayoutDashboard, Users } from 'lucide-react';
+import { Megaphone, UserPlus, Send, Lock, ArrowRight, CheckCircle2, ShieldAlert, LayoutDashboard, Users, ClipboardList } from 'lucide-react';
 import { Student } from '../../types/database';
+import { DepartmentTaskInbox } from '../shared/DepartmentTaskInbox';
 
 export const MarketingWorkspace: React.FC = () => {
   const {
@@ -62,6 +63,7 @@ export const MarketingWorkspace: React.FC = () => {
   const sidebarNav = [
     { label: 'Lead Pipeline', icon: <Megaphone style={{ width: 18, height: 18 }} />, active: true, onClick: () => goTo('marketing-pipeline') },
     { label: 'Students', icon: <Users style={{ width: 18, height: 18 }} />, onClick: () => goTo('marketing-students') },
+    { label: 'Assigned Tasks', icon: <ClipboardList style={{ width: 18, height: 18 }} />, onClick: () => goTo('marketing-assigned-tasks') },
   ];
 
   return (
@@ -94,6 +96,10 @@ export const MarketingWorkspace: React.FC = () => {
             Capture New Prospective Lead
           </button>
         </div>
+      </div>
+
+      <div id="marketing-assigned-tasks">
+        <DepartmentTaskInbox />
       </div>
 
       {/* Security RLS Enforcement Warning Box */}
