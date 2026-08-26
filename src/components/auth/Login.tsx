@@ -283,20 +283,20 @@ export const Login: React.FC<LoginProps> = ({
         >
           <img className="auth-brand-logo" src={brandLogo} alt="Globe Scholars Pathways, LLC." />
 
-          <p
-            style={{
-              marginTop: '6px',
-              marginBottom: 0,
-              color: '#6b7280',
-              fontSize: '14px',
-            }}
-          >
-            {mode === 'login'
-              ? 'Staff & Student Portal'
-              : mode === 'student-signup'
+          {mode !== 'login' && (
+            <p
+              style={{
+                marginTop: '6px',
+                marginBottom: 0,
+                color: '#6b7280',
+                fontSize: '14px',
+              }}
+            >
+              {mode === 'student-signup'
                 ? 'Student Registration'
                 : 'Password Recovery'}
-          </p>
+            </p>
+          )}
         </div>
 
         {mode === 'login' ? (
@@ -312,7 +312,7 @@ export const Login: React.FC<LoginProps> = ({
               onChange={(event) =>
                 setEmail(event.target.value)
               }
-              placeholder="name@globescholarspathways.com"
+              placeholder="Email"
               autoComplete="email"
               required
               style={inputStyle}
@@ -724,20 +724,20 @@ export const Login: React.FC<LoginProps> = ({
           </form>
         )}
 
-        <div
-          style={{
-            marginTop: '28px',
-            textAlign: 'center',
-            color: '#9ca3af',
-            fontSize: '12px',
-          }}
-        >
-          {mode === 'login'
-            ? 'Authorized staff and student access'
-            : mode === 'student-signup'
+        {mode !== 'login' && (
+          <div
+            style={{
+              marginTop: '28px',
+              textAlign: 'center',
+              color: '#9ca3af',
+              fontSize: '12px',
+            }}
+          >
+            {mode === 'student-signup'
               ? 'Student accounts only'
               : 'Secure account recovery'}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

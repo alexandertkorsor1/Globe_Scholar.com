@@ -7,9 +7,6 @@ export type DepartmentType =
   | 'operations'
   | 'finance'
   | 'country_directors'
-  | 'it_support'
-  | 'legal_compliance'
-  | 'alumni_success'
   | 'management'
   | 'institutional_relations'
   | 'human_resources';

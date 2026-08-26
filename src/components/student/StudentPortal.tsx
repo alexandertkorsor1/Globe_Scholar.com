@@ -84,8 +84,8 @@ export const StudentPortal: React.FC = () => {
   const [cardCvv, setCardCvv] = useState('');
   const [cardTermsAccepted, setCardTermsAccepted] = useState(false);
   const [paymentType, setPaymentType] = useState<
-    'registration_fee' | 'tuition_fee' | 'admission_fee'
-  >('registration_fee');
+    'tuition_fee' | 'admission_fee'
+  >('admission_fee');
   const [paymentAmount, setPaymentAmount] = useState('150.00');
   const [paymentReference, setPaymentReference] = useState('');
   const [feePaidSuccess, setFeePaidSuccess] = useState(false);
@@ -1170,7 +1170,6 @@ export const StudentPortal: React.FC = () => {
                   onChange={e =>
                     setPaymentType(
                       e.target.value as
-                        | 'registration_fee'
                         | 'tuition_fee'
                         | 'admission_fee'
                     )
@@ -1184,9 +1183,6 @@ export const StudentPortal: React.FC = () => {
                     border: '1px solid var(--border-color)'
                   }}
                 >
-                  <option value="registration_fee">
-                    Registration Fee
-                  </option>
                   <option value="tuition_fee">
                     Tuition Fee
                   </option>

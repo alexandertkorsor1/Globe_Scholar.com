@@ -11,9 +11,6 @@ const DEPARTMENT_LABELS: Record<string, string> = {
   operations: 'Operations',
   finance: 'Finance',
   country_directors: 'Country Directors',
-  it_support: 'IT Support',
-  legal_compliance: 'Legal & Compliance',
-  alumni_success: 'Alumni Success',
 };
 
 const PRIORITY_LABELS: Record<string, string> = {

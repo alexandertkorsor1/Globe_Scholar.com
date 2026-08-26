@@ -48,9 +48,6 @@ const DEPARTMENT_LABELS: Record<DepartmentType, string> = {
   operations: 'Operations',
   finance: 'Finance',
   country_directors: 'Country Directors',
-  it_support: 'IT Support',
-  legal_compliance: 'Legal & Compliance',
-  alumni_success: 'Alumni Success',
   management: 'Executive Management',
   institutional_relations: 'Institutional Relations',
   human_resources: 'Human Resources',
@@ -1193,9 +1190,6 @@ export const DepartmentTaskInbox: React.FC<DepartmentTaskInboxProps> = ({
                           'admin',
                           'operations',
                           'management',
-                          'it_support',
-                          'legal_compliance',
-                          'alumni_success',
                         ].includes(key)
                       )
                       .map(([key, label]) => (

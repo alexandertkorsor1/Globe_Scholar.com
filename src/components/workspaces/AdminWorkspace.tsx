@@ -55,6 +55,9 @@ const DEPARTMENT_OPTIONS: Array<{ value: DepartmentType; label: string }> = [
   { value: 'operations', label: 'Operations' },
   { value: 'finance', label: 'Finance' },
   { value: 'country_directors', label: 'Country Directors' },
+  { value: 'management', label: 'Management' },
+  { value: 'institutional_relations', label: 'Institutional Relations' },
+  { value: 'human_resources', label: 'Human Resources' },
 ];
 
 const RESPONSIBILITY_OPTIONS = [
@@ -720,13 +723,24 @@ export const AdminWorkspace: React.FC = () => {
           </h3>
 
           <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', overflowX: 'auto' }}>
-            {(['marketing', 'counseling', 'admissions', 'data_applications', 'operations', 'country_directors', 'finance'] as DepartmentType[]).map(dept => (
+            {([
+              'marketing',
+              'counseling',
+              'admissions',
+              'data_applications',
+              'operations',
+              'finance',
+              'country_directors',
+              'management',
+              'institutional_relations',
+              'human_resources',
+            ] as DepartmentType[]).map(dept => (
               <button
                 key={dept}
                 onClick={() => setSelectedDeptDrill(dept)}
                 className={`btn btn-sm ${selectedDeptDrill === dept ? 'btn-primary' : 'btn-secondary'}`}
               >
-                {dept.toUpperCase().replace('_', ' ')}
+                {dept.toUpperCase().replace(/_/g, ' ')}
               </button>
             ))}
           </div>

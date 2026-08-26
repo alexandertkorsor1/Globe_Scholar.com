@@ -136,6 +136,7 @@ export const ManagementWorkspace: React.FC = () => {
     { value: 'operations', label: 'Operations' },
     { value: 'finance', label: 'Finance' },
     { value: 'country_directors', label: 'Country Directors' },
+    { value: 'management', label: 'Management' },
     { value: 'institutional_relations', label: 'Institutional Relations' },
     { value: 'human_resources', label: 'Human Resources' },
   ];
@@ -284,6 +285,8 @@ export const ManagementWorkspace: React.FC = () => {
                 { key: 'counseling', name: 'Counseling & Placements', color: '#ec4899' },
                 { key: 'finance', name: 'Finance & Accounts', color: '#f59e0b' },
                 { key: 'country_directors', name: 'Country Oversight', color: '#14b8a6' },
+                { key: 'institutional_relations', name: 'Institutional Relations', color: '#10b981' },
+                { key: 'human_resources', name: 'Human Resources', color: '#f43f5e' },
               ].map((d) => {
                 const stats = getDepartmentStats(d.key);
                 const scoreColor = stats.kpiStatus === 'High' ? '#10b981' : stats.kpiStatus === 'Normal' ? '#3b82f6' : stats.kpiStatus === 'Low' ? '#f59e0b' : '#ef4444';
