@@ -25,7 +25,8 @@ import {
   Bell,
   Download,
   X,
-  Eye
+  Eye,
+  BookOpen
 } from 'lucide-react';
 import { Application, ApplicationStatus, StudyLevel, FinancialRecord, VisaApplication, VisaDocument } from '../../types/database';
 import {
@@ -54,6 +55,7 @@ export const StudentPortal: React.FC = () => {
     partnerUniversities,
     universityCourses,
     scholarships,
+    universityBrochures,
   } = useApplication();
 
   const { currentProfile, logout } = useAuth();
@@ -1147,6 +1149,51 @@ export const StudentPortal: React.FC = () => {
                   </option>
                 ))}
               </select>
+            )}
+          </div>
+
+          {/* Admissions Brochures List */}
+          <div style={{ marginTop: '18px', paddingTop: '18px', borderTop: '1px solid var(--border-color)' }}>
+            <h4 style={{ fontSize: '0.9rem', color: '#fff', marginBottom: '8px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <BookOpen style={{ width: '16px', height: '16px', color: '#6366f1' }} />
+              Admissions Brochures & Application Guidelines
+            </h4>
+            <p style={{ fontSize: '0.78rem', color: '#cbd5e1', marginBottom: '14px' }}>
+              View and download brochures, prospectus guides, and visa checklists uploaded by our Admissions department to help you prepare your pathway application.
+            </p>
+
+            {universityBrochures.length === 0 ? (
+              <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.06)', color: '#94a3b8', fontSize: '0.78rem', textAlign: 'center' }}>
+                No admissions brochures published yet.
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '12px' }}>
+                {universityBrochures.map(b => (
+                  <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '14px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <FileText style={{ width: '18px', height: '18px', color: '#60a5fa', marginTop: '3px', flexShrink: 0 }} />
+                      <div>
+                        <strong style={{ color: '#fff', fontSize: '0.82rem', display: 'block' }}>{b.title}</strong>
+                        {b.description && <span style={{ color: '#cbd5e1', fontSize: '0.74rem', display: 'block', marginTop: '2px', lineHeight: 1.4 }}>{b.description}</span>}
+                        <span style={{ color: '#64748b', fontSize: '0.7rem', display: 'block', marginTop: '6px' }}>
+                          Uploaded: {b.created_at ? new Date(b.created_at).toLocaleDateString() : 'N/A'} • {b.file_name}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const { data } = supabase.storage.from('department-reports').getPublicUrl(b.storage_path);
+                        if (data?.publicUrl) window.open(data.publicUrl, '_blank');
+                      }}
+                      className="btn btn-secondary btn-sm"
+                      style={{ padding: '6px 10px', fontSize: '0.72rem', flexShrink: 0, marginLeft: '12px' }}
+                    >
+                      View / Download
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 

@@ -41,7 +41,8 @@ import {
   TrashItem,
   MonthlyMeeting,
   UniversityCourse,
-  Scholarship
+  Scholarship,
+  UniversityBrochure
 } from '../types/database';
 import {
   INITIAL_APPLICATIONS,
@@ -207,6 +208,9 @@ getDepartmentReportDownloadUrl: (
   scholarships: Scholarship[];
   addScholarship: (scholarship: Omit<Scholarship, 'id' | 'created_at' | 'deleted_at'>) => Promise<Scholarship>;
   deleteScholarship: (id: string) => Promise<void>;
+  universityBrochures: UniversityBrochure[];
+  uploadUniversityBrochure: (title: string, description: string, file: File) => Promise<UniversityBrochure>;
+  deleteUniversityBrochure: (id: string) => Promise<void>;
 }
 
 const ApplicationContext = createContext<ApplicationContextType | undefined>(undefined);
@@ -372,6 +376,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [monthlyMeetings, setMonthlyMeetings] = useState<MonthlyMeeting[]>([]);
   const [universityCourses, setUniversityCourses] = useState<UniversityCourse[]>([]);
   const [scholarships, setScholarships] = useState<Scholarship[]>([]);
+  const [universityBrochures, setUniversityBrochures] = useState<UniversityBrochure[]>([]);
 
   useEffect(() => {
     if (loading) return;
@@ -618,6 +623,20 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       }
     };
 
+    const loadUniversityBrochures = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('university_brochures')
+          .select('*')
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        setUniversityBrochures(data as UniversityBrochure[]);
+      } catch (err) {
+        console.error('Error loading university brochures:', err);
+      }
+    };
+
     const loadDepartmentReports = async () => {
       if (
         !currentProfile?.id ||
@@ -746,6 +765,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     loadPartnerUniversities();
     loadUniversityCourses();
     loadScholarships();
+    loadUniversityBrochures();
     loadDepartmentReports();
     loadDepartmentKpis();
 
@@ -3392,6 +3412,73 @@ const createApplication = async (
     logAudit('DELETE_SCHOLARSHIP', 'scholarships', id, null, null);
   };
 
+  const uploadUniversityBrochure = async (title: string, description: string, file: File): Promise<UniversityBrochure> => {
+    if (!currentProfile?.id) throw new Error('Not authenticated.');
+
+    const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const storagePath = `brochures/${Date.now()}-${safeFileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('department-reports')
+      .upload(storagePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file.type || 'application/octet-stream',
+      });
+
+    if (uploadError) {
+      console.error('Brochure upload failed:', uploadError);
+      throw new Error(uploadError.message);
+    }
+
+    const { data, error } = await supabase
+      .from('university_brochures')
+      .insert({
+        title: title.trim(),
+        description: description.trim() || null,
+        file_name: file.name,
+        storage_path: storagePath,
+        uploaded_by: currentProfile.id,
+        uploaded_by_name: currentProfile.full_name || 'Admissions Staff'
+      })
+      .select('*')
+      .single();
+
+    if (error || !data) {
+      console.error('Failed to create university brochure record:', error);
+      throw new Error(error?.message || 'Failed to save brochure.');
+    }
+
+    const newBrochure = data as UniversityBrochure;
+    setUniversityBrochures(prev => [newBrochure, ...prev]);
+    logAudit('UPLOAD_UNIVERSITY_BROCHURE', 'university_brochures', newBrochure.id, null, { title: newBrochure.title });
+    return newBrochure;
+  };
+
+  const deleteUniversityBrochure = async (id: string): Promise<void> => {
+    const brochure = universityBrochures.find(b => b.id === id);
+    if (!brochure) throw new Error('Brochure not found.');
+
+    const { error } = await supabase
+      .from('university_brochures')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Failed to delete university brochure record:', error);
+      throw new Error(error.message);
+    }
+
+    try {
+      await supabase.storage.from('department-reports').remove([brochure.storage_path]);
+    } catch (err) {
+      console.warn('Failed to clean up brochure file from storage:', err);
+    }
+
+    setUniversityBrochures(prev => prev.filter(b => b.id !== id));
+    logAudit('DELETE_UNIVERSITY_BROCHURE', 'university_brochures', id, null, null);
+  };
+
   return (
     <ApplicationContext.Provider
       value={{
@@ -3472,6 +3559,9 @@ const createApplication = async (
         scholarships,
         addScholarship,
         deleteScholarship,
+        universityBrochures,
+        uploadUniversityBrochure,
+        deleteUniversityBrochure,
       }}
     >
       {children}

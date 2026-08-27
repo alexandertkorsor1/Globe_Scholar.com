@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApplication } from '../../context/ApplicationContext';
 import { useAuth } from '../../context/AuthContext';
 import { DashboardLayout } from '../dashboard/DashboardLayout';
-import { Award, Calendar, CheckCircle2, XCircle, Plus, Eye, FileText, Filter, LayoutDashboard, ClipboardList, ShieldCheck, Clock, AlertCircle, Bell, X, Upload } from 'lucide-react';
+import { Award, Calendar, CheckCircle2, XCircle, Plus, Eye, FileText, Filter, LayoutDashboard, ClipboardList, ShieldCheck, Clock, AlertCircle, Bell, X, Upload, Trash2, BookOpen } from 'lucide-react';
 import { DocumentManager } from '../documents/DocumentManager';
 import { Application, VisaApplication, VisaDocument } from '../../types/database';
 import { getApplicationIntake } from '../../lib/department-registers';
@@ -10,7 +10,18 @@ import { DepartmentTaskInbox } from '../shared/DepartmentTaskInbox';
 import { supabase } from '../../lib/supabase';
 
 export const AdmissionsWorkspace: React.FC = () => {
-  const { applications, students, financialRecords, makeAdmissionsDecision, visaApplications, loadVisaDocuments, reviewVisaApplication } = useApplication();
+  const {
+    applications,
+    students,
+    financialRecords,
+    makeAdmissionsDecision,
+    visaApplications,
+    loadVisaDocuments,
+    reviewVisaApplication,
+    universityBrochures,
+    uploadUniversityBrochure,
+    deleteUniversityBrochure
+  } = useApplication();
   const { currentProfile, logout } = useAuth();
 
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
@@ -30,6 +41,37 @@ export const AdmissionsWorkspace: React.FC = () => {
   const [visaDocs, setVisaDocs] = useState<VisaDocument[]>([]);
   const [loadingVisaDocs, setLoadingVisaDocs] = useState(false);
   const [reviewingVisa, setReviewingVisa] = useState(false);
+
+  // Brochure upload states
+  const [brochureTitle, setBrochureTitle] = useState('');
+  const [brochureDesc, setBrochureDesc] = useState('');
+  const [brochureFile, setBrochureFile] = useState<File | null>(null);
+  const [uploadingBrochure, setUploadingBrochure] = useState(false);
+  const [brochureMsg, setBrochureMsg] = useState('');
+
+  const handleUploadBrochure = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!brochureFile || !brochureTitle.trim()) {
+      setBrochureMsg('Please select a file and enter a title.');
+      return;
+    }
+    setUploadingBrochure(true);
+    setBrochureMsg('');
+    try {
+      await uploadUniversityBrochure(brochureTitle, brochureDesc, brochureFile);
+      setBrochureTitle('');
+      setBrochureDesc('');
+      setBrochureFile(null);
+      setBrochureMsg('Brochure published successfully!');
+      // Reset input element value if present
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+    } catch (err) {
+      setBrochureMsg(err instanceof Error ? err.message : 'Failed to publish brochure.');
+    } finally {
+      setUploadingBrochure(false);
+    }
+  };
 
   React.useEffect(() => {
     if (selectedVisaApp?.id) {
@@ -97,6 +139,7 @@ export const AdmissionsWorkspace: React.FC = () => {
     { label: 'Admission Windows', icon: <Calendar style={{ width: 18, height: 18 }} />, onClick: () => goTo('admission-windows') },
     { label: 'Assigned Tasks', icon: <FileText style={{ width: 18, height: 18 }} />, onClick: () => goTo('admissions-assigned-tasks') },
     { label: 'Visa Applications', icon: <ShieldCheck style={{ width: 18, height: 18 }} />, onClick: () => goTo('admissions-visa-applications') },
+    { label: 'University Brochures', icon: <BookOpen style={{ width: 18, height: 18 }} />, onClick: () => goTo('admissions-brochures') },
   ];
 
   // Admissions only works applications formally handed into its queue. This
@@ -535,6 +578,99 @@ export const AdmissionsWorkspace: React.FC = () => {
           </div>
         </div>
       )}
+      {/* University Brochures Management Section */}
+      <div id="admissions-brochures" className="glass-panel" style={{ padding: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px', marginBottom: '18px' }}>
+          <div>
+            <h3 style={{ fontSize: '1.05rem', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <BookOpen style={{ color: '#3366FF' }} /> University Brochures & Student Information
+            </h3>
+            <p style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
+              Post informational brochures, track sheets, and guidebooks that will be made accessible to all registered students.
+            </p>
+          </div>
+          <span style={{ fontSize: '0.75rem', color: '#94a3b8', background: 'rgba(255,255,255,0.05)', padding: '4px 10px', borderRadius: '12px' }}>
+            {universityBrochures.length} Brochures
+          </span>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '20px' }}>
+          {/* Upload Form */}
+          <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.05)', padding: '18px', borderRadius: '12px' }}>
+            <h4 style={{ fontSize: '0.85rem', color: '#fff', marginBottom: '14px', fontWeight: 700 }}>Upload New Brochure</h4>
+            <form onSubmit={handleUploadBrochure} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {brochureMsg && (
+                <div style={{ padding: '8px 12px', borderRadius: '6px', fontSize: '0.75rem', background: brochureMsg.includes('successfully') ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: brochureMsg.includes('successfully') ? '#34d399' : '#fca5a5', border: '1px solid ' + (brochureMsg.includes('successfully') ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)') }}>
+                  {brochureMsg}
+                </div>
+              )}
+              <div>
+                <label style={{ fontSize: '0.72rem', color: '#cbd5e1', display: 'block', marginBottom: '4px' }}>Brochure Title *</label>
+                <input type="text" required placeholder="e.g. Oxford Intake Guideline 2026" value={brochureTitle} onChange={e => setBrochureTitle(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.78rem' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.72rem', color: '#cbd5e1', display: 'block', marginBottom: '4px' }}>Description</label>
+                <textarea rows={3} placeholder="Provide a brief summary of the brochure contents..." value={brochureDesc} onChange={e => setBrochureDesc(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.78rem' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.72rem', color: '#cbd5e1', display: 'block', marginBottom: '4px' }}>File Select * (.pdf, .doc, .docx, .jpg, .png)</label>
+                <input type="file" required accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onChange={e => setBrochureFile(e.target.files?.[0] || null)} style={{ width: '100%', color: '#94a3b8', fontSize: '0.76rem', padding: '6px 0' }} />
+              </div>
+              <button type="submit" disabled={uploadingBrochure} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '6px' }}>
+                <Upload style={{ width: 14, height: 14 }} />
+                {uploadingBrochure ? 'Uploading...' : 'Publish Brochure'}
+              </button>
+            </form>
+          </div>
+
+          {/* Brochures List */}
+          <div>
+            <h4 style={{ fontSize: '0.85rem', color: '#fff', marginBottom: '14px', fontWeight: 700 }}>Published Brochures</h4>
+            {universityBrochures.length === 0 ? (
+              <div style={{ padding: '24px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.06)', borderRadius: '12px', color: '#94a3b8', fontSize: '0.78rem' }}>
+                No brochures published yet.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '420px', overflowY: 'auto', paddingRight: '4px' }}>
+                {universityBrochures.map(b => (
+                  <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                      <FileText style={{ width: '20px', height: '20px', color: '#3366FF', flexShrink: 0, marginTop: '2px' }} />
+                      <div>
+                        <strong style={{ color: '#fff', fontSize: '0.85rem', display: 'block' }}>{b.title}</strong>
+                        {b.description && <span style={{ color: '#cbd5e1', fontSize: '0.75rem', display: 'block', marginTop: '2px' }}>{b.description}</span>}
+                        <span style={{ color: '#64748b', fontSize: '0.7rem', display: 'block', marginTop: '4px' }}>
+                          Uploaded by: {b.uploaded_by_name} • File: <a href="#" onClick={(e) => {
+                            e.preventDefault();
+                            const { data } = supabase.storage.from('department-reports').getPublicUrl(b.storage_path);
+                            if (data?.publicUrl) window.open(data.publicUrl, '_blank');
+                          }} style={{ color: '#06b6d4', textDecoration: 'underline' }}>{b.file_name}</a>
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (window.confirm(`Are you sure you want to permanently remove the brochure "${b.title}"?`)) {
+                          try {
+                            await deleteUniversityBrochure(b.id);
+                          } catch (err) {
+                            alert('Failed to remove brochure.');
+                          }
+                        }
+                      }}
+                      style={{ border: 'none', background: 'none', color: '#fca5a5', cursor: 'pointer', marginLeft: '12px' }}
+                      title="Remove Brochure"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
     </DashboardLayout>
   );

@@ -618,3 +618,15 @@ export interface Scholarship {
   created_at?: string;
   deleted_at?: string | null;
 }
+
+export interface UniversityBrochure {
+  id: string;
+  title: string;
+  description?: string | null;
+  file_name: string;
+  storage_path: string;
+  uploaded_by?: string | null;
+  uploaded_by_name: string;
+  created_at?: string;
+  deleted_at?: string | null;
+}
