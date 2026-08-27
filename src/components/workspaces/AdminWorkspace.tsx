@@ -45,7 +45,8 @@ import {
   KeyRound,
   EyeOff,
   ClipboardList,
-  BookOpen
+  BookOpen,
+  Mail
 } from 'lucide-react';
 
 const DEPARTMENT_OPTIONS: Array<{ value: DepartmentType; label: string }> = [
@@ -75,7 +76,7 @@ const RESPONSIBILITY_OPTIONS = [
   },
 ];
 
-type AdminTab = 'kpis' | 'crm' | 'performance' | 'drilldown' | 'partnerships' | 'staff' | 'work_assignments' | 'visa_applications' | 'trash';
+type AdminTab = 'kpis' | 'crm' | 'performance' | 'drilldown' | 'partnerships' | 'staff' | 'work_assignments' | 'visa_applications' | 'student_documents' | 'trash';
 
 const ADMIN_TABS: Array<{ id: AdminTab; label: string }> = [
   { id: 'kpis', label: 'Executive Dashboard' },
@@ -85,6 +86,7 @@ const ADMIN_TABS: Array<{ id: AdminTab; label: string }> = [
   { id: 'work_assignments', label: 'Work Assignments' },
   { id: 'partnerships', label: 'Partner Universities & Agreements' },
   { id: 'staff', label: 'Staff Accounts & RBAC' },
+  { id: 'student_documents', label: 'Student Documents' },
 ];
 
 const emptyDepartmentMember: DepartmentMemberInput = {
@@ -137,7 +139,9 @@ export const AdminWorkspace: React.FC = () => {
   updateApplicationStatus,
   statusHistory,
   visaApplications,
-  loadVisaDocuments
+  loadVisaDocuments,
+  reviewVisaApplication,
+  sendStudentEmail
 } = useApplication();
 
   const [activeTab, setActiveTab] = useState<AdminTab>('kpis');
@@ -159,6 +163,41 @@ export const AdminWorkspace: React.FC = () => {
   const [adminVisaDocs, setAdminVisaDocs] = useState<VisaDocument[]>([]);
   const [loadingAdminVisaDocs, setLoadingAdminVisaDocs] = useState(false);
 
+  // Admin Visa Review states
+  const [adminVisaStatusChoice, setAdminVisaStatusChoice] = useState<'pending' | 'under_review' | 'approved' | 'rejected'>('under_review');
+  const [adminVisaInstructions, setAdminVisaInstructions] = useState('');
+  const [reviewingAdminVisa, setReviewingAdminVisa] = useState(false);
+
+  const handleAdminReviewVisa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAdminVisaApp) return;
+    setReviewingAdminVisa(true);
+    try {
+      await reviewVisaApplication(selectedAdminVisaApp.id, adminVisaStatusChoice, adminVisaInstructions);
+
+      // Dispatch simulated direct email invitation
+      const emailSubject = `Visa Application Status Update (Admin Review): ${adminVisaStatusChoice.toUpperCase()}`;
+      const emailBody = `Dear ${selectedAdminVisaApp.student_name},\n\nYour visa application dossier status has been updated by the Executive Admin to: ${adminVisaStatusChoice.replace('_', ' ').toUpperCase()}.\n\nFeedback / Action required:\n${adminVisaInstructions}\n\nBest regards,\nGlobe Scholars Executive Administration`;
+      try {
+        await sendStudentEmail(selectedAdminVisaApp.student_id || '', selectedAdminVisaApp.student_email || '', emailSubject, emailBody, 'Executive Administration');
+      } catch (err) {
+        console.error('Failed to send visa email notification:', err);
+      }
+
+      setSelectedAdminVisaApp(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setReviewingAdminVisa(false);
+    }
+  };
+
+  // Review documents modal state
+  const [selectedReviewApp, setSelectedReviewApp] = useState<Application | null>(null);
+  const [revisionSubject, setRevisionSubject] = useState('');
+  const [revisionBody, setRevisionBody] = useState('');
+  const [sendingRevision, setSendingRevision] = useState(false);
+
   React.useEffect(() => {
     if (selectedAdminVisaApp?.id) {
       setLoadingAdminVisaDocs(true);
@@ -166,6 +205,9 @@ export const AdminWorkspace: React.FC = () => {
         .then(setAdminVisaDocs)
         .catch(err => console.error(err))
         .finally(() => setLoadingAdminVisaDocs(false));
+
+      setAdminVisaStatusChoice(selectedAdminVisaApp.status);
+      setAdminVisaInstructions(selectedAdminVisaApp.admissions_instructions || '');
     }
   }, [selectedAdminVisaApp?.id]);
   const [editingDepartmentMember, setEditingDepartmentMember] =
@@ -1636,6 +1678,173 @@ export const AdminWorkspace: React.FC = () => {
         </div>
       )}
 
+      {activeTab === 'student_documents' && (
+        <div className="glass-panel" style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px', marginBottom: '18px' }}>
+            <div>
+              <h3 style={{ fontSize: '1.05rem', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FileText style={{ color: '#3366FF' }} /> Student Documents Management & Verification (Admin Control)
+              </h3>
+              <p style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
+                Audit, flag, and verify student-uploaded documents. If any required file is missing or contains errors, flag the document and dispatch email instructions to the student.
+              </p>
+            </div>
+          </div>
+
+          {applications.length === 0 ? (
+            <p style={{ fontSize: '0.82rem', color: '#94a3b8', textAlign: 'center', padding: '20px' }}>
+              No student files are currently available.
+            </p>
+          ) : (
+            <div className="custom-table-container">
+              <table className="custom-table">
+                <thead>
+                  <tr>
+                    <th>Student Email</th>
+                    <th>Student Name</th>
+                    <th>Target University</th>
+                    <th>Course Choice</th>
+                    <th>Missing Count</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {applications.map(app => {
+                    const studentDocs = documents.filter(d => d.application_id === app.id);
+                    const missingDocs = studentDocs.filter(d => d.is_missing);
+                    return (
+                      <tr key={app.id}>
+                        <td style={{ fontWeight: 600 }}>{app.student_email}</td>
+                        <td>{app.student_name}</td>
+                        <td>{app.target_university}</td>
+                        <td>{app.degree_program}</td>
+                        <td>
+                          <span className={`badge badge-${missingDocs.length > 0 ? 'inactive' : 'active'}`}>
+                            {missingDocs.length} Flagged Missing
+                          </span>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedReviewApp(app);
+                              setRevisionSubject(`Action Required: Document Review for Application ${app.application_number}`);
+                              setRevisionBody(`Dear ${app.student_name},\n\nWe have reviewed the documents uploaded for your application (${app.application_number}) and noticed some discrepancies. Please check the feedback below and upload correct versions in your student portal:\n\n- [Specify details of incorrect or missing documents]\n\nBest regards,\nGlobe Scholars Executive Administration`);
+                            }}
+                            className="btn btn-secondary btn-sm"
+                          >
+                            <Eye size={12} style={{ marginRight: '4px' }} /> Review Files
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal: Review Student Documents (Admin) */}
+      {selectedReviewApp && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="glass-panel animate-fade-in" style={{ width: '600px', padding: '24px', background: '#0f172a', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '1.02rem', color: '#fff', fontWeight: 700 }}>
+                Review Documents: {selectedReviewApp.student_name} ({selectedReviewApp.application_number})
+              </h3>
+              <button type="button" onClick={() => setSelectedReviewApp(null)} style={{ border: 'none', background: 'none', color: '#94a3b8', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Documents List */}
+              <div>
+                <h4 style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: 600, marginBottom: '8px' }}>Uploaded Files</h4>
+                {(() => {
+                  const appDocs = documents.filter(d => d.application_id === selectedReviewApp.id);
+                  if (appDocs.length === 0) {
+                    return (
+                      <p style={{ fontSize: '0.78rem', color: '#f43f5e' }}>No documents uploaded by the student yet.</p>
+                    );
+                  }
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {appDocs.map(doc => (
+                        <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', borderRadius: '6px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                          <div>
+                            <span style={{ color: '#fff', fontSize: '0.78rem', fontWeight: 600 }}>{doc.document_type.replace(/_/g, ' ').toUpperCase()}</span>
+                            <span style={{ display: 'block', fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px' }}>
+                              File: <a href="#" onClick={(e) => {
+                                e.preventDefault();
+                                const { data } = supabase.storage.from('department-reports').getPublicUrl(doc.storage_path);
+                                if (data?.publicUrl) window.open(data.publicUrl, '_blank');
+                              }} style={{ color: '#06b6d4', textDecoration: 'underline' }}>{doc.file_name}</a>
+                            </span>
+                            {doc.is_missing && <span style={{ color: '#fca5a5', fontSize: '0.7rem', fontWeight: 700, display: 'block', marginTop: '4px' }}>⚠️ FLAGGED AS INCOMPLETE / MISTAKE</span>}
+                          </div>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                toggleMissingDocFlag(doc.id, !doc.is_missing);
+                              }}
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: '0.7rem', padding: '4px 8px', color: doc.is_missing ? '#34d399' : '#fca5a5' }}
+                            >
+                              {doc.is_missing ? 'Resolve Flag' : 'Flag Incomplete'}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Email Notification Form */}
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px' }}>
+                <h4 style={{ fontSize: '0.85rem', color: '#fff', fontWeight: 600, marginBottom: '8px' }}>Send Direct Email Notification</h4>
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!revisionBody.trim()) return;
+                  setSendingRevision(true);
+                  try {
+                    await sendStudentEmail(
+                      selectedReviewApp.student_id,
+                      selectedReviewApp.student_email,
+                      revisionSubject,
+                      revisionBody,
+                      `${currentProfile.full_name} (Admin)`
+                    );
+                    alert(`Email notification sent successfully to ${selectedReviewApp.student_email}!`);
+                  } catch (err) {
+                    alert('Failed to send email notification.');
+                  } finally {
+                    setSendingRevision(false);
+                  }
+                }} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', color: '#cbd5e1', display: 'block', marginBottom: '4px' }}>Subject</label>
+                    <input type="text" required value={revisionSubject} onChange={e => setRevisionSubject(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.78rem' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', color: '#cbd5e1', display: 'block', marginBottom: '4px' }}>Email Content</label>
+                    <textarea rows={6} required value={revisionBody} onChange={e => setRevisionBody(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.78rem', lineHeight: 1.45 }} />
+                  </div>
+                  <button type="submit" disabled={sendingRevision} className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-end', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Mail size={14} />
+                    {sendingRevision ? 'Sending...' : 'Send Email Notification'}
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {activeTab === 'trash' && (
         <TrashBin departmentKey="admin" />
       )}
@@ -1976,6 +2185,43 @@ export const AdminWorkspace: React.FC = () => {
                   </div>
                 )}
               </div>
+
+              <form onSubmit={handleAdminReviewVisa} style={{ display: 'flex', flexDirection: 'column', gap: '14px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                <div>
+                  <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Dossier Verdict</label>
+                  <select
+                    value={adminVisaStatusChoice}
+                    onChange={(e) => setAdminVisaStatusChoice(e.target.value as any)}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', outline: 'none' }}
+                  >
+                    <option value="pending">Pending Document Submission</option>
+                    <option value="under_review">Mark Under Review</option>
+                    <option value="approved">Approve Visa Dossier</option>
+                    <option value="rejected">Request Revisions / Reject Dossier</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>
+                    Feedback & Revision Instructions (Dispatched to Email)
+                  </label>
+                  <textarea
+                    rows={4}
+                    required
+                    placeholder="Enter instructions on what changes are needed or why changes are requested..."
+                    value={adminVisaInstructions}
+                    onChange={(e) => setAdminVisaInstructions(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', outline: 'none' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                  <button type="button" onClick={() => setSelectedAdminVisaApp(null)} className="btn btn-secondary btn-sm">Cancel</button>
+                  <button type="submit" disabled={reviewingAdminVisa} className="btn btn-primary btn-sm">
+                    {reviewingAdminVisa ? 'Saving...' : 'Save & Notify Student'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
