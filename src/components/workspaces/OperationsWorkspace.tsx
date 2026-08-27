@@ -3,10 +3,11 @@ import { useApplication } from '../../context/ApplicationContext';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { DashboardLayout } from '../dashboard/DashboardLayout';
-import { Briefcase, CheckSquare, Clock, Plus, AlertTriangle, Send, ListTodo, ClipboardList, Loader2, X } from 'lucide-react';
+import { Briefcase, CheckSquare, Clock, Plus, AlertTriangle, Send, ListTodo, ClipboardList, Loader2, X, Trash2 } from 'lucide-react';
 import { CrmRegister } from '../shared/CrmRegister';
 import { KpiPerformanceTracker } from '../shared/KpiPerformanceTracker';
 import { DepartmentTaskInbox } from '../shared/DepartmentTaskInbox';
+import { TrashBin } from '../shared/TrashBin';
 import { DepartmentType, WorkAssignmentPriority } from '../../types/database';
 
 export const OperationsWorkspace: React.FC = () => {
@@ -143,6 +144,7 @@ export const OperationsWorkspace: React.FC = () => {
     { label: 'CRM', icon: <Briefcase style={{ width: 18, height: 18 }} />, onClick: () => goTo('operations-crm') },
     { label: 'KPI Tracker', icon: <CheckSquare style={{ width: 18, height: 18 }} />, onClick: () => goTo('operations-kpi') },
     { label: 'Submissions', icon: <Send style={{ width: 18, height: 18 }} />, onClick: () => goTo('operations-submissions') },
+    { label: 'Recycle Bin', icon: <Trash2 style={{ width: 18, height: 18 }} />, onClick: () => goTo('operations-trash') },
   ];
 
   return (
@@ -263,7 +265,9 @@ export const OperationsWorkspace: React.FC = () => {
         <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '8px' }}>Institution submission readiness</h3>
         <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.82rem', lineHeight: 1.5 }}>Create and track an institution task for each application before external submission. Escalations and next actions are shared through the team inbox.</p>
       </div>
-
+      <div id="operations-trash" style={{ marginTop: '20px' }}>
+        <TrashBin departmentKey="operations" />
+      </div>
       {/* Modal: Create Task */}
       {showTaskModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

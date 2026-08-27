@@ -181,6 +181,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         supabase
           .from('department_members')
           .select('*')
+          .is('deleted_at', null)
           .order('full_name', { ascending: true }),
       ]);
 
@@ -355,7 +356,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
     const { error } = await supabase
       .from('department_members')
-      .delete()
+      .update({ deleted_at: new Date().toISOString() })
       .eq('id', memberId);
 
     if (error) {

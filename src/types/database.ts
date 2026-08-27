@@ -573,3 +573,12 @@ export interface HrLeaveRequest {
   created_by: string;
   created_at: string;
 }
+
+export interface TrashItem {
+  id: string;
+  type: 'kpi' | 'partner' | 'visa_document' | 'employee' | 'staff_member';
+  display_name: string;
+  department: string;
+  deleted_at: string;
+  original_table: string;
+}

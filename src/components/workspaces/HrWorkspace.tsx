@@ -32,6 +32,7 @@ import {
   Mail,
   AlertCircle
 } from 'lucide-react';
+import { TrashBin } from '../shared/TrashBin';
 import {
   HrEmployeeRecord,
   HrEmploymentType,
@@ -278,6 +279,7 @@ export const HrWorkspace: React.FC = () => {
     { label: 'HR Workspace', icon: <Sliders style={{ width: 18, height: 18 }} />, onClick: () => goTo('hr-workspace-tabs') },
     { label: 'Directives Inbox', icon: <Briefcase style={{ width: 18, height: 18 }} />, onClick: () => goTo('hr-tasks') },
     { label: 'KPI Performance audits', icon: <Award style={{ width: 18, height: 18 }} />, onClick: () => goTo('hr-kpi-audits') },
+    { label: 'Recycle Bin', icon: <Trash2 style={{ width: 18, height: 18 }} />, onClick: () => goTo('hr-trash') },
   ];
 
   return (
@@ -953,6 +955,10 @@ export const HrWorkspace: React.FC = () => {
               </table>
             </div>
           )}
+        </div>
+
+        <div id="hr-trash" style={{ marginTop: '20px' }}>
+          <TrashBin departmentKey="human_resources" />
         </div>
 
       </div>

@@ -16,6 +16,7 @@ import { AdminDepartmentReports } from '../reports/AdminDepartmentReports';
 import { CrmRegister } from '../shared/CrmRegister';
 import { KpiPerformanceTracker } from '../shared/KpiPerformanceTracker';
 import { DepartmentTaskInbox } from '../shared/DepartmentTaskInbox';
+import { TrashBin } from '../shared/TrashBin';
 import {
   Building2,
   LayoutDashboard,
@@ -73,7 +74,7 @@ const RESPONSIBILITY_OPTIONS = [
   },
 ];
 
-type AdminTab = 'kpis' | 'crm' | 'performance' | 'drilldown' | 'partnerships' | 'staff' | 'work_assignments' | 'visa_applications';
+type AdminTab = 'kpis' | 'crm' | 'performance' | 'drilldown' | 'partnerships' | 'staff' | 'work_assignments' | 'visa_applications' | 'trash';
 
 const ADMIN_TABS: Array<{ id: AdminTab; label: string }> = [
   { id: 'kpis', label: 'Executive Dashboard' },
@@ -496,6 +497,7 @@ export const AdminWorkspace: React.FC = () => {
     { label: 'Partnerships', icon: <GraduationCap style={{ width: 18, height: 18 }} />, active: activeTab === 'partnerships', onClick: () => setActiveTab('partnerships') },
     { label: 'Staff & RBAC', icon: <Users2 style={{ width: 18, height: 18 }} />, active: activeTab === 'staff', onClick: () => setActiveTab('staff') },
     { label: 'Visa Applications', icon: <ShieldCheck style={{ width: 18, height: 18 }} />, active: activeTab === 'visa_applications', onClick: () => setActiveTab('visa_applications') },
+    { label: 'Recycle Bin', icon: <Trash2 style={{ width: 18, height: 18 }} />, active: activeTab === 'trash', onClick: () => setActiveTab('trash') },
   ];
 
   return (
@@ -1454,6 +1456,10 @@ export const AdminWorkspace: React.FC = () => {
             </div>
           )}
         </div>
+      )}
+
+      {activeTab === 'trash' && (
+        <TrashBin departmentKey="admin" />
       )}
 
       {showDepartmentMemberModal && (

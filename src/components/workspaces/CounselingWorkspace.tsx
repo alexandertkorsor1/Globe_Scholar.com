@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useApplication } from '../../context/ApplicationContext';
 import { useAuth } from '../../context/AuthContext';
 import { DashboardLayout } from '../dashboard/DashboardLayout';
-import { Video, Calendar, Clock, Plus, Award, AlertTriangle, FileText, CheckCircle, Users, ClipboardList } from 'lucide-react';
+import { Video, Calendar, Clock, Plus, Award, AlertTriangle, FileText, CheckCircle, Users, ClipboardList, Trash2 } from 'lucide-react';
+import { TrashBin } from '../shared/TrashBin';
 import { Student } from '../../types/database';
 import { formatRegisterDate, formatRegisterTime, getApplicationIntake } from '../../lib/department-registers';
 import { DepartmentTaskInbox } from '../shared/DepartmentTaskInbox';
@@ -25,6 +26,7 @@ export const CounselingWorkspace: React.FC = () => {
   const [scheduledAt, setScheduledAt] = useState('2026-03-25T14:00');
   const [meetLink, setMeetLink] = useState('https://meet.google.com/gsp-advisory-2026');
   const [sessionNotes, setSessionNotes] = useState('');
+  const [platform, setPlatform] = useState<'google_meet' | 'zoom'>('google_meet');
   const goTo = (sectionId: string) =>
     document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -75,6 +77,7 @@ export const CounselingWorkspace: React.FC = () => {
     { label: 'Sessions', icon: <Video style={{ width: 18, height: 18 }} />, active: true, onClick: () => goTo('counseling-sessions') },
     { label: 'Students', icon: <Users style={{ width: 18, height: 18 }} />, onClick: () => goTo('counseling-students') },
     { label: 'Assigned Tasks', icon: <ClipboardList style={{ width: 18, height: 18 }} />, onClick: () => goTo('counseling-assigned-tasks') },
+    { label: 'Recycle Bin', icon: <Trash2 style={{ width: 18, height: 18 }} />, onClick: () => goTo('counseling-trash') },
   ];
 
   return (
@@ -270,13 +273,21 @@ export const CounselingWorkspace: React.FC = () => {
                     Time: {new Date(cs.scheduled_at).toLocaleString()} • Duration: {cs.duration_minutes}m
                   </p>
 
-                  {/* Google Meet Link */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(59, 130, 246, 0.1)', padding: '6px 10px', borderRadius: '6px', marginBottom: '8px' }}>
-                    <Video style={{ color: '#60a5fa', width: '14px', height: '14px' }} />
-                    <a href={cs.google_meet_link} target="_blank" rel="noreferrer" style={{ color: '#60a5fa', fontSize: '0.75rem', fontWeight: 600, textDecoration: 'underline' }}>
-                      {cs.google_meet_link}
-                    </a>
-                  </div>
+                  {/* Meeting Link */}
+                  {(() => {
+                    const isZoom = cs.google_meet_link.includes('zoom.us');
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: isZoom ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59, 130, 246, 0.1)', padding: '6px 10px', borderRadius: '6px', marginBottom: '8px' }}>
+                        <Video style={{ color: isZoom ? '#34d399' : '#60a5fa', width: '14px', height: '14px' }} />
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: isZoom ? '#34d399' : '#60a5fa', textTransform: 'uppercase' }}>
+                          {isZoom ? 'Zoom' : 'Google Meet'}:
+                        </span>
+                        <a href={cs.google_meet_link} target="_blank" rel="noreferrer" style={{ color: isZoom ? '#34d399' : '#60a5fa', fontSize: '0.75rem', fontWeight: 600, textDecoration: 'underline', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '300px' }}>
+                          {cs.google_meet_link}
+                        </a>
+                      </div>
+                    );
+                  })()}
 
                   {/* Notes & Scholarship Recommendations */}
                   <div style={{ fontSize: '0.78rem', color: '#cbd5e1', background: 'rgba(0,0,0,0.3)', padding: '8px', borderRadius: '6px' }}>
@@ -287,7 +298,10 @@ export const CounselingWorkspace: React.FC = () => {
             )}
           </div>
         </div>
+      </div>
 
+      <div id="counseling-trash">
+        <TrashBin departmentKey="counseling" />
       </div>
 
       {/* Modal: Schedule Google Meet Session */}
@@ -299,19 +313,38 @@ export const CounselingWorkspace: React.FC = () => {
             </h3>
 
             <form onSubmit={handleSchedule} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Meeting Date & Time</label>
-                <input
-                  type="datetime-local"
-                  required
-                  value={scheduledAt}
-                  onChange={e => setScheduledAt(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Meeting Date & Time</label>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={scheduledAt}
+                    onChange={e => setScheduledAt(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Online Platform</label>
+                  <select
+                    value={platform}
+                    onChange={e => {
+                      const plat = e.target.value as 'google_meet' | 'zoom';
+                      setPlatform(plat);
+                      setMeetLink(plat === 'google_meet' ? 'https://meet.google.com/gsp-advisory-2026' : 'https://zoom.us/j/9886326999');
+                    }}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', outline: 'none' }}
+                  >
+                    <option value="google_meet" style={{ background: '#0f172a', color: '#fff' }}>Google Meet</option>
+                    <option value="zoom" style={{ background: '#0f172a', color: '#fff' }}>Zoom Meeting</option>
+                  </select>
+                </div>
               </div>
 
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Google Meet URL</label>
+                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>
+                  {platform === 'google_meet' ? 'Google Meet URL' : 'Zoom Invitation Link'}
+                </label>
                 <input
                   type="url"
                   required

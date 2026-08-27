@@ -37,7 +37,8 @@ import {
   HrInterviewPlatform,
   HrInterviewStatus,
   HrLeaveType,
-  HrLeaveStatus
+  HrLeaveStatus,
+  TrashItem
 } from '../types/database';
 import {
   INITIAL_APPLICATIONS,
@@ -191,6 +192,9 @@ getDepartmentReportDownloadUrl: (
   hrLeaveRequests: HrLeaveRequest[];
   submitHrLeaveRequest: (request: Omit<HrLeaveRequest, 'id' | 'created_at' | 'created_by' | 'status'>) => Promise<HrLeaveRequest>;
   reviewHrLeaveRequest: (id: string, status: HrLeaveStatus, notes?: string | null) => Promise<void>;
+  fetchTrashItems: (departmentKey: string) => Promise<TrashItem[]>;
+  restoreTrashItem: (type: string, id: string) => Promise<void>;
+  deleteTrashItemPermanently: (type: string, id: string) => Promise<void>;
 }
 
 const ApplicationContext = createContext<ApplicationContextType | undefined>(undefined);
@@ -519,6 +523,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       const { data: universities, error: universitiesError } = await supabase
         .from('partner_universities')
         .select('*')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (universitiesError) {
@@ -559,6 +564,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       let query = supabase
         .from('department_reports')
         .select('*')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (!currentProfile.is_admin) {
@@ -645,6 +651,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       const { data, error } = await supabase
         .from('department_kpis')
         .select('*')
+        .is('deleted_at', null)
         .order('updated_at', { ascending: false });
 
       if (error) {
@@ -695,6 +702,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       let query = supabase
         .from('department_work_assignments')
         .select('*')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (!isPrivileged) {
@@ -917,6 +925,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
         const { data, error } = await supabase
           .from('hr_employee_records')
           .select('*')
+          .is('deleted_at', null)
           .order('full_name', { ascending: true });
         if (!error && data && data.length > 0) {
           setHrEmployeeRecords(data as HrEmployeeRecord[]);
@@ -1877,7 +1886,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
 
     const { error } = await supabase
       .from('department_kpis')
-      .delete()
+      .update({ deleted_at: new Date().toISOString() })
       .eq('id', recordId);
 
     if (error) {
@@ -2173,7 +2182,7 @@ const createApplication = async (
 
     const { error } = await supabase
       .from('partner_universities')
-      .delete()
+      .update({ deleted_at: new Date().toISOString() })
       .eq('id', partnerId);
 
     if (error) {
@@ -2740,7 +2749,7 @@ const createApplication = async (
 
     const { error: dbErr } = await supabase
       .from('student_visa_documents')
-      .delete()
+      .update({ deleted_at: new Date().toISOString() })
       .eq('id', documentId);
 
     if (dbErr) throw dbErr;
@@ -2852,7 +2861,7 @@ const createApplication = async (
     try {
       const { error } = await supabase
         .from('hr_employee_records')
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq('id', id);
       if (error) throw error;
     } catch (err) {
@@ -2983,6 +2992,165 @@ const createApplication = async (
     }));
   };
 
+  const fetchTrashItems = async (departmentKey: string): Promise<TrashItem[]> => {
+    const items: TrashItem[] = [];
+    const isAdmin = currentProfile?.is_admin || departmentKey === 'admin';
+
+    // 1. KPI Records
+    if (isAdmin || departmentKey === 'operations') {
+      const { data } = await supabase
+        .from('department_kpis')
+        .select('id, department, evaluation_period, deleted_at')
+        .not('deleted_at', 'is', null);
+      if (data) {
+        data.forEach(item => {
+          if (isAdmin || item.department === departmentKey) {
+            items.push({
+              id: item.id,
+              type: 'kpi',
+              display_name: `${item.department.toUpperCase().replace(/_/g, ' ')} KPI (${item.evaluation_period})`,
+              department: item.department,
+              deleted_at: item.deleted_at,
+              original_table: 'department_kpis'
+            });
+          }
+        });
+      }
+    }
+
+    // 2. Partner Universities
+    if (isAdmin) {
+      const { data } = await supabase
+        .from('partner_universities')
+        .select('id, name, deleted_at')
+        .not('deleted_at', 'is', null);
+      if (data) {
+        data.forEach(item => {
+          items.push({
+            id: item.id,
+            type: 'partner',
+            display_name: `Partner University: ${item.name}`,
+            department: 'admin',
+            deleted_at: item.deleted_at,
+            original_table: 'partner_universities'
+          });
+        });
+      }
+    }
+
+    // 3. HR Employee Records
+    if (isAdmin || departmentKey === 'human_resources') {
+      const { data } = await supabase
+        .from('hr_employee_records')
+        .select('id, full_name, department, deleted_at')
+        .not('deleted_at', 'is', null);
+      if (data) {
+        data.forEach(item => {
+          if (isAdmin || item.department === departmentKey) {
+            items.push({
+              id: item.id,
+              type: 'employee',
+              display_name: `Employee Profile: ${item.full_name}`,
+              department: item.department,
+              deleted_at: item.deleted_at,
+              original_table: 'hr_employee_records'
+            });
+          }
+        });
+      }
+    }
+
+    // 4. Visa Documents
+    if (isAdmin || departmentKey === 'counseling' || departmentKey === 'admissions') {
+      const { data } = await supabase
+        .from('student_visa_documents')
+        .select('id, document_type, deleted_at')
+        .not('deleted_at', 'is', null);
+      if (data) {
+        data.forEach(item => {
+          items.push({
+            id: item.id,
+            type: 'visa_document',
+            display_name: `Visa Document: ${item.document_type.replace(/_/g, ' ')}`,
+            department: departmentKey,
+            deleted_at: item.deleted_at,
+            original_table: 'student_visa_documents'
+          });
+        });
+      }
+    }
+
+    // 5. Staff Members
+    if (isAdmin) {
+      const { data } = await supabase
+        .from('department_members')
+        .select('id, full_name, primary_department, deleted_at')
+        .not('deleted_at', 'is', null);
+      if (data) {
+        data.forEach(item => {
+          items.push({
+            id: item.id,
+            type: 'staff_member',
+            display_name: `Staff Member: ${item.full_name}`,
+            department: item.primary_department,
+            deleted_at: item.deleted_at,
+            original_table: 'department_members'
+          });
+        });
+      }
+    }
+
+    return items.sort((a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime());
+  };
+
+  const restoreTrashItem = async (type: string, id: string): Promise<void> => {
+    let tableName = '';
+    if (type === 'kpi') tableName = 'department_kpis';
+    else if (type === 'partner') tableName = 'partner_universities';
+    else if (type === 'employee') tableName = 'hr_employee_records';
+    else if (type === 'visa_document') tableName = 'student_visa_documents';
+    else if (type === 'staff_member') tableName = 'department_members';
+
+    if (!tableName) throw new Error('Unsupported item type for restore.');
+
+    const { error } = await supabase
+      .from(tableName)
+      .update({ deleted_at: null })
+      .eq('id', id);
+
+    if (error) throw error;
+
+    // Reload active states
+    if (type === 'kpi') {
+      const { data } = await supabase.from('department_kpis').select('*').is('deleted_at', null);
+      if (data) setDepartmentKpis(data);
+    } else if (type === 'partner') {
+      const { data } = await supabase.from('partner_universities').select('*').is('deleted_at', null);
+      if (data) setPartnerUniversities(data);
+    } else if (type === 'employee') {
+      const { data } = await supabase.from('hr_employee_records').select('*').is('deleted_at', null);
+      if (data) setHrEmployeeRecords(data);
+    }
+  };
+
+  const deleteTrashItemPermanently = async (type: string, id: string): Promise<void> => {
+    let tableName = '';
+    if (type === 'kpi') tableName = 'department_kpis';
+    else if (type === 'partner') tableName = 'partner_universities';
+    else if (type === 'employee') tableName = 'hr_employee_records';
+    else if (type === 'visa_document') tableName = 'student_visa_documents';
+    else if (type === 'staff_member') tableName = 'department_members';
+
+    if (!tableName) throw new Error('Unsupported item type for permanent delete.');
+
+    const { error } = await supabase
+      .from(tableName)
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  };
+
   return (
     <ApplicationContext.Provider
       value={{
@@ -3051,6 +3219,9 @@ const createApplication = async (
         hrLeaveRequests,
         submitHrLeaveRequest,
         reviewHrLeaveRequest,
+        fetchTrashItems,
+        restoreTrashItem,
+        deleteTrashItemPermanently,
   }}
     >
       {children}
