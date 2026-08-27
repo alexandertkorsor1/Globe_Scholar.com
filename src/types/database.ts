@@ -630,3 +630,13 @@ export interface UniversityBrochure {
   created_at?: string;
   deleted_at?: string | null;
 }
+
+export interface StudentEmail {
+  id: string;
+  student_id: string;
+  recipient_email: string;
+  subject: string;
+  body: string;
+  sender_name: string;
+  created_at?: string;
+}

@@ -42,7 +42,8 @@ import {
   MonthlyMeeting,
   UniversityCourse,
   Scholarship,
-  UniversityBrochure
+  UniversityBrochure,
+  StudentEmail
 } from '../types/database';
 import {
   INITIAL_APPLICATIONS,
@@ -92,7 +93,7 @@ interface ApplicationContextType {
   updateDocumentVersion: (docId: string, changeSummary: string) => void;
   verifyDocument: (docId: string, verified: boolean) => void;
   toggleMissingDocFlag: (docId: string, isMissing: boolean) => void;
-  scheduleCounselingSession: (studentId: string, scheduledAt: string, meetLink: string, notes: string) => void;
+  scheduleCounselingSession: (studentId: string, scheduledAt: string, meetLink: string, notes: string) => Promise<void>;
   createInstitutionTask: (appId: string, title: string, description: string, assigneeName: string, deadline: string) => void;
   processFeePayment: (
     appId: string,
@@ -211,6 +212,8 @@ getDepartmentReportDownloadUrl: (
   universityBrochures: UniversityBrochure[];
   uploadUniversityBrochure: (title: string, description: string, file: File) => Promise<UniversityBrochure>;
   deleteUniversityBrochure: (id: string) => Promise<void>;
+  studentEmails: StudentEmail[];
+  sendStudentEmail: (studentId: string, recipientEmail: string, subject: string, body: string, senderName: string) => Promise<StudentEmail>;
 }
 
 const ApplicationContext = createContext<ApplicationContextType | undefined>(undefined);
@@ -377,6 +380,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [universityCourses, setUniversityCourses] = useState<UniversityCourse[]>([]);
   const [scholarships, setScholarships] = useState<Scholarship[]>([]);
   const [universityBrochures, setUniversityBrochures] = useState<UniversityBrochure[]>([]);
+  const [studentEmails, setStudentEmails] = useState<StudentEmail[]>([]);
 
   useEffect(() => {
     if (loading) return;
@@ -637,6 +641,19 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       }
     };
 
+    const loadStudentEmails = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('student_emails')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        setStudentEmails(data as StudentEmail[]);
+      } catch (err) {
+        console.error('Error loading student emails:', err);
+      }
+    };
+
     const loadDepartmentReports = async () => {
       if (
         !currentProfile?.id ||
@@ -766,6 +783,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     loadUniversityCourses();
     loadScholarships();
     loadUniversityBrochures();
+    loadStudentEmails();
     loadDepartmentReports();
     loadDepartmentKpis();
 
@@ -1502,7 +1520,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   // Schedule Counseling Session
-  const scheduleCounselingSession = (studentId: string, scheduledAt: string, meetLink: string, notes: string) => {
+  const scheduleCounselingSession = async (studentId: string, scheduledAt: string, meetLink: string, notes: string) => {
     const student = students.find(s => s.id === studentId);
     const newSession: CounselingSession = {
       id: `cs-${Date.now()}`,
@@ -1522,13 +1540,24 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     setCounselingSessions(prev => [newSession, ...prev]);
     logAudit('SCHEDULE_COUNSELING_SESSION', 'counseling_sessions', newSession.id, null, { meet_link: newSession.google_meet_link });
 
-    // Notify student
+    // Notify student via cross-department notification system
     addCommunication(
       'notification',
       'Google Meet Counseling Session Scheduled',
       `Your counseling session with ${currentProfile.full_name} is set for ${new Date(scheduledAt).toLocaleString()}. Meet link: ${newSession.google_meet_link}`,
       'high'
     );
+
+    // Dispatch simulated direct email invitation
+    if (student) {
+      const emailSubject = `Invitation: Advising & Counseling Session - ${new Date(scheduledAt).toLocaleDateString()}`;
+      const emailBody = `Dear ${student.first_name} ${student.last_name},\n\nYou have been invited to a scheduled counseling and advisory session.\n\nMeeting Details:\n- Date & Time: ${new Date(scheduledAt).toLocaleString()}\n- Platform: ${meetLink.includes('zoom') ? 'Zoom' : 'Google Meet'}\n- Direct Invitation Link: ${newSession.google_meet_link}\n- Counselor: ${currentProfile.full_name}\n- Goal/Notes: ${notes || 'Academic advising and scholarship review.'}\n\nPlease click the invitation link at the scheduled time to join the advisory session.\n\nWarm regards,\n\nGlobe Scholars Admissions & Advising Team`;
+      try {
+        await sendStudentEmail(studentId, student.email || 'student@gmail.com', emailSubject, emailBody, `${currentProfile.full_name} (Counseling)`);
+      } catch (err) {
+        console.error('Failed to dispatch simulated email:', err);
+      }
+    }
   };
 
   // Create Institution Task
@@ -3479,6 +3508,29 @@ const createApplication = async (
     logAudit('DELETE_UNIVERSITY_BROCHURE', 'university_brochures', id, null, null);
   };
 
+  const sendStudentEmail = async (studentId: string, recipientEmail: string, subject: string, body: string, senderName: string): Promise<StudentEmail> => {
+    const { data, error } = await supabase
+      .from('student_emails')
+      .insert({
+        student_id: studentId,
+        recipient_email: recipientEmail,
+        subject: subject.trim(),
+        body: body.trim(),
+        sender_name: senderName.trim(),
+      })
+      .select('*')
+      .single();
+
+    if (error || !data) {
+      console.error('Failed to send student email:', error);
+      throw new Error(error?.message || 'Failed to send email.');
+    }
+
+    const newEmail = data as StudentEmail;
+    setStudentEmails(prev => [newEmail, ...prev]);
+    return newEmail;
+  };
+
   return (
     <ApplicationContext.Provider
       value={{
@@ -3562,6 +3614,8 @@ const createApplication = async (
         universityBrochures,
         uploadUniversityBrochure,
         deleteUniversityBrochure,
+        studentEmails,
+        sendStudentEmail,
       }}
     >
       {children}

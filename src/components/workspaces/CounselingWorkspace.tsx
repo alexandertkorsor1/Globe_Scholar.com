@@ -54,12 +54,21 @@ export const CounselingWorkspace: React.FC = () => {
     };
   });
 
-  const handleSchedule = (e: React.FormEvent) => {
+  const handleSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStudent) return;
-    scheduleCounselingSession(selectedStudent.id, scheduledAt, meetLink, sessionNotes);
-    setShowScheduleModal(false);
-    setSessionNotes('');
+    if (!selectedStudent) {
+      alert('Please select a student.');
+      return;
+    }
+    try {
+      await scheduleCounselingSession(selectedStudent.id, scheduledAt, meetLink, sessionNotes);
+      setShowScheduleModal(false);
+      setSessionNotes('');
+      alert(`Invitation calendar link dispatched & simulated email notification sent to ${selectedStudent.email}!`);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to schedule session.');
+    }
   };
 
   const triggerEscalation = (stdName: string) => {
@@ -104,6 +113,18 @@ export const CounselingWorkspace: React.FC = () => {
               Academic advising, Google Meet session scheduling, meeting timelines per student, and scholarship recommendation tracking.
             </p>
           </div>
+          <button
+            onClick={() => {
+              if (students.length > 0) {
+                setSelectedStudent(students[0]);
+              }
+              setShowScheduleModal(true);
+            }}
+            className="btn btn-primary btn-sm"
+          >
+            <Video style={{ width: '14px', height: '14px' }} />
+            Schedule Meet Session
+          </button>
         </div>
       </div>
 
@@ -305,14 +326,34 @@ export const CounselingWorkspace: React.FC = () => {
       </div>
 
       {/* Modal: Schedule Google Meet Session */}
-      {showScheduleModal && selectedStudent && (
+      {showScheduleModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="glass-panel animate-fade-in" style={{ width: '460px', padding: '24px', background: '#0f172a' }}>
             <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '16px' }}>
-              Schedule Google Meet Session with {selectedStudent.first_name} {selectedStudent.last_name}
+              Schedule Google Meet Session
             </h3>
 
             <form onSubmit={handleSchedule} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Target Student</label>
+                <select
+                  value={selectedStudent?.id || ''}
+                  onChange={e => {
+                    const std = students.find(s => s.id === e.target.value);
+                    if (std) setSelectedStudent(std);
+                  }}
+                  required
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', outline: 'none' }}
+                >
+                  <option value="" disabled>-- Select a student --</option>
+                  {students.map(s => (
+                    <option key={s.id} value={s.id} style={{ background: '#0f172a', color: '#fff' }}>
+                      {s.first_name} {s.last_name} ({s.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                 <div>
                   <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Meeting Date & Time</label>

@@ -26,9 +26,10 @@ import {
   Download,
   X,
   Eye,
-  BookOpen
+  BookOpen,
+  Mail
 } from 'lucide-react';
-import { Application, ApplicationStatus, StudyLevel, FinancialRecord, VisaApplication, VisaDocument } from '../../types/database';
+import { Application, ApplicationStatus, StudyLevel, FinancialRecord, VisaApplication, VisaDocument, StudentEmail } from '../../types/database';
 import {
   DOCUMENT_REQUIREMENTS,
   STUDY_LEVEL_OPTIONS,
@@ -56,6 +57,7 @@ export const StudentPortal: React.FC = () => {
     universityCourses,
     scholarships,
     universityBrochures,
+    studentEmails,
   } = useApplication();
 
   const { currentProfile, logout } = useAuth();
@@ -73,6 +75,7 @@ export const StudentPortal: React.FC = () => {
   // IMPORTANT:
   // All hooks must execute on every render, BEFORE any conditional return.
   const [activeStep, setActiveStep] = useState<number>(1);
+  const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
   const [saveDraftMessage, setSaveDraftMessage] = useState('');
 
   const [degreeChoice, setDegreeChoice] = useState('');
@@ -1028,7 +1031,8 @@ export const StudentPortal: React.FC = () => {
           { step: 3, label: '3. Registration Fee Payment' },
           { step: 4, label: '4. Review & Final Submit' },
           { step: 5, label: '5. Payments & Receipts' },
-          { step: 6, label: '6. Visa Application' }
+          { step: 6, label: '6. Visa Application' },
+          { step: 7, label: '7. Direct Email Inbox' }
         ].map(s => (
           <button
             key={s.step}
@@ -2102,6 +2106,91 @@ export const StudentPortal: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Step 7: Direct Email Inbox */}
+      {activeStep === 7 && (
+        <div className="glass-panel" style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '14px', marginBottom: '8px' }}>
+            <h3 style={{ fontSize: '1.05rem', color: '#fff', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Mail style={{ color: '#6366f1' }} /> Direct Student Email Inbox (Simulation)
+            </h3>
+            <p style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
+              This inbox displays official email invitations, advisories, and counseling notifications sent directly to your registered email address (<strong>{currentProfile?.email}</strong>).
+            </p>
+          </div>
+
+          {(() => {
+            const myEmails = studentEmails.filter((e: StudentEmail) => e.student_id === currentProfile?.id || e.recipient_email === currentProfile?.email);
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.8fr', gap: '20px', minHeight: '400px' }}>
+                {/* Left side: emails list */}
+                <div style={{ borderRight: '1px solid var(--border-color)', paddingRight: '16px', maxHeight: '500px', overflowY: 'auto' }}>
+                  {myEmails.length === 0 ? (
+                    <div style={{ padding: '40px 10px', textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>
+                      No emails received yet.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {myEmails.map((email: StudentEmail) => {
+                        const isSelected = selectedEmailId === email.id;
+                        return (
+                          <div
+                            key={email.id}
+                            onClick={() => setSelectedEmailId(email.id)}
+                            style={{
+                              padding: '12px',
+                              borderRadius: '8px',
+                              background: isSelected ? 'rgba(99, 102, 241, 0.15)' : 'rgba(255,255,255,0.02)',
+                              border: '1px solid ' + (isSelected ? '#6366f1' : 'rgba(255,255,255,0.05)'),
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <strong style={{ color: '#fff', fontSize: '0.82rem', display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{email.subject}</strong>
+                            <span style={{ color: '#cbd5e1', fontSize: '0.74rem', display: 'block', marginTop: '4px' }}>From: {email.sender_name}</span>
+                            <span style={{ color: '#64748b', fontSize: '0.68rem', display: 'block', marginTop: '6px' }}>
+                              {email.created_at ? new Date(email.created_at).toLocaleString() : 'N/A'}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Right side: email body reader */}
+                <div style={{ paddingLeft: '8px' }}>
+                  {(() => {
+                    const activeEmail = myEmails.find((e: StudentEmail) => e.id === selectedEmailId) || myEmails[0];
+                    if (!activeEmail) {
+                      return (
+                        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: '0.82rem' }}>
+                          Select an email from the left pane to read its content.
+                        </div>
+                      );
+                    }
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px' }}>
+                          <h4 style={{ fontSize: '0.95rem', color: '#fff', fontWeight: 700, marginBottom: '8px' }}>{activeEmail.subject}</h4>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.76rem', color: '#cbd5e1' }}>
+                            <span><strong>From:</strong> {activeEmail.sender_name}</span>
+                            <span><strong>To:</strong> {activeEmail.recipient_email}</span>
+                            <span><strong>Date:</strong> {activeEmail.created_at ? new Date(activeEmail.created_at).toLocaleString() : 'N/A'}</span>
+                          </div>
+                        </div>
+                        <div style={{ fontSize: '0.82rem', color: '#e2e8f0', lineHeight: 1.6, whiteSpace: 'pre-wrap', background: 'rgba(255,255,255,0.01)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)' }}>
+                          {activeEmail.body}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
