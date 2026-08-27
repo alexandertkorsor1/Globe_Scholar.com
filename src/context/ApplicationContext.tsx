@@ -139,6 +139,7 @@ uploadPartnerAgreement: (
   expiryDate: string
 ) => Promise<PartnerAgreement>;
 deletePartnerUniversity: (partnerId: string) => Promise<void>;
+deleteApplication: (appId: string) => Promise<void>;
 submitDepartmentReport: (
   report: DepartmentReportSubmission,
   file: File
@@ -401,6 +402,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
         let applicationQuery = supabase
           .from('applications')
           .select('*')
+          .is('deleted_at', null)
           .order('created_at', { ascending: false });
 
         if (isStudent) {
@@ -2321,6 +2323,30 @@ const createApplication = async (
     );
   };
 
+  const deleteApplication = async (appId: string) => {
+    if (!currentProfile?.is_admin) {
+      throw new Error('Only administrators can delete applications.');
+    }
+
+    const application = applications.find(a => a.id === appId);
+
+    const { error } = await supabase
+      .from('applications')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', appId);
+
+    if (error) {
+      console.error('Error deleting application:', error);
+      throw new Error(error.message);
+    }
+
+    setApplications((previous) =>
+      previous.filter((app) => app.id !== appId)
+    );
+
+    logAudit('DELETE_APPLICATION', 'applications', appId, application || null, null);
+  };
+
   // Upload Partner Agreement
   const uploadPartnerAgreement = async (
     partnerId: string,
@@ -3238,6 +3264,26 @@ const createApplication = async (
       }
     }
 
+    // 7. Applications
+    if (isAdmin || ['counseling', 'admissions', 'data_applications', 'operations', 'management'].includes(departmentKey)) {
+      const { data } = await supabase
+        .from('applications')
+        .select('id, application_number, student_name, deleted_at')
+        .not('deleted_at', 'is', null);
+      if (data) {
+        data.forEach(item => {
+          items.push({
+            id: item.id,
+            type: 'application' as any,
+            display_name: `Application: ${item.application_number} (${item.student_name})`,
+            department: departmentKey,
+            deleted_at: item.deleted_at,
+            original_table: 'applications'
+          });
+        });
+      }
+    }
+
     return items.sort((a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime());
   };
 
@@ -3249,6 +3295,7 @@ const createApplication = async (
     else if (type === 'visa_document') tableName = 'student_visa_documents';
     else if (type === 'staff_member') tableName = 'department_members';
     else if (type === 'monthly_meeting') tableName = 'monthly_meetings';
+    else if (type === 'application') tableName = 'applications';
 
     if (!tableName) throw new Error('Unsupported item type for restore.');
 
@@ -3272,6 +3319,9 @@ const createApplication = async (
     } else if (type === 'monthly_meeting') {
       const { data } = await supabase.from('monthly_meetings').select('*').is('deleted_at', null).order('scheduled_at', { ascending: true });
       if (data) setMonthlyMeetings(data as MonthlyMeeting[]);
+    } else if (type === 'application') {
+      const { data } = await supabase.from('applications').select('*').is('deleted_at', null);
+      if (data) setApplications(data as Application[]);
     }
   };
 
@@ -3283,6 +3333,7 @@ const createApplication = async (
     else if (type === 'visa_document') tableName = 'student_visa_documents';
     else if (type === 'staff_member') tableName = 'department_members';
     else if (type === 'monthly_meeting') tableName = 'monthly_meetings';
+    else if (type === 'application') tableName = 'applications';
 
     if (!tableName) throw new Error('Unsupported item type for permanent delete.');
 
@@ -3573,6 +3624,7 @@ const createApplication = async (
         createApplication,
         addPartnerUniversity,
         deletePartnerUniversity,
+        deleteApplication,
         uploadPartnerAgreement,
         submitDepartmentReport,
         reviewDepartmentReport,

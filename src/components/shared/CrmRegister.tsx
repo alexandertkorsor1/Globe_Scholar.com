@@ -14,6 +14,7 @@ interface CrmRegisterProps {
   description?: string;
   filterType?: 'all' | 'students' | 'pending' | 'decided';
   onFilterChange?: (filter: 'all' | 'students' | 'pending' | 'decided') => void;
+  onDeleteApplication?: (appId: string) => void;
 }
 
 const ownerForStatus = (status: Application['status']) => {
@@ -64,6 +65,7 @@ export const CrmRegister: React.FC<CrmRegisterProps> = ({
   description = 'Central relationship view for every student lead, application status, payment signal, department owner, and next action.',
   filterType = 'all',
   onFilterChange,
+  onDeleteApplication,
 }) => {
   const filteredApps = applications.filter((app) => {
     if (filterType === 'all') return true;
@@ -139,6 +141,7 @@ export const CrmRegister: React.FC<CrmRegisterProps> = ({
               <th>Department Owner</th>
               <th>Last Touch</th>
               <th>Next Action</th>
+              {onDeleteApplication && <th>Action</th>}
             </tr>
           </thead>
           <tbody>
@@ -164,12 +167,27 @@ export const CrmRegister: React.FC<CrmRegisterProps> = ({
                   <td>{owner}</td>
                   <td>{formatRegisterDate(application.updated_at || application.created_at)}</td>
                   <td style={{ minWidth: '220px' }}>{nextActionForApplication(application, fee.status)}</td>
+                  {onDeleteApplication && (
+                    <td>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Are you sure you want to delete application ${application.application_number}?`)) {
+                            onDeleteApplication(application.id);
+                          }
+                        }}
+                        className="btn btn-secondary btn-sm"
+                        style={{ color: '#f43f5e', border: '1px solid rgba(244, 63, 94, 0.2)' }}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  )}
                 </tr>
               );
             })}
             {filteredApps.length === 0 && (
               <tr>
-                <td colSpan={11} style={{ padding: '28px', textAlign: 'center', color: '#94a3b8' }}>
+                <td colSpan={onDeleteApplication ? 12 : 11} style={{ padding: '28px', textAlign: 'center', color: '#94a3b8' }}>
                   No CRM records match the selected filter.
                 </td>
               </tr>

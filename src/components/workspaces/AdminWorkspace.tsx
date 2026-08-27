@@ -141,7 +141,8 @@ export const AdminWorkspace: React.FC = () => {
   visaApplications,
   loadVisaDocuments,
   reviewVisaApplication,
-  sendStudentEmail
+  sendStudentEmail,
+  deleteApplication
 } = useApplication();
 
   const [activeTab, setActiveTab] = useState<AdminTab>('kpis');
@@ -741,6 +742,7 @@ export const AdminWorkspace: React.FC = () => {
                       <th>Institution</th>
                       <th>Status</th>
                       <th>Country</th>
+                      <th>Action</th>
                     </tr>
                   </thead>
 
@@ -769,6 +771,19 @@ export const AdminWorkspace: React.FC = () => {
                           </td>
 
                           <td>{app.target_country}</td>
+                          <td>
+                            <button
+                              onClick={() => {
+                                if (confirm(`Are you sure you want to delete application ${app.application_number}?`)) {
+                                  deleteApplication(app.id);
+                                }
+                              }}
+                              className="btn btn-secondary btn-sm"
+                              style={{ color: '#f43f5e', border: '1px solid rgba(244, 63, 94, 0.08)' }}
+                            >
+                              Delete App
+                            </button>
+                          </td>
                         </tr>
                       ))}
                   </tbody>
@@ -805,6 +820,7 @@ export const AdminWorkspace: React.FC = () => {
           description="Executive CRM sheet showing the full student journey across intake, payment, department owner, and next required action."
           filterType={crmFilter}
           onFilterChange={setCrmFilter}
+          onDeleteApplication={deleteApplication}
         />
       )}
 
