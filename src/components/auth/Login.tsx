@@ -21,6 +21,28 @@ export const Login: React.FC<LoginProps> = ({
   const [age, setAge] = useState('');
   const [gender, setGender] = useState('');
   const [country, setCountry] = useState('');
+  const [schoolCountries, setSchoolCountries] = useState<string[]>([]);
+
+  React.useEffect(() => {
+    const fetchCountries = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('partner_universities')
+          .select('country')
+          .is('deleted_at', null);
+
+        if (error) throw error;
+        if (data) {
+          const uniqueCountries = [...new Set(data.map(item => item.country))].sort();
+          setSchoolCountries(uniqueCountries);
+        }
+      } catch (err) {
+        console.error('Failed to load countries from schools:', err);
+      }
+    };
+    fetchCountries();
+  }, []);
+
   const [currentAddress, setCurrentAddress] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -577,18 +599,12 @@ export const Login: React.FC<LoginProps> = ({
               style={inputStyle}
             >
               <option value="">Select country of residence</option>
-              <option value="United States">United States</option>
-              <option value="United Kingdom">United Kingdom</option>
-              <option value="Canada">Canada</option>
-              <option value="Australia">Australia</option>
-              <option value="Denmark">Denmark</option>
-              <option value="Germany">Germany</option>
-              <option value="India">India</option>
-              <option value="Nigeria">Nigeria</option>
-              <option value="Ghana">Ghana</option>
-              <option value="Kenya">Kenya</option>
-              <option value="South Africa">South Africa</option>
-              <option value="Other">Other</option>
+              {schoolCountries.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+              {schoolCountries.length === 0 && (
+                <option value="United Kingdom">United Kingdom (Default)</option>
+              )}
             </select>
 
             <label htmlFor="student-address" style={labelStyle}>

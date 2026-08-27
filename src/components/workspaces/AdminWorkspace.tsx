@@ -45,6 +45,7 @@ import {
   KeyRound,
   EyeOff,
   ClipboardList,
+  BookOpen
 } from 'lucide-react';
 
 const DEPARTMENT_OPTIONS: Array<{ value: DepartmentType; label: string }> = [
@@ -123,6 +124,12 @@ export const AdminWorkspace: React.FC = () => {
   addPartnerUniversity,
   deletePartnerUniversity,
   uploadPartnerAgreement,
+  universityCourses,
+  addUniversityCourse,
+  deleteUniversityCourse,
+  scholarships,
+  addScholarship,
+  deleteScholarship,
   departmentReports,
   getDepartmentReportDownloadUrl,
   reviewDepartmentReport,
@@ -188,6 +195,23 @@ export const AdminWorkspace: React.FC = () => {
   // Global notice state
   const [noticeTitle, setNoticeTitle] = useState('');
   const [noticeBody, setNoticeBody] = useState('');
+
+  // Course and Scholarship management state
+  const [selectedPartnerForCourses, setSelectedPartnerForCourses] = useState<PartnerUniversity | null>(null);
+  const [courseName, setCourseName] = useState('');
+  const [admissionFee, setAdmissionFee] = useState('150.00');
+  const [tuitionFee, setTuitionFee] = useState('3000.00');
+  const [submittingCourse, setSubmittingCourse] = useState(false);
+  const [courseError, setCourseError] = useState('');
+
+  const [selectedPartnerForScholarships, setSelectedPartnerForScholarships] = useState<PartnerUniversity | null>(null);
+  const [scholarshipName, setScholarshipName] = useState('');
+  const [scholarshipDesc, setScholarshipDesc] = useState('');
+  const [scholarshipCoverage, setScholarshipCoverage] = useState('1000.00');
+  const [scholarshipPercent, setScholarshipPercent] = useState('50');
+  const [scholarshipCriteria, setScholarshipCriteria] = useState('');
+  const [submittingScholarship, setSubmittingScholarship] = useState(false);
+  const [scholarshipError, setScholarshipError] = useState('');
 
   // Key KPI Calculations
   const totalApps = applications.length;
@@ -1276,6 +1300,42 @@ export const AdminWorkspace: React.FC = () => {
                       />
                     </label>
                   </div>
+
+                  {/* Course & Scholarship Management Buttons */}
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedPartnerForCourses(p);
+                        setCourseName('');
+                        setAdmissionFee('150.00');
+                        setTuitionFee('3000.00');
+                        setCourseError('');
+                      }}
+                      className="btn btn-secondary btn-sm"
+                      style={{ flex: 1, fontSize: '0.74rem', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)' }}
+                    >
+                      <BookOpen style={{ width: '13px', height: '13px', marginRight: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                      Courses ({universityCourses.filter(c => c.university_id === p.id).length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedPartnerForScholarships(p);
+                        setScholarshipName('');
+                        setScholarshipDesc('');
+                        setScholarshipCoverage('1000.00');
+                        setScholarshipPercent('50');
+                        setScholarshipCriteria('');
+                        setScholarshipError('');
+                      }}
+                      className="btn btn-secondary btn-sm"
+                      style={{ flex: 1, fontSize: '0.74rem', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)' }}
+                    >
+                      <Award style={{ width: '13px', height: '13px', marginRight: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                      Scholarships ({scholarships.filter(s => s.university_id === p.id).length})
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -1938,6 +1998,234 @@ export const AdminWorkspace: React.FC = () => {
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
                 <button type="button" onClick={() => setShowGlobalNotifyModal(false)} className="btn btn-secondary btn-sm">Cancel</button>
                 <button type="submit" className="btn btn-primary btn-sm">Broadcast Notice</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Manage Courses */}
+      {selectedPartnerForCourses && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1050, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="glass-panel animate-fade-in" style={{ width: '650px', padding: '24px', background: '#0e1726', border: '1px solid rgba(59, 130, 246, 0.3)', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.02rem', color: '#fff', margin: 0, fontWeight: 800 }}>Manage Courses - {selectedPartnerForCourses.name}</h3>
+                <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Define available courses and specify exact admission and tuition fees.</span>
+              </div>
+              <button onClick={() => setSelectedPartnerForCourses(null)} style={{ border: 'none', background: 'none', color: '#94a3b8', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Existing Courses List */}
+            <div style={{ marginBottom: '20px' }}>
+              <h4 style={{ fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '8px', fontWeight: 700 }}>Active Courses</h4>
+              {universityCourses.filter(c => c.university_id === selectedPartnerForCourses.id).length === 0 ? (
+                <div style={{ padding: '14px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', color: '#64748b', fontSize: '0.78rem', textAlign: 'center', border: '1px dashed rgba(255,255,255,0.06)' }}>
+                  No courses added to this university yet.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {universityCourses.filter(c => c.university_id === selectedPartnerForCourses.id).map(c => (
+                    <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div>
+                        <strong style={{ color: '#fff', fontSize: '0.85rem' }}>{c.course_name}</strong>
+                        <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>
+                          Admission Fee: <span style={{ color: '#06b6d4', fontWeight: 700 }}>USD {c.admission_fee.toFixed(2)}</span> • Tuition Fee: <span style={{ color: '#10b981', fontWeight: 700 }}>USD {c.tuition_fee.toFixed(2)}</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (window.confirm(`Are you sure you want to delete the course "${c.course_name}"?`)) {
+                            try {
+                              await deleteUniversityCourse(c.id);
+                            } catch (err) {
+                              alert('Failed to delete course');
+                            }
+                          }
+                        }}
+                        style={{ border: 'none', background: 'none', color: '#fca5a5', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                        title="Delete Course"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Add Course Form */}
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setSubmittingCourse(true);
+                setCourseError('');
+                try {
+                  await addUniversityCourse({
+                    university_id: selectedPartnerForCourses.id,
+                    course_name: courseName.trim(),
+                    admission_fee: Number(admissionFee),
+                    tuition_fee: Number(tuitionFee)
+                  });
+                  setCourseName('');
+                  setAdmissionFee('150.00');
+                  setTuitionFee('3000.00');
+                } catch (err) {
+                  setCourseError(err instanceof Error ? err.message : 'Failed to add course.');
+                } finally {
+                  setSubmittingCourse(false);
+                }
+              }}
+              style={{ padding: '16px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
+            >
+              <h5 style={{ fontSize: '0.8rem', color: '#fff', margin: '0 0 12px 0', fontWeight: 700 }}>Add New Course</h5>
+              {courseError && <div style={{ color: '#fca5a5', fontSize: '0.75rem', marginBottom: '8px' }}>{courseError}</div>}
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Course Name</label>
+                  <input type="text" required placeholder="e.g. B.Sc. Computer Science" value={courseName} onChange={e => setCourseName(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.75rem' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Admission Fee ($)</label>
+                  <input type="number" min="0" step="0.01" required value={admissionFee} onChange={e => setAdmissionFee(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.75rem' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Tuition Fee ($)</label>
+                  <input type="number" min="0" step="0.01" required value={tuitionFee} onChange={e => setTuitionFee(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.75rem' }} />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button type="submit" disabled={submittingCourse} className="btn btn-primary btn-sm">
+                  {submittingCourse ? 'Adding...' : 'Add Course'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Manage Scholarships */}
+      {selectedPartnerForScholarships && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1050, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="glass-panel animate-fade-in" style={{ width: '650px', padding: '24px', background: '#0e1726', border: '1px solid rgba(59, 130, 246, 0.3)', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.02rem', color: '#fff', margin: 0, fontWeight: 800 }}>Manage Scholarships - {selectedPartnerForScholarships.name}</h3>
+                <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Establish custom scholarships for applicants targeting this institution.</span>
+              </div>
+              <button onClick={() => setSelectedPartnerForScholarships(null)} style={{ border: 'none', background: 'none', color: '#94a3b8', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Existing Scholarships List */}
+            <div style={{ marginBottom: '20px' }}>
+              <h4 style={{ fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '8px', fontWeight: 700 }}>Active Scholarships</h4>
+              {scholarships.filter(s => s.university_id === selectedPartnerForScholarships.id).length === 0 ? (
+                <div style={{ padding: '14px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', color: '#64748b', fontSize: '0.78rem', textAlign: 'center', border: '1px dashed rgba(255,255,255,0.06)' }}>
+                  No custom scholarships added to this university yet.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {scholarships.filter(s => s.university_id === selectedPartnerForScholarships.id).map(s => (
+                    <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div>
+                        <strong style={{ color: '#fff', fontSize: '0.85rem' }}>{s.name}</strong>
+                        {s.description && <div style={{ fontSize: '0.75rem', color: '#cbd5e1', marginTop: '2px' }}>{s.description}</div>}
+                        <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '4px' }}>
+                          Value: <span style={{ color: '#06b6d4', fontWeight: 700 }}>USD {s.coverage_amount.toFixed(2)}</span>
+                          {s.coverage_percentage ? ` (${s.coverage_percentage}% tuition coverage)` : ''}
+                          {s.eligibility_criteria && ` • Criteria: ${s.eligibility_criteria}`}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (window.confirm(`Are you sure you want to delete the scholarship "${s.name}"?`)) {
+                            try {
+                              await deleteScholarship(s.id);
+                            } catch (err) {
+                              alert('Failed to delete scholarship');
+                            }
+                          }
+                        }}
+                        style={{ border: 'none', background: 'none', color: '#fca5a5', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                        title="Delete Scholarship"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Add Scholarship Form */}
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setSubmittingScholarship(true);
+                setScholarshipError('');
+                try {
+                  await addScholarship({
+                    university_id: selectedPartnerForScholarships.id,
+                    name: scholarshipName.trim(),
+                    description: scholarshipDesc.trim() || null,
+                    coverage_amount: Number(scholarshipCoverage),
+                    coverage_percentage: scholarshipPercent ? Number(scholarshipPercent) : null,
+                    eligibility_criteria: scholarshipCriteria.trim() || null
+                  });
+                  setScholarshipName('');
+                  setScholarshipDesc('');
+                  setScholarshipCoverage('1000.00');
+                  setScholarshipPercent('50');
+                  setScholarshipCriteria('');
+                } catch (err) {
+                  setScholarshipError(err instanceof Error ? err.message : 'Failed to add scholarship.');
+                } finally {
+                  setSubmittingScholarship(false);
+                }
+              }}
+              style={{ padding: '16px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
+            >
+              <h5 style={{ fontSize: '0.8rem', color: '#fff', margin: '0 0 12px 0', fontWeight: 700 }}>Add Custom Scholarship</h5>
+              {scholarshipError && <div style={{ color: '#fca5a5', fontSize: '0.75rem', marginBottom: '8px' }}>{scholarshipError}</div>}
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Scholarship Name</label>
+                  <input type="text" required placeholder="e.g. Dean's Academic Merit Scholarship" value={scholarshipName} onChange={e => setScholarshipName(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.75rem' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Coverage Amount ($)</label>
+                  <input type="number" min="0" step="0.01" required value={scholarshipCoverage} onChange={e => setScholarshipCoverage(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.75rem' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Tuition Coverage (%)</label>
+                  <input type="number" min="0" max="100" placeholder="e.g. 50" value={scholarshipPercent} onChange={e => setScholarshipPercent(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.75rem' }} />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Description</label>
+                  <input type="text" placeholder="Short description of the scholarship coverage details" value={scholarshipDesc} onChange={e => setScholarshipDesc(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.75rem' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Eligibility Criteria</label>
+                  <input type="text" placeholder="e.g. GPA > 3.8, IELTS > 7.5" value={scholarshipCriteria} onChange={e => setScholarshipCriteria(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.75rem' }} />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button type="submit" disabled={submittingScholarship} className="btn btn-primary btn-sm">
+                  {submittingScholarship ? 'Adding...' : 'Add Scholarship'}
+                </button>
               </div>
             </form>
           </div>

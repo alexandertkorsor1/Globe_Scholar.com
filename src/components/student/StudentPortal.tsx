@@ -51,6 +51,9 @@ export const StudentPortal: React.FC = () => {
     loadVisaDocuments,
     uploadVisaDocument,
     deleteVisaDocument,
+    partnerUniversities,
+    universityCourses,
+    scholarships,
   } = useApplication();
 
   const { currentProfile, logout } = useAuth();
@@ -228,6 +231,29 @@ export const StudentPortal: React.FC = () => {
             new Date(a.created_at).getTime()
         )
     : [];
+
+  const selectedPartner = partnerUniversities.find(p => p.name === targetUni);
+  const availableCourses = selectedPartner
+    ? universityCourses.filter(c => c.university_id === selectedPartner.id)
+    : [];
+  const availableScholarships = selectedPartner
+    ? scholarships.filter(s => s.university_id === selectedPartner.id)
+    : [];
+  const selectedCourseDetails = availableCourses.find(c => c.course_name === degreeChoice);
+
+  const handleTargetUniChange = (uniName: string) => {
+    setTargetUni(uniName);
+    const partner = partnerUniversities.find(p => p.name === uniName);
+    const firstCourse = partner
+      ? universityCourses.find(c => c.university_id === partner.id)
+      : null;
+    setDegreeChoice(firstCourse ? firstCourse.course_name : '');
+    
+    const firstScholarship = partner
+      ? scholarships.find(s => s.university_id === partner.id)
+      : null;
+    setScholarshipPref(firstScholarship ? firstScholarship.name : 'None');
+  };
 
   const receiptForPayment = (recordId: string) =>
     paymentReceipts.find(
@@ -1036,37 +1062,92 @@ export const StudentPortal: React.FC = () => {
 
             <div>
               <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>Target University</label>
-              <select
-                value={targetUni}
-                onChange={e => setTargetUni(e.target.value)}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}
-              >
-                <option value="University of Oxford">University of Oxford (United Kingdom)</option>
-                <option value="University of Cambridge">University of Cambridge (United Kingdom)</option>
-                <option value="Harvard University">Harvard University (United States)</option>
-                <option value="University of Melbourne">University of Melbourne (Australia)</option>
-              </select>
+              {partnerUniversities.length === 0 ? (
+                <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', fontSize: '0.82rem' }}>
+                  No partner universities uploaded by admin yet.
+                </div>
+              ) : (
+                <select
+                  value={targetUni}
+                  onChange={e => handleTargetUniChange(e.target.value)}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', outline: 'none' }}
+                >
+                  <option value="">Select Target Institution</option>
+                  {partnerUniversities.map(p => (
+                    <option key={p.id} value={p.name}>
+                      {p.name} ({p.country})
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div>
-              <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>Degree Program</label>
-              <input
-                type="text"
-                value={degreeChoice}
-                onChange={e => setDegreeChoice(e.target.value)}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}
-              />
+              <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>Degree Program / Course</label>
+              {!targetUni ? (
+                <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', color: '#94a3b8', border: '1px solid var(--border-color)', fontSize: '0.82rem' }}>
+                  Select university first
+                </div>
+              ) : availableCourses.length === 0 ? (
+                <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)', fontSize: '0.82rem' }}>
+                  No courses uploaded for this school
+                </div>
+              ) : (
+                <select
+                  value={degreeChoice}
+                  onChange={e => setDegreeChoice(e.target.value)}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', outline: 'none' }}
+                >
+                  <option value="">Select Degree Course</option>
+                  {availableCourses.map(c => (
+                    <option key={c.id} value={c.course_name}>
+                      {c.course_name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
 
+          {selectedCourseDetails && (
+            <div style={{ padding: '12px 16px', background: 'rgba(6, 182, 212, 0.08)', border: '1px solid rgba(6, 182, 212, 0.25)', borderRadius: '10px', display: 'flex', gap: '20px', color: '#fff', fontSize: '0.82rem' }}>
+              <div>
+                <span style={{ color: '#94a3b8' }}>Admission Fee:</span> <strong style={{ color: '#06b6d4' }}>USD {selectedCourseDetails.admission_fee.toFixed(2)}</strong>
+              </div>
+              <div>
+                <span style={{ color: '#94a3b8' }}>Tuition Fee:</span> <strong style={{ color: '#10b981' }}>USD {selectedCourseDetails.tuition_fee.toFixed(2)}</strong>
+              </div>
+            </div>
+          )}
+
           <div>
             <label style={{ fontSize: '0.78rem', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>Scholarship Requested</label>
-            <input
-              type="text"
-              value={scholarshipPref}
-              onChange={e => setScholarshipPref(e.target.value)}
-              style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}
-            />
+            {!targetUni ? (
+              <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', color: '#94a3b8', border: '1px solid var(--border-color)', fontSize: '0.82rem' }}>
+                Select university first
+              </div>
+            ) : availableScholarships.length === 0 ? (
+              <select
+                value={scholarshipPref}
+                onChange={e => setScholarshipPref(e.target.value)}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', outline: 'none' }}
+              >
+                <option value="None">None (No scholarships available for this school)</option>
+              </select>
+            ) : (
+              <select
+                value={scholarshipPref}
+                onChange={e => setScholarshipPref(e.target.value)}
+                style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', outline: 'none' }}
+              >
+                <option value="None">None (No scholarship requested)</option>
+                {availableScholarships.map(s => (
+                  <option key={s.id} value={s.name}>
+                    {s.name} {s.coverage_percentage ? `(${s.coverage_percentage}% tuition coverage)` : `($${s.coverage_amount.toFixed(0)} value)`}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div className="student-form-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>

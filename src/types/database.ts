@@ -596,3 +596,25 @@ export interface MonthlyMeeting {
   created_at?: string;
   deleted_at?: string | null;
 }
+
+export interface UniversityCourse {
+  id: string;
+  university_id: string;
+  course_name: string;
+  admission_fee: number;
+  tuition_fee: number;
+  created_at?: string;
+  deleted_at?: string | null;
+}
+
+export interface Scholarship {
+  id: string;
+  university_id: string;
+  name: string;
+  description?: string | null;
+  coverage_amount: number;
+  coverage_percentage?: number | null;
+  eligibility_criteria?: string | null;
+  created_at?: string;
+  deleted_at?: string | null;
+}

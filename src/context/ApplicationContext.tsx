@@ -39,7 +39,9 @@ import {
   HrLeaveType,
   HrLeaveStatus,
   TrashItem,
-  MonthlyMeeting
+  MonthlyMeeting,
+  UniversityCourse,
+  Scholarship
 } from '../types/database';
 import {
   INITIAL_APPLICATIONS,
@@ -199,6 +201,12 @@ getDepartmentReportDownloadUrl: (
   monthlyMeetings: MonthlyMeeting[];
   scheduleMonthlyMeeting: (meeting: Omit<MonthlyMeeting, 'id' | 'created_at' | 'created_by' | 'deleted_at'>) => Promise<MonthlyMeeting>;
   deleteMonthlyMeeting: (id: string) => Promise<void>;
+  universityCourses: UniversityCourse[];
+  addUniversityCourse: (course: Omit<UniversityCourse, 'id' | 'created_at' | 'deleted_at'>) => Promise<UniversityCourse>;
+  deleteUniversityCourse: (id: string) => Promise<void>;
+  scholarships: Scholarship[];
+  addScholarship: (scholarship: Omit<Scholarship, 'id' | 'created_at' | 'deleted_at'>) => Promise<Scholarship>;
+  deleteScholarship: (id: string) => Promise<void>;
 }
 
 const ApplicationContext = createContext<ApplicationContextType | undefined>(undefined);
@@ -362,6 +370,8 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [hrInterviews, setHrInterviews] = useState<HrInterview[]>(initialHrInterviews);
   const [hrLeaveRequests, setHrLeaveRequests] = useState<HrLeaveRequest[]>(initialHrLeaves);
   const [monthlyMeetings, setMonthlyMeetings] = useState<MonthlyMeeting[]>([]);
+  const [universityCourses, setUniversityCourses] = useState<UniversityCourse[]>([]);
+  const [scholarships, setScholarships] = useState<Scholarship[]>([]);
 
   useEffect(() => {
     if (loading) return;
@@ -572,6 +582,42 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       setPartnerUniversities(partners);
     };
 
+    const loadUniversityCourses = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('university_courses')
+          .select('*')
+          .is('deleted_at', null)
+          .order('course_name', { ascending: true });
+        if (error) throw error;
+        setUniversityCourses((data || []).map(c => ({
+          ...c,
+          admission_fee: Number(c.admission_fee),
+          tuition_fee: Number(c.tuition_fee)
+        })));
+      } catch (err) {
+        console.error('Error loading university courses:', err);
+      }
+    };
+
+    const loadScholarships = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('scholarships')
+          .select('*')
+          .is('deleted_at', null)
+          .order('name', { ascending: true });
+        if (error) throw error;
+        setScholarships((data || []).map(s => ({
+          ...s,
+          coverage_amount: Number(s.coverage_amount),
+          coverage_percentage: s.coverage_percentage ? Number(s.coverage_percentage) : null
+        })));
+      } catch (err) {
+        console.error('Error loading scholarships:', err);
+      }
+    };
+
     const loadDepartmentReports = async () => {
       if (
         !currentProfile?.id ||
@@ -698,6 +744,8 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     };
 
     loadPartnerUniversities();
+    loadUniversityCourses();
+    loadScholarships();
     loadDepartmentReports();
     loadDepartmentKpis();
 
@@ -3258,6 +3306,92 @@ const createApplication = async (
     setMonthlyMeetings(prev => prev.filter(m => m.id !== id));
   };
 
+  const addUniversityCourse = async (course: Omit<UniversityCourse, 'id' | 'created_at' | 'deleted_at'>): Promise<UniversityCourse> => {
+    const { data, error } = await supabase
+      .from('university_courses')
+      .insert({
+        university_id: course.university_id,
+        course_name: course.course_name,
+        admission_fee: course.admission_fee,
+        tuition_fee: course.tuition_fee
+      })
+      .select('*')
+      .single();
+
+    if (error || !data) {
+      console.error('Failed to add university course:', error);
+      throw new Error(error?.message || 'Failed to save course.');
+    }
+
+    const newCourse: UniversityCourse = {
+      ...data,
+      admission_fee: Number(data.admission_fee),
+      tuition_fee: Number(data.tuition_fee)
+    };
+    setUniversityCourses(prev => [...prev, newCourse]);
+    logAudit('ADD_UNIVERSITY_COURSE', 'university_courses', newCourse.id, null, { name: newCourse.course_name });
+    return newCourse;
+  };
+
+  const deleteUniversityCourse = async (id: string): Promise<void> => {
+    const { error } = await supabase
+      .from('university_courses')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Failed to soft delete university course:', error);
+      throw new Error(error.message);
+    }
+
+    setUniversityCourses(prev => prev.filter(c => c.id !== id));
+    logAudit('DELETE_UNIVERSITY_COURSE', 'university_courses', id, null, null);
+  };
+
+  const addScholarship = async (scholarship: Omit<Scholarship, 'id' | 'created_at' | 'deleted_at'>): Promise<Scholarship> => {
+    const { data, error } = await supabase
+      .from('scholarships')
+      .insert({
+        university_id: scholarship.university_id,
+        name: scholarship.name,
+        description: scholarship.description,
+        coverage_amount: scholarship.coverage_amount,
+        coverage_percentage: scholarship.coverage_percentage,
+        eligibility_criteria: scholarship.eligibility_criteria
+      })
+      .select('*')
+      .single();
+
+    if (error || !data) {
+      console.error('Failed to add scholarship:', error);
+      throw new Error(error?.message || 'Failed to save scholarship.');
+    }
+
+    const newScholarship: Scholarship = {
+      ...data,
+      coverage_amount: Number(data.coverage_amount),
+      coverage_percentage: data.coverage_percentage ? Number(data.coverage_percentage) : null
+    };
+    setScholarships(prev => [...prev, newScholarship]);
+    logAudit('ADD_SCHOLARSHIP', 'scholarships', newScholarship.id, null, { name: newScholarship.name });
+    return newScholarship;
+  };
+
+  const deleteScholarship = async (id: string): Promise<void> => {
+    const { error } = await supabase
+      .from('scholarships')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Failed to soft delete scholarship:', error);
+      throw new Error(error.message);
+    }
+
+    setScholarships(prev => prev.filter(s => s.id !== id));
+    logAudit('DELETE_SCHOLARSHIP', 'scholarships', id, null, null);
+  };
+
   return (
     <ApplicationContext.Provider
       value={{
@@ -3332,6 +3466,12 @@ const createApplication = async (
         monthlyMeetings,
         scheduleMonthlyMeeting,
         deleteMonthlyMeeting,
+        universityCourses,
+        addUniversityCourse,
+        deleteUniversityCourse,
+        scholarships,
+        addScholarship,
+        deleteScholarship,
       }}
     >
       {children}
