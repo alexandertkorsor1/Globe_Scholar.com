@@ -97,6 +97,7 @@ const emptyDepartmentMember: DepartmentMemberInput = {
   departments: ['admissions'],
   is_assistant: false,
   employment_status: 'active',
+  working_country: '',
   temporary_password: '',
 };
 
@@ -198,6 +199,7 @@ export const AdminWorkspace: React.FC = () => {
   const [revisionSubject, setRevisionSubject] = useState('');
   const [revisionBody, setRevisionBody] = useState('');
   const [sendingRevision, setSendingRevision] = useState(false);
+  const [previewDocUrl, setPreviewDocUrl] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (selectedAdminVisaApp?.id) {
@@ -462,6 +464,7 @@ export const AdminWorkspace: React.FC = () => {
       departments: member.departments,
       is_assistant: member.is_assistant,
       employment_status: member.employment_status,
+      working_country: member.working_country || '',
       temporary_password: '',
     });
     setDepartmentMemberPasswordConfirm('');
@@ -1473,6 +1476,7 @@ export const AdminWorkspace: React.FC = () => {
                       <th>Primary department</th>
                       <th>Additional coverage</th>
                       <th>Role</th>
+                      <th>Working Country</th>
                       <th>Responsibility</th>
                       <th>Onboarding status</th>
                       <th aria-label="Actions" />
@@ -1504,6 +1508,15 @@ export const AdminWorkspace: React.FC = () => {
                             )}
                           </td>
                           <td style={{ color: '#334155', fontWeight: 650 }}>{member.job_title}</td>
+                          <td>
+                            {member.working_country ? (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', color: member.primary_department === 'country_directors' ? '#0ea5e9' : '#94a3b8', fontWeight: member.primary_department === 'country_directors' ? 700 : 400 }}>
+                                🌍 {member.working_country}
+                              </span>
+                            ) : (
+                              <span style={{ color: '#cbd5e1', fontSize: '0.78rem' }}>—</span>
+                            )}
+                          </td>
                           <td>
                             <span className={`badge ${member.is_assistant ? 'badge-submitted' : 'badge-draft'}`}>
                               {member.is_assistant ? 'Assistant' : 'Senior'}
@@ -1787,34 +1800,64 @@ export const AdminWorkspace: React.FC = () => {
                     );
                   }
                   return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {appDocs.map(doc => (
-                        <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', borderRadius: '6px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                          <div>
-                            <span style={{ color: '#fff', fontSize: '0.78rem', fontWeight: 600 }}>{doc.document_type.replace(/_/g, ' ').toUpperCase()}</span>
-                            <span style={{ display: 'block', fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px' }}>
-                              File: <a href="#" onClick={(e) => {
-                                e.preventDefault();
-                                const { data } = supabase.storage.from('department-reports').getPublicUrl(doc.storage_path);
-                                if (data?.publicUrl) window.open(data.publicUrl, '_blank');
-                              }} style={{ color: '#06b6d4', textDecoration: 'underline' }}>{doc.file_name}</a>
-                            </span>
-                            {doc.is_missing && <span style={{ color: '#fca5a5', fontSize: '0.7rem', fontWeight: 700, display: 'block', marginTop: '4px' }}>⚠️ FLAGGED AS INCOMPLETE / MISTAKE</span>}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {appDocs.map(doc => {
+                        const { data: urlData } = supabase.storage.from('department-reports').getPublicUrl(doc.storage_path);
+                        const publicUrl = urlData?.publicUrl || '';
+                        const isPreviewOpen = previewDocUrl === publicUrl;
+                        return (
+                          <div key={doc.id} style={{ borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', overflow: 'hidden' }}>
+                            {/* Doc Header Row */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px' }}>
+                              <div>
+                                <span style={{ color: '#fff', fontSize: '0.78rem', fontWeight: 600 }}>{doc.document_type.replace(/_/g, ' ').toUpperCase()}</span>
+                                <span style={{ display: 'block', fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px' }}>📄 {doc.file_name}</span>
+                                {doc.is_missing && <span style={{ color: '#fca5a5', fontSize: '0.7rem', fontWeight: 700, display: 'block', marginTop: '4px' }}>⚠️ FLAGGED AS INCOMPLETE / MISTAKE</span>}
+                              </div>
+                              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                                {/* View PDF button */}
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewDocUrl(isPreviewOpen ? null : publicUrl)}
+                                  style={{ fontSize: '0.7rem', padding: '4px 10px', borderRadius: '5px', border: 'none', cursor: 'pointer', background: isPreviewOpen ? '#1e293b' : '#0ea5e9', color: '#fff', fontWeight: 600 }}
+                                >
+                                  {isPreviewOpen ? '▲ Close' : '📄 View PDF'}
+                                </button>
+                                {/* Download button */}
+                                {publicUrl && (
+                                  <a
+                                    href={publicUrl}
+                                    download={doc.file_name}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    style={{ fontSize: '0.7rem', padding: '4px 10px', borderRadius: '5px', background: '#059669', color: '#fff', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                  >
+                                    ⬇ Download
+                                  </a>
+                                )}
+                                {/* Flag button */}
+                                <button
+                                  type="button"
+                                  onClick={() => toggleMissingDocFlag(doc.id, !doc.is_missing)}
+                                  style={{ fontSize: '0.7rem', padding: '4px 10px', borderRadius: '5px', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.06)', color: doc.is_missing ? '#34d399' : '#fca5a5', fontWeight: 600 }}
+                                >
+                                  {doc.is_missing ? '✓ Resolve Flag' : '⚑ Flag Incomplete'}
+                                </button>
+                              </div>
+                            </div>
+                            {/* Inline PDF Viewer */}
+                            {isPreviewOpen && publicUrl && (
+                              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', background: '#0f172a' }}>
+                                <iframe
+                                  src={publicUrl}
+                                  title={doc.file_name}
+                                  style={{ width: '100%', height: '520px', border: 'none', display: 'block' }}
+                                />
+                              </div>
+                            )}
                           </div>
-                          <div style={{ display: 'flex', gap: '6px' }}>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                toggleMissingDocFlag(doc.id, !doc.is_missing);
-                              }}
-                              className="btn btn-secondary btn-sm"
-                              style={{ fontSize: '0.7rem', padding: '4px 8px', color: doc.is_missing ? '#34d399' : '#fca5a5' }}
-                            >
-                              {doc.is_missing ? 'Resolve Flag' : 'Flag Incomplete'}
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   );
                 })()}
@@ -1976,6 +2019,28 @@ export const AdminWorkspace: React.FC = () => {
                       <option value="inactive">Inactive</option>
                     </select>
                   </div>
+                </div>
+
+                {/* Country of Work field */}
+                <div>
+                  <label className="form-label" htmlFor="member-working-country">
+                    {departmentMemberForm.primary_department === 'country_directors'
+                      ? '🌍 Country of assignment (required for Country Directors)'
+                      : '🌍 Country of work'}
+                  </label>
+                  <input
+                    id="member-working-country"
+                    className="form-input"
+                    value={departmentMemberForm.working_country}
+                    onChange={(event) =>
+                      setDepartmentMemberForm((current) => ({
+                        ...current,
+                        working_country: event.target.value,
+                      }))
+                    }
+                    placeholder={departmentMemberForm.primary_department === 'country_directors' ? 'e.g. Nigeria' : 'e.g. United Kingdom (optional)'}
+                    required={departmentMemberForm.primary_department === 'country_directors'}
+                  />
                 </div>
 
                 <fieldset className="department-member-assignments">

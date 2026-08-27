@@ -101,6 +101,7 @@ export interface DepartmentMember {
   departments: DepartmentType[];
   is_assistant: boolean;
   employment_status: DepartmentMemberStatus;
+  working_country?: string | null;
   created_by?: string | null;
   created_at: string;
   updated_at: string;
@@ -114,6 +115,7 @@ export interface DepartmentMemberInput {
   departments: DepartmentType[];
   is_assistant: boolean;
   employment_status: DepartmentMemberStatus;
+  working_country: string;
   temporary_password?: string;
 }
 
@@ -531,6 +533,8 @@ export interface HrEmployeeRecord {
   status: HrEmployeeStatus;
   salary_band?: string | null;
   notes?: string | null;
+  cv_path?: string | null;
+  cv_file_name?: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;

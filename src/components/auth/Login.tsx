@@ -121,6 +121,26 @@ export const Login: React.FC<LoginProps> = ({
     const firstName = nameParts[0] || fullName.trim();
     const lastName = nameParts.slice(1).join(' ');
 
+    // ── Duplicate-email guard ──────────────────────────────────────────────
+    // Supabase does not return a plain "already registered" error when email
+    // confirmation is disabled; it silently returns the existing user. We
+    // detect this by checking whether the email already belongs to a profile
+    // in our `profiles` table before calling signUp.
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('email', email.trim().toLowerCase())
+      .maybeSingle();
+
+    if (existingProfile) {
+      setError(
+        'This email address is already registered. Please log in or use a different email to create a new account.'
+      );
+      setLoading(false);
+      return;
+    }
+    // ── End duplicate-email guard ──────────────────────────────────────────
+
     const { data, error } =
       await supabase.auth.signUp({
         email: email.trim(),
@@ -142,7 +162,19 @@ export const Login: React.FC<LoginProps> = ({
 
     if (error) {
       console.error('Student registration failed:', error);
-      setError(error.message);
+      // Map known Supabase duplicate-account error messages to friendly copy
+      const msg = error.message || '';
+      if (
+        msg.toLowerCase().includes('already registered') ||
+        msg.toLowerCase().includes('user already exists') ||
+        msg.toLowerCase().includes('email address is already used')
+      ) {
+        setError(
+          'This email address is already registered. Please log in or use a different email to create a new account.'
+        );
+      } else {
+        setError(msg);
+      }
       setLoading(false);
       return;
     }

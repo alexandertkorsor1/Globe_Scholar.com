@@ -296,6 +296,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         departments: member.departments,
         is_assistant: member.is_assistant,
         employment_status: member.employment_status,
+        working_country: member.working_country?.trim() || '',
         created_by: currentProfile.id,
       })
       .select()
@@ -332,6 +333,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         departments: member.departments,
         is_assistant: member.is_assistant,
         employment_status: member.employment_status,
+        working_country: member.working_country?.trim() || '',
       })
       .eq('id', memberId)
       .select()

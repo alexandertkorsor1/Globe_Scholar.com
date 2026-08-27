@@ -67,24 +67,33 @@ export const CrmRegister: React.FC<CrmRegisterProps> = ({
   onFilterChange,
   onDeleteApplication,
 }) => {
-  const filteredApps = applications.filter((app) => {
+  // Build the filtered list first, then deduplicate by student_id so each
+  // student appears exactly once — keeping their most recently touched application.
+  const preFiltered = applications.filter((app) => {
     if (filterType === 'all') return true;
     const intake = getApplicationIntake(app, students);
-    
-    if (filterType === 'students') {
-      return !!intake.student;
-    }
-    
-    if (filterType === 'pending') {
-      return !['approved', 'rejected'].includes(app.status);
-    }
-    
-    if (filterType === 'decided') {
-      return ['approved', 'rejected'].includes(app.status);
-    }
-    
+
+    if (filterType === 'students') return !!intake.student;
+    if (filterType === 'pending') return !['approved', 'rejected'].includes(app.status);
+    if (filterType === 'decided') return ['approved', 'rejected'].includes(app.status);
     return true;
   });
+
+  // One row per student_id — keep the application with the latest timestamp.
+  const seenStudents = new Map<string, Application>();
+  for (const app of preFiltered) {
+    const key = app.student_id || app.id; // fallback to app id when student_id absent
+    const existing = seenStudents.get(key);
+    if (!existing) {
+      seenStudents.set(key, app);
+    } else {
+      // Replace if this app was touched more recently
+      const existingTs = new Date(existing.updated_at || existing.created_at || 0).getTime();
+      const appTs = new Date(app.updated_at || app.created_at || 0).getTime();
+      if (appTs > existingTs) seenStudents.set(key, app);
+    }
+  }
+  const filteredApps = Array.from(seenStudents.values());
 
   return (
     <div className="glass-panel" style={{ padding: '20px' }}>

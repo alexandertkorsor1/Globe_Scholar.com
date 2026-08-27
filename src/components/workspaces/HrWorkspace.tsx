@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApplication } from '../../context/ApplicationContext';
 import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../lib/supabase';
 import { DashboardLayout } from '../dashboard/DashboardLayout';
 import { DepartmentTaskInbox } from '../shared/DepartmentTaskInbox';
 import {
@@ -30,7 +31,12 @@ import {
   Check,
   Phone,
   Mail,
-  AlertCircle
+  AlertCircle,
+  FileText,
+  Upload,
+  Download,
+  Eye,
+  BarChart3
 } from 'lucide-react';
 import { TrashBin } from '../shared/TrashBin';
 import {
@@ -82,7 +88,7 @@ export const HrWorkspace: React.FC = () => {
     document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   // State Management
-  const [activeSubTab, setActiveSubTab] = useState<'employees' | 'interviews' | 'leaves'>('employees');
+  const [activeSubTab, setActiveSubTab] = useState<'employees' | 'interviews' | 'leaves' | 'cvs'>('employees');
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -130,11 +136,17 @@ export const HrWorkspace: React.FC = () => {
 
   const [reviewLeaveNotes, setReviewLeaveNotes] = useState<Record<string, string>>({});
 
-  // Calculations
+  // CV Library state
+  const [cvPreviewUrl, setCvPreviewUrl] = useState<string | null>(null);
+  const [cvUploading, setCvUploading] = useState<string | null>(null); // employee id being uploaded
+  const cvFileInputRef = useRef<HTMLInputElement>(null);
+  const [cvUploadTargetEmpId, setCvUploadTargetEmpId] = useState<string | null>(null);
+
   const activeCount = hrEmployeeRecords.filter(e => e.status === 'active').length;
   const onLeaveCount = hrEmployeeRecords.filter(e => e.status === 'on_leave').length;
   const pendingInterviews = hrInterviews.filter(i => i.status === 'scheduled').length;
   const pendingLeaves = hrLeaveRequests.filter(l => l.status === 'pending').length;
+  const staffWithCv = hrEmployeeRecords.filter(e => !!e.cv_path).length;
 
   const avgKpiScore = departmentKpis.length > 0
     ? Math.round(departmentKpis.reduce((acc, curr) => acc + curr.total_score, 0) / departmentKpis.length)
@@ -150,6 +162,31 @@ export const HrWorkspace: React.FC = () => {
     const matchesStatus = statusFilter === 'all' || emp.status === statusFilter;
     return matchesSearch && matchesDept && matchesStatus;
   });
+
+  // CV upload handler
+  const handleCvUpload = async (empId: string, file: File) => {
+    if (!file || file.type !== 'application/pdf') {
+      alert('Please select a PDF file.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert('CV file must be under 10 MB.');
+      return;
+    }
+    setCvUploading(empId);
+    try {
+      const path = `hr-cvs/${empId}/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('department-reports')
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      await updateHrEmployeeRecord(empId, { cv_path: path, cv_file_name: file.name });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'CV upload failed.');
+    } finally {
+      setCvUploading(null);
+    }
+  };
 
   // Export Roster to Excel
   const exportToExcel = () => {
@@ -277,6 +314,7 @@ export const HrWorkspace: React.FC = () => {
   const sidebarNav = [
     { label: 'Executive Board', icon: <Sparkles style={{ width: 18, height: 18 }} />, active: true, onClick: () => goTo('hr-oversight') },
     { label: 'HR Workspace', icon: <Sliders style={{ width: 18, height: 18 }} />, onClick: () => goTo('hr-workspace-tabs') },
+    { label: 'Staff CV Library', icon: <FileText style={{ width: 18, height: 18 }} />, onClick: () => { goTo('hr-workspace-tabs'); setActiveSubTab('cvs'); } },
     { label: 'Directives Inbox', icon: <Briefcase style={{ width: 18, height: 18 }} />, onClick: () => goTo('hr-tasks') },
     { label: 'KPI Performance audits', icon: <Award style={{ width: 18, height: 18 }} />, onClick: () => goTo('hr-kpi-audits') },
     { label: 'Recycle Bin', icon: <Trash2 style={{ width: 18, height: 18 }} />, onClick: () => goTo('hr-trash') },
@@ -314,8 +352,8 @@ export const HrWorkspace: React.FC = () => {
         </div>
 
         {/* METRICS GRID */}
-        <div className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
-          
+        <div className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px' }}>
+
           <div className="glass-panel" style={{ padding: '18px', display: 'flex', alignItems: 'center', gap: '12px', borderRadius: '12px' }}>
             <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6' }}>
               <Users style={{ width: '20px', height: '20px' }} />
@@ -343,7 +381,7 @@ export const HrWorkspace: React.FC = () => {
               <Clock style={{ width: '20px', height: '20px' }} />
             </div>
             <div>
-              <span style={{ fontSize: '0.7rem', color: '#6b7280', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>Pending Leave Requests</span>
+              <span style={{ fontSize: '0.7rem', color: '#6b7280', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>Pending Leaves</span>
               <strong style={{ fontSize: '1.25rem', color: '#1f2937', display: 'block', marginTop: '2px' }}>{pendingLeaves}</strong>
               <span style={{ fontSize: '0.65rem', color: '#f59e0b', fontWeight: 600 }}>Needs Approval</span>
             </div>
@@ -360,70 +398,52 @@ export const HrWorkspace: React.FC = () => {
             </div>
           </div>
 
+          <div className="glass-panel" style={{ padding: '18px', display: 'flex', alignItems: 'center', gap: '12px', borderRadius: '12px', cursor: 'pointer' }} onClick={() => { goTo('hr-workspace-tabs'); setActiveSubTab('cvs'); }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'rgba(139, 92, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8b5cf6' }}>
+              <FileText style={{ width: '20px', height: '20px' }} />
+            </div>
+            <div>
+              <span style={{ fontSize: '0.7rem', color: '#6b7280', display: 'block', fontWeight: 600, textTransform: 'uppercase' }}>CVs on File</span>
+              <strong style={{ fontSize: '1.25rem', color: '#1f2937', display: 'block', marginTop: '2px' }}>{staffWithCv}</strong>
+              <span style={{ fontSize: '0.65rem', color: '#8b5cf6', fontWeight: 600 }}>of {hrEmployeeRecords.length} Staff</span>
+            </div>
+          </div>
+
         </div>
 
         {/* MAIN WORKSPACE TABS */}
         <div id="hr-workspace-tabs" className="glass-panel" style={{ padding: '20px', borderRadius: '12px' }}>
           
           {/* Subtabs bar */}
-          <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', paddingBottom: '8px', marginBottom: '20px', gap: '20px' }}>
-            <button
-              onClick={() => setActiveSubTab('employees')}
-              style={{
-                background: 'none',
-                border: 'none',
-                borderBottom: activeSubTab === 'employees' ? '2px solid #2563eb' : '2px solid transparent',
-                color: activeSubTab === 'employees' ? '#2563eb' : '#4b5563',
-                padding: '8px 12px',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '0.85rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <Users size={16} />
-              Employee Roster & Date Tracking
-            </button>
-            <button
-              onClick={() => setActiveSubTab('interviews')}
-              style={{
-                background: 'none',
-                border: 'none',
-                borderBottom: activeSubTab === 'interviews' ? '2px solid #2563eb' : '2px solid transparent',
-                color: activeSubTab === 'interviews' ? '#2563eb' : '#4b5563',
-                padding: '8px 12px',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '0.85rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <Calendar size={16} />
-              Interview Pipelines (Google Meet/Zoom)
-            </button>
-            <button
-              onClick={() => setActiveSubTab('leaves')}
-              style={{
-                background: 'none',
-                border: 'none',
-                borderBottom: activeSubTab === 'leaves' ? '2px solid #2563eb' : '2px solid transparent',
-                color: activeSubTab === 'leaves' ? '#2563eb' : '#4b5563',
-                padding: '8px 12px',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '0.85rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <Clock size={16} />
-              Leave Requests & Work Absences
-            </button>
+          <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', paddingBottom: '8px', marginBottom: '20px', gap: '4px', overflowX: 'auto' }}>
+            {[
+              { key: 'employees', icon: <Users size={15} />, label: 'Employee Roster & Dates' },
+              { key: 'interviews', icon: <Calendar size={15} />, label: 'Interview Pipelines' },
+              { key: 'leaves', icon: <Clock size={15} />, label: 'Leave Requests' },
+              { key: 'cvs', icon: <FileText size={15} />, label: 'Staff CV Library' },
+            ].map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveSubTab(tab.key as typeof activeSubTab)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  borderBottom: activeSubTab === tab.key ? '2px solid #2563eb' : '2px solid transparent',
+                  color: activeSubTab === tab.key ? '#2563eb' : '#4b5563',
+                  padding: '8px 14px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.83rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            ))}
           </div>
 
           {/* TAB 1: EMPLOYEE ROSTER & DATE TRACKING */}
@@ -898,6 +918,131 @@ export const HrWorkspace: React.FC = () => {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+
+          {/* TAB 4: STAFF CV LIBRARY */}
+          {activeSubTab === 'cvs' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '0.92rem', color: '#111827', fontWeight: 700 }}>📁 Staff CV Library</h4>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#6b7280' }}>
+                    Upload and review CV documents (PDF) for every staff member. Click <strong>View PDF</strong> to read inline or <strong>Download</strong> to save.
+                  </p>
+                </div>
+                <span style={{ fontSize: '0.75rem', color: '#8b5cf6', fontWeight: 600, background: 'rgba(139,92,246,0.08)', padding: '4px 10px', borderRadius: '20px', border: '1px solid rgba(139,92,246,0.2)' }}>
+                  {staffWithCv} / {hrEmployeeRecords.length} CVs uploaded
+                </span>
+              </div>
+
+              {hrEmployeeRecords.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '48px', border: '1px dashed #e5e7eb', borderRadius: '10px', color: '#9ca3af' }}>
+                  <FileText size={32} style={{ margin: '0 auto 10px', opacity: 0.3 }} />
+                  <p style={{ margin: 0 }}>No employee records found. Add employees first.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {/* Hidden file input */}
+                  <input
+                    ref={cvFileInputRef}
+                    type="file"
+                    accept="application/pdf"
+                    style={{ display: 'none' }}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file && cvUploadTargetEmpId) {
+                        await handleCvUpload(cvUploadTargetEmpId, file);
+                        e.target.value = '';
+                      }
+                    }}
+                  />
+
+                  {hrEmployeeRecords.map(emp => {
+                    const publicUrl = emp.cv_path
+                      ? supabase.storage.from('department-reports').getPublicUrl(emp.cv_path).data?.publicUrl
+                      : null;
+                    const isOpen = cvPreviewUrl === publicUrl && !!publicUrl;
+
+                    return (
+                      <div key={emp.id} style={{ borderRadius: '10px', border: '1px solid #e5e7eb', overflow: 'hidden', background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+                        {/* Row header */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', flexWrap: 'wrap', gap: '10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: emp.cv_path ? 'rgba(139,92,246,0.1)' : '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <FileText size={16} color={emp.cv_path ? '#8b5cf6' : '#d1d5db'} />
+                            </div>
+                            <div>
+                              <strong style={{ fontSize: '0.85rem', color: '#111827' }}>{emp.full_name}</strong>
+                              <div style={{ fontSize: '0.72rem', color: '#6b7280', marginTop: '2px' }}>
+                                {emp.job_title} — {DEPARTMENT_LABELS[emp.department] || emp.department}
+                              </div>
+                              {emp.cv_file_name && (
+                                <div style={{ fontSize: '0.7rem', color: '#8b5cf6', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <FileText size={11} /> {emp.cv_file_name}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                            {/* Upload / Replace CV */}
+                            <button
+                              type="button"
+                              disabled={cvUploading === emp.id}
+                              onClick={() => { setCvUploadTargetEmpId(emp.id); cvFileInputRef.current?.click(); }}
+                              style={{ fontSize: '0.72rem', padding: '5px 12px', borderRadius: '6px', border: '1px solid #d1d5db', background: '#f9fafb', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 600, color: '#374151' }}
+                            >
+                              <Upload size={13} />
+                              {cvUploading === emp.id ? 'Uploading…' : emp.cv_path ? 'Replace CV' : 'Upload CV'}
+                            </button>
+
+                            {/* View PDF */}
+                            {publicUrl && (
+                              <button
+                                type="button"
+                                onClick={() => setCvPreviewUrl(isOpen ? null : publicUrl)}
+                                style={{ fontSize: '0.72rem', padding: '5px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: isOpen ? '#1e293b' : '#0ea5e9', color: '#fff', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                              >
+                                <Eye size={13} />
+                                {isOpen ? '▲ Close' : 'View PDF'}
+                              </button>
+                            )}
+
+                            {/* Download */}
+                            {publicUrl && (
+                              <a
+                                href={publicUrl}
+                                download={emp.cv_file_name || 'cv.pdf'}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{ fontSize: '0.72rem', padding: '5px 12px', borderRadius: '6px', background: '#059669', color: '#fff', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                              >
+                                <Download size={13} /> Download
+                              </a>
+                            )}
+
+                            {!emp.cv_path && (
+                              <span style={{ fontSize: '0.7rem', color: '#f59e0b', fontWeight: 600 }}>⚠ No CV on file</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Inline PDF viewer */}
+                        {isOpen && publicUrl && (
+                          <div style={{ borderTop: '1px solid #e5e7eb', background: '#f8fafc' }}>
+                            <iframe
+                              src={publicUrl}
+                              title={emp.cv_file_name || 'CV'}
+                              style={{ width: '100%', height: '560px', border: 'none', display: 'block' }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
