@@ -108,6 +108,8 @@ export const AdminWorkspace: React.FC = () => {
     createDepartmentMember,
     updateDepartmentMember,
     deleteDepartmentMember,
+    availableProfiles,
+    deleteUserProfileAccount,
   } = useAuth();
   const {
   applications,
@@ -1410,6 +1412,91 @@ export const AdminWorkspace: React.FC = () => {
                 </table>
               </div>
             )}
+          </div>
+
+          {/* User Accounts Management Panel */}
+          <div className="glass-panel" style={{ padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Users size={18} color="#2563eb" />
+                <h3 style={{ margin: 0, fontSize: '0.98rem' }}>Registered User Accounts</h3>
+              </div>
+              <span className="badge badge-submitted">{availableProfiles.length} Total Accounts</span>
+            </div>
+
+            <p style={{ margin: '0 0 16px', fontSize: '0.78rem', color: '#64748b' }}>
+              Below is the list of all registered profile accounts in Globe Scholars Pathways. Administrators can delete any account, which will permanently revoke their portal access and remove their credentials.
+            </p>
+
+            <div className="custom-table-container">
+              <table className="custom-table">
+                <thead>
+                  <tr>
+                    <th>User Profile</th>
+                    <th>Department</th>
+                    <th>Account Type</th>
+                    <th>Administrative Role</th>
+                    <th aria-label="Actions" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {availableProfiles.map((p) => {
+                    const isSelf = p.id === currentProfile.id;
+                    return (
+                      <tr key={p.id}>
+                        <td>
+                          <strong style={{ display: 'block', color: '#0f172a' }}>{p.full_name}</strong>
+                          <span style={{ color: '#64748b', fontSize: '12px' }}>{p.email}</span>
+                        </td>
+                        <td>
+                          <span className="badge badge-under_review">
+                            {p.department.toUpperCase().replace('_', ' ')}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`badge ${p.account_type === 'staff' ? 'badge-submitted' : p.account_type === 'student' ? 'badge-documents_verified' : 'badge-draft'}`}>
+                            {p.account_type || 'unassigned'}
+                          </span>
+                        </td>
+                        <td>
+                          {p.is_admin ? (
+                            <span className="badge badge-approved" style={{ fontWeight: 700 }}>Administrator</span>
+                          ) : (
+                            <span style={{ color: '#64748b', fontSize: '13px' }}>Standard User</span>
+                          )}
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="btn btn-danger btn-sm"
+                            disabled={isSelf}
+                            style={{
+                              padding: '6px 12px',
+                              background: isSelf ? 'rgba(255,255,255,0.03)' : 'rgba(239, 68, 68, 0.1)',
+                              borderColor: isSelf ? 'transparent' : 'rgba(239, 68, 68, 0.2)',
+                              color: isSelf ? '#64748b' : '#ef4444',
+                              cursor: isSelf ? 'not-allowed' : 'pointer'
+                            }}
+                            onClick={async () => {
+                              if (confirm(`Are you absolutely sure you want to permanently delete the account for ${p.full_name} (${p.email})? This action is irreversible.`)) {
+                                try {
+                                  await deleteUserProfileAccount(p.id);
+                                } catch (err) {
+                                  alert(err instanceof Error ? err.message : 'Failed to delete user account.');
+                                }
+                              }
+                            }}
+                          >
+                            <Trash2 size={13} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                            Delete Account
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

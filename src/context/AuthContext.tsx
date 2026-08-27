@@ -43,6 +43,7 @@ interface AuthContextType {
     member: DepartmentMemberInput
   ) => Promise<DepartmentMember>;
   deleteDepartmentMember: (memberId: string) => Promise<void>;
+  deleteUserProfileAccount: (profileId: string) => Promise<void>;
 
   switchProfile: (profileId: string) => void;
 
@@ -368,6 +369,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     );
   };
 
+  const deleteUserProfileAccount = async (profileId: string) => {
+    if (!currentProfile?.is_admin) {
+      throw new Error('Only administrators can delete user accounts.');
+    }
+
+    if (profileId === currentProfile.id) {
+      throw new Error('You cannot delete your own administrative account.');
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', profileId);
+
+    if (error) {
+      throw new Error(error.message || 'The user account could not be deleted.');
+    }
+
+    setAvailableProfiles((current) =>
+      current.filter((profile) => profile.id !== profileId)
+    );
+  };
+
   /**
    * Admin profile switching.
    */
@@ -436,6 +460,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           createDepartmentMember,
           updateDepartmentMember,
           deleteDepartmentMember,
+          deleteUserProfileAccount,
           switchProfile,
           isStudentMode,
           setStudentMode:
@@ -470,6 +495,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           createDepartmentMember,
           updateDepartmentMember,
           deleteDepartmentMember,
+          deleteUserProfileAccount,
           switchProfile,
           isStudentMode,
           setStudentMode:
