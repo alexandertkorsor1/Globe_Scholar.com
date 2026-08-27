@@ -43,7 +43,8 @@ import {
   UniversityCourse,
   Scholarship,
   UniversityBrochure,
-  StudentEmail
+  StudentEmail,
+  MarketingPost
 } from '../types/database';
 import {
   INITIAL_APPLICATIONS,
@@ -215,6 +216,9 @@ getDepartmentReportDownloadUrl: (
   deleteUniversityBrochure: (id: string) => Promise<void>;
   studentEmails: StudentEmail[];
   sendStudentEmail: (studentId: string, recipientEmail: string, subject: string, body: string, senderName: string) => Promise<StudentEmail>;
+  marketingPosts: MarketingPost[];
+  addMarketingPost: (post: Omit<MarketingPost, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>) => Promise<MarketingPost>;
+  deleteMarketingPost: (id: string) => Promise<void>;
 }
 
 const ApplicationContext = createContext<ApplicationContextType | undefined>(undefined);
@@ -382,6 +386,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [scholarships, setScholarships] = useState<Scholarship[]>([]);
   const [universityBrochures, setUniversityBrochures] = useState<UniversityBrochure[]>([]);
   const [studentEmails, setStudentEmails] = useState<StudentEmail[]>([]);
+  const [marketingPosts, setMarketingPosts] = useState<MarketingPost[]>([]);
 
   useEffect(() => {
     if (loading) return;
@@ -656,6 +661,20 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       }
     };
 
+    const loadMarketingPosts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('marketing_posts')
+          .select('*')
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        setMarketingPosts((data || []) as MarketingPost[]);
+      } catch (err) {
+        console.error('Error loading marketing posts:', err);
+      }
+    };
+
     const loadDepartmentReports = async () => {
       if (
         !currentProfile?.id ||
@@ -786,6 +805,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     loadScholarships();
     loadUniversityBrochures();
     loadStudentEmails();
+    loadMarketingPosts();
     loadDepartmentReports();
     loadDepartmentKpis();
 
@@ -890,6 +910,19 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     };
 
     loadWorkAssignments();
+
+    const marketingChannel = supabase
+      .channel('marketing-posts-live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'marketing_posts' },
+        () => void loadMarketingPosts()
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(marketingChannel);
+    };
   }, [
     loading,
     currentProfile?.id,
@@ -3182,7 +3215,87 @@ const createApplication = async (
       }
     }
 
-    // 3. HR Employee Records
+    // 3. University Courses
+    if (isAdmin || ['admissions', 'counseling', 'marketing'].includes(departmentKey)) {
+      const { data } = await supabase
+        .from('university_courses')
+        .select('id, course_name, admission_fee, tuition_fee, deleted_at')
+        .not('deleted_at', 'is', null);
+      if (data) {
+        data.forEach(item => {
+          items.push({
+            id: item.id,
+            type: 'course' as any,
+            display_name: `Course: ${item.course_name} (Admission: $${item.admission_fee})`,
+            department: 'admin',
+            deleted_at: item.deleted_at,
+            original_table: 'university_courses'
+          });
+        });
+      }
+    }
+
+    // 4. Scholarships
+    if (isAdmin || ['admissions', 'counseling', 'marketing'].includes(departmentKey)) {
+      const { data } = await supabase
+        .from('scholarships')
+        .select('id, name, coverage_amount, deleted_at')
+        .not('deleted_at', 'is', null);
+      if (data) {
+        data.forEach(item => {
+          items.push({
+            id: item.id,
+            type: 'scholarship' as any,
+            display_name: `Scholarship: ${item.name}`,
+            department: 'admin',
+            deleted_at: item.deleted_at,
+            original_table: 'scholarships'
+          });
+        });
+      }
+    }
+
+    // 5. University Brochures
+    if (isAdmin || ['admissions', 'marketing', 'counseling'].includes(departmentKey)) {
+      const { data } = await supabase
+        .from('university_brochures')
+        .select('id, title, file_name, storage_path, deleted_at')
+        .not('deleted_at', 'is', null);
+      if (data) {
+        data.forEach(item => {
+          items.push({
+            id: item.id,
+            type: 'brochure' as any,
+            display_name: `Brochure: ${item.title} (${item.file_name})`,
+            department: 'admissions',
+            deleted_at: item.deleted_at,
+            original_table: 'university_brochures'
+          });
+        });
+      }
+    }
+
+    // 6. Marketing Posts
+    if (isAdmin || departmentKey === 'marketing') {
+      const { data } = await supabase
+        .from('marketing_posts')
+        .select('id, title, category, deleted_at')
+        .not('deleted_at', 'is', null);
+      if (data) {
+        data.forEach(item => {
+          items.push({
+            id: item.id,
+            type: 'marketing_post' as any,
+            display_name: `Marketing Post: ${item.title} [${item.category.toUpperCase()}]`,
+            department: 'marketing',
+            deleted_at: item.deleted_at,
+            original_table: 'marketing_posts'
+          });
+        });
+      }
+    }
+
+    // 7. HR Employee Records
     if (isAdmin || departmentKey === 'human_resources') {
       const { data } = await supabase
         .from('hr_employee_records')
@@ -3204,7 +3317,7 @@ const createApplication = async (
       }
     }
 
-    // 4. Visa Documents
+    // 8. Visa Documents
     if (isAdmin || departmentKey === 'counseling' || departmentKey === 'admissions') {
       const { data } = await supabase
         .from('student_visa_documents')
@@ -3224,7 +3337,7 @@ const createApplication = async (
       }
     }
 
-    // 5. Staff Members
+    // 9. Staff Members
     if (isAdmin) {
       const { data } = await supabase
         .from('department_members')
@@ -3244,7 +3357,7 @@ const createApplication = async (
       }
     }
 
-    // 6. Monthly Meetings
+    // 10. Monthly Meetings
     if (isAdmin || ['admin', 'operations', 'management'].includes(departmentKey)) {
       const { data } = await supabase
         .from('monthly_meetings')
@@ -3264,7 +3377,7 @@ const createApplication = async (
       }
     }
 
-    // 7. Applications
+    // 11. Applications
     if (isAdmin || ['counseling', 'admissions', 'data_applications', 'operations', 'management'].includes(departmentKey)) {
       const { data } = await supabase
         .from('applications')
@@ -3291,6 +3404,10 @@ const createApplication = async (
     let tableName = '';
     if (type === 'kpi') tableName = 'department_kpis';
     else if (type === 'partner') tableName = 'partner_universities';
+    else if (type === 'course') tableName = 'university_courses';
+    else if (type === 'scholarship') tableName = 'scholarships';
+    else if (type === 'brochure') tableName = 'university_brochures';
+    else if (type === 'marketing_post') tableName = 'marketing_posts';
     else if (type === 'employee') tableName = 'hr_employee_records';
     else if (type === 'visa_document') tableName = 'student_visa_documents';
     else if (type === 'staff_member') tableName = 'department_members';
@@ -3306,13 +3423,28 @@ const createApplication = async (
 
     if (error) throw error;
 
-    // Reload active states
+    // Reload active states interactively
     if (type === 'kpi') {
       const { data } = await supabase.from('department_kpis').select('*').is('deleted_at', null);
       if (data) setDepartmentKpis(data);
     } else if (type === 'partner') {
-      const { data } = await supabase.from('partner_universities').select('*').is('deleted_at', null);
-      if (data) setPartnerUniversities(data);
+      const { data: universities } = await supabase.from('partner_universities').select('*').is('deleted_at', null).order('created_at', { ascending: false });
+      const { data: agreements } = await supabase.from('partner_agreements').select('*').order('created_at', { ascending: false });
+      if (universities) {
+        setPartnerUniversities(universities.map(p => ({ ...p, agreements: (agreements || []).filter(a => a.partner_id === p.id) })));
+      }
+    } else if (type === 'course') {
+      const { data } = await supabase.from('university_courses').select('*').is('deleted_at', null).order('course_name', { ascending: true });
+      if (data) setUniversityCourses(data.map(c => ({ ...c, admission_fee: Number(c.admission_fee), tuition_fee: Number(c.tuition_fee) })));
+    } else if (type === 'scholarship') {
+      const { data } = await supabase.from('scholarships').select('*').is('deleted_at', null).order('name', { ascending: true });
+      if (data) setScholarships(data.map(s => ({ ...s, coverage_amount: Number(s.coverage_amount), coverage_percentage: s.coverage_percentage ? Number(s.coverage_percentage) : null })));
+    } else if (type === 'brochure') {
+      const { data } = await supabase.from('university_brochures').select('*').is('deleted_at', null).order('created_at', { ascending: false });
+      if (data) setUniversityBrochures(data as UniversityBrochure[]);
+    } else if (type === 'marketing_post') {
+      const { data } = await supabase.from('marketing_posts').select('*').is('deleted_at', null).order('created_at', { ascending: false });
+      if (data) setMarketingPosts(data as MarketingPost[]);
     } else if (type === 'employee') {
       const { data } = await supabase.from('hr_employee_records').select('*').is('deleted_at', null);
       if (data) setHrEmployeeRecords(data);
@@ -3329,6 +3461,10 @@ const createApplication = async (
     let tableName = '';
     if (type === 'kpi') tableName = 'department_kpis';
     else if (type === 'partner') tableName = 'partner_universities';
+    else if (type === 'course') tableName = 'university_courses';
+    else if (type === 'scholarship') tableName = 'scholarships';
+    else if (type === 'brochure') tableName = 'university_brochures';
+    else if (type === 'marketing_post') tableName = 'marketing_posts';
     else if (type === 'employee') tableName = 'hr_employee_records';
     else if (type === 'visa_document') tableName = 'student_visa_documents';
     else if (type === 'staff_member') tableName = 'department_members';
@@ -3336,6 +3472,18 @@ const createApplication = async (
     else if (type === 'application') tableName = 'applications';
 
     if (!tableName) throw new Error('Unsupported item type for permanent delete.');
+
+    // If brochure, clean up file
+    if (type === 'brochure') {
+      const { data: b } = await supabase.from('university_brochures').select('storage_path').eq('id', id).single();
+      if (b?.storage_path) {
+        try {
+          await supabase.storage.from('department-reports').remove([b.storage_path]);
+        } catch (storageErr) {
+          console.warn('Storage removal failed:', storageErr);
+        }
+      }
+    }
 
     const { error } = await supabase
       .from(tableName)
@@ -3549,12 +3697,6 @@ const createApplication = async (
       throw new Error(error.message);
     }
 
-    try {
-      await supabase.storage.from('department-reports').remove([brochure.storage_path]);
-    } catch (err) {
-      console.warn('Failed to clean up brochure file from storage:', err);
-    }
-
     setUniversityBrochures(prev => prev.filter(b => b.id !== id));
     logAudit('DELETE_UNIVERSITY_BROCHURE', 'university_brochures', id, null, null);
   };
@@ -3580,6 +3722,80 @@ const createApplication = async (
     const newEmail = data as StudentEmail;
     setStudentEmails(prev => [newEmail, ...prev]);
     return newEmail;
+  };
+
+  const addMarketingPost = async (post: Omit<MarketingPost, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>): Promise<MarketingPost> => {
+    if (!currentProfile?.id) throw new Error('Not authenticated.');
+
+    const { data, error } = await supabase
+      .from('marketing_posts')
+      .insert({
+        title: post.title.trim(),
+        content: post.content.trim(),
+        category: post.category,
+        platform: post.platform,
+        external_link: post.external_link?.trim() || null,
+        target_audience: post.target_audience?.trim() || null,
+        author_id: currentProfile.id,
+        author_name: post.author_name || currentProfile.full_name || 'Marketing Team',
+        author_role: post.author_role || 'Marketing'
+      })
+      .select('*')
+      .single();
+
+    if (error || !data) {
+      console.error('Failed to create marketing post:', error);
+      throw new Error(error?.message || 'Failed to publish marketing post.');
+    }
+
+    const newPost = data as MarketingPost;
+    setMarketingPosts(prev => [newPost, ...prev]);
+
+    // Automatically send broadcast notification to Admissions and Counseling
+    try {
+      await supabase.from('department_communications').insert([
+        {
+          sender_id: currentProfile.id,
+          sender_name: currentProfile.full_name || 'Marketing Department',
+          sender_department: 'marketing',
+          recipient_department: 'admissions',
+          type: 'alert',
+          title: `📢 Marketing Update: ${newPost.title}`,
+          body: `Marketing published a new [${newPost.category.toUpperCase()}] update for ${newPost.platform.toUpperCase()}: "${newPost.content.slice(0, 180)}..."`,
+          priority: 'medium'
+        },
+        {
+          sender_id: currentProfile.id,
+          sender_name: currentProfile.full_name || 'Marketing Department',
+          sender_department: 'marketing',
+          recipient_department: 'counseling',
+          type: 'alert',
+          title: `📢 Marketing Update: ${newPost.title}`,
+          body: `Marketing published a new [${newPost.category.toUpperCase()}] update for ${newPost.platform.toUpperCase()}: "${newPost.content.slice(0, 180)}..."`,
+          priority: 'medium'
+        }
+      ]);
+    } catch (commErr) {
+      console.warn('Cross-department notification notice skipped:', commErr);
+    }
+
+    logAudit('CREATE_MARKETING_POST', 'marketing_posts', newPost.id, null, { title: newPost.title });
+    return newPost;
+  };
+
+  const deleteMarketingPost = async (id: string): Promise<void> => {
+    const { error } = await supabase
+      .from('marketing_posts')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Failed to delete marketing post:', error);
+      throw new Error(error.message);
+    }
+
+    setMarketingPosts(prev => prev.filter(p => p.id !== id));
+    logAudit('DELETE_MARKETING_POST', 'marketing_posts', id, null, null);
   };
 
   return (
@@ -3668,6 +3884,9 @@ const createApplication = async (
         deleteUniversityBrochure,
         studentEmails,
         sendStudentEmail,
+        marketingPosts,
+        addMarketingPost,
+        deleteMarketingPost,
       }}
     >
       {children}

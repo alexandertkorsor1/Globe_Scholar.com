@@ -6,6 +6,7 @@ import { DollarSign, ShieldAlert, CheckCircle2, Lock, FileSpreadsheet, Plus, Rec
 import { formatUsd, getApplicationIntake, getRegistrationFeeSummary, REGISTRATION_FEE_TARGET_USD } from '../../lib/department-registers';
 import type { FinancialRecord } from '../../types/database';
 import { DepartmentTaskInbox } from '../shared/DepartmentTaskInbox';
+import { TrashBin } from '../shared/TrashBin';
 
 export const FinanceWorkspace: React.FC = () => {
   const {
@@ -380,6 +381,11 @@ export const FinanceWorkspace: React.FC = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Finance Recycle Bin */}
+      <div id="finance-trash">
+        <TrashBin departmentKey="finance" />
       </div>
 
       {/* Modal: Approve Financial Disbursement */}

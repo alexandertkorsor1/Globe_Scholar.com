@@ -207,6 +207,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     };
 
     loadAvailableProfiles();
+
+    const channel = supabase
+      .channel('admin-staff-directory-sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'department_members' },
+        () => void loadAvailableProfiles()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        () => void loadAvailableProfiles()
+      )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
   }, [
     currentProfile?.id,
     currentProfile?.is_admin,

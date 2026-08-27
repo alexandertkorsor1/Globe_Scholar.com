@@ -9,6 +9,7 @@ import { getApplicationIntake } from '../../lib/department-registers';
 import { CrmRegister } from '../shared/CrmRegister';
 import { KpiPerformanceTracker } from '../shared/KpiPerformanceTracker';
 import { DepartmentTaskInbox } from '../shared/DepartmentTaskInbox';
+import { TrashBin } from '../shared/TrashBin';
 
 export const DataApplicationsWorkspace: React.FC = () => {
   const {
@@ -249,6 +250,11 @@ export const DataApplicationsWorkspace: React.FC = () => {
           <DocumentManager applicationId={selectedApp.id} />
         </div>
       )}
+
+      {/* Data Applications Recycle Bin */}
+      <div id="data-apps-trash">
+        <TrashBin departmentKey="data_applications" />
+      </div>
 
     </div>
     </DashboardLayout>

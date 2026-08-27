@@ -46,7 +46,18 @@ import {
   EyeOff,
   ClipboardList,
   BookOpen,
-  Mail
+  Mail,
+  Search,
+  Filter,
+  CheckCircle2,
+  XCircle,
+  ShieldAlert,
+  Sparkles,
+  Lock,
+  Unlock,
+  UserCheck,
+  UserX,
+  Check
 } from 'lucide-react';
 
 const DEPARTMENT_OPTIONS: Array<{ value: DepartmentType; label: string }> = [
@@ -227,11 +238,24 @@ export const AdminWorkspace: React.FC = () => {
   const [departmentMemberError, setDepartmentMemberError] = useState('');
   const [departmentMemberNotice, setDepartmentMemberNotice] = useState('');
 
-  // New partner state
+  // Staff Directory & RBAC Interactive State
+  const [staffSearchTerm, setStaffSearchTerm] = useState('');
+  const [staffDepartmentFilter, setStaffDepartmentFilter] = useState<string>('all');
+  const [staffStatusFilter, setStaffStatusFilter] = useState<string>('all');
+  const [selectedStaffDossier, setSelectedStaffDossier] = useState<DepartmentMember | null>(null);
+  const [showRbacMatrixModal, setShowRbacMatrixModal] = useState(false);
+  const [togglingStaffId, setTogglingStaffId] = useState<string | null>(null);
+
+  // New partner state with initial courses builder
   const [pName, setPName] = useState('');
   const [pCountry, setPCountry] = useState('United Kingdom');
   const [pEmail, setPEmail] = useState('');
   const [pScholarships, setPScholarships] = useState(10);
+  const [pCourses, setPCourses] = useState<Array<{ id: string; course_name: string; admission_fee: string; tuition_fee: string }>>([
+    { id: 'c-1', course_name: '', admission_fee: '150.00', tuition_fee: '3000.00' }
+  ]);
+  const [addingPartner, setAddingPartner] = useState(false);
+  const [addPartnerError, setAddPartnerError] = useState('');
 
   // Partner agreement upload state
   const [uploadingPartnerId, setUploadingPartnerId] = useState<string | null>(null);
@@ -317,15 +341,19 @@ export const AdminWorkspace: React.FC = () => {
   };
 
 
-    const handleAddPartner = async (e: React.FormEvent) => {
+  const handleAddPartner = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!pName.trim() || !pCountry.trim() || !pEmail.trim()) {
+      setAddPartnerError('Please complete university name, country, and contact email.');
       return;
     }
 
     try {
-      await addPartnerUniversity({
+      setAddingPartner(true);
+      setAddPartnerError('');
+
+      const newPartner = await addPartnerUniversity({
         name: pName.trim(),
         country: pCountry.trim(),
         contact_email: pEmail.trim(),
@@ -334,18 +362,42 @@ export const AdminWorkspace: React.FC = () => {
         agreements: []
       });
 
+      // Add all courses entered in the form
+      let coursesAddedCount = 0;
+      for (const c of pCourses) {
+        if (c.course_name.trim()) {
+          try {
+            await addUniversityCourse({
+              university_id: newPartner.id,
+              course_name: c.course_name.trim(),
+              admission_fee: Number(c.admission_fee) || 0,
+              tuition_fee: Number(c.tuition_fee) || 0
+            });
+            coursesAddedCount++;
+          } catch (courseErr) {
+            console.error('Failed to add initial course:', courseErr);
+          }
+        }
+      }
+
       setShowAddPartnerModal(false);
       setPName('');
       setPCountry('United Kingdom');
       setPEmail('');
       setPScholarships(10);
+      setPCourses([
+        { id: `c-${Date.now()}`, course_name: '', admission_fee: '150.00', tuition_fee: '3000.00' }
+      ]);
+      alert(`Partner University "${newPartner.name}" added successfully${coursesAddedCount > 0 ? ` with ${coursesAddedCount} course offering(s)` : ''}!`);
     } catch (error) {
       console.error('Failed to add partner university:', error);
-      alert(
+      setAddPartnerError(
         error instanceof Error
           ? error.message
           : 'Failed to add partner university.'
       );
+    } finally {
+      setAddingPartner(false);
     }
   };
 
@@ -561,6 +613,29 @@ export const AdminWorkspace: React.FC = () => {
     }
   };
 
+  const handleToggleStaffStatus = async (member: DepartmentMember) => {
+    try {
+      setTogglingStaffId(member.id);
+      const nextStatus = member.employment_status === 'active' ? 'inactive' : 'active';
+      await updateDepartmentMember(member.id, {
+        full_name: member.full_name,
+        email: member.email,
+        job_title: member.job_title,
+        primary_department: member.primary_department,
+        departments: member.departments,
+        is_assistant: member.is_assistant,
+        employment_status: nextStatus,
+        working_country: member.working_country || ''
+      });
+      setDepartmentMemberNotice(`Status for ${member.full_name} updated to ${nextStatus.toUpperCase()}.`);
+    } catch (err) {
+      console.error('Failed to toggle staff status:', err);
+      alert('Failed to update staff status.');
+    } finally {
+      setTogglingStaffId(null);
+    }
+  };
+
   const sidebarNav = [
     { label: 'Overview', icon: <LayoutDashboard style={{ width: 18, height: 18 }} />, active: activeTab === 'kpis', onClick: () => setActiveTab('kpis') },
     { label: 'CRM', icon: <BriefcaseBusiness style={{ width: 18, height: 18 }} />, active: activeTab === 'crm', onClick: () => setActiveTab('crm') },
@@ -644,59 +719,78 @@ export const AdminWorkspace: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
           {/* Executive Stat Grid */}
-          <div className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+          <div className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '14px' }}>
             <div
               className="glass-panel glass-panel-interactive animate-scale-up"
-              style={{ padding: '18px', cursor: 'pointer', transition: 'all 0.2s ease-in-out' }}
+              style={{ padding: '16px', cursor: 'pointer', transition: 'all 0.2s ease-in-out' }}
               onClick={() => {
                 setActiveTab('crm');
                 setCrmFilter('all');
               }}
             >
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Total Applications</span>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#6366f1', marginTop: '4px' }}>{totalApps}</div>
-              <span style={{ fontSize: '0.7rem', color: '#34d399' }}>Across 8 departments</span>
+              <span style={{ fontSize: '0.74rem', color: '#94a3b8', display: 'block' }}>Total Applications</span>
+              <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#6366f1', marginTop: '4px' }}>{totalApps}</div>
+              <span style={{ fontSize: '0.68rem', color: '#34d399' }}>Across 8 departments</span>
             </div>
 
             <div
               className="glass-panel glass-panel-interactive animate-scale-up"
-              style={{ padding: '18px', cursor: 'pointer', transition: 'all 0.2s ease-in-out' }}
+              style={{ padding: '16px', cursor: 'pointer', transition: 'all 0.2s ease-in-out' }}
               onClick={() => {
                 setActiveTab('crm');
                 setCrmFilter('students');
               }}
             >
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Active Students</span>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#06b6d4', marginTop: '4px' }}>{activeStudents}</div>
-              <span style={{ fontSize: '0.7rem', color: '#38bdf8' }}>Registered on Portal</span>
+              <span style={{ fontSize: '0.74rem', color: '#94a3b8', display: 'block' }}>Active Students</span>
+              <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#06b6d4', marginTop: '4px' }}>{activeStudents}</div>
+              <span style={{ fontSize: '0.68rem', color: '#38bdf8' }}>Registered on Portal</span>
             </div>
 
             <div
               className="glass-panel glass-panel-interactive animate-scale-up"
-              style={{ padding: '18px', cursor: 'pointer', transition: 'all 0.2s ease-in-out' }}
+              style={{ padding: '16px', cursor: 'pointer', transition: 'all 0.2s ease-in-out' }}
               onClick={() => {
                 setActiveTab('crm');
                 setCrmFilter('pending');
               }}
             >
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Pending Reviews</span>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#f59e0b', marginTop: '4px' }}>{pendingApps}</div>
-              <span style={{ fontSize: '0.7rem', color: '#fbbf24' }}>Requires Department Action</span>
+              <span style={{ fontSize: '0.74rem', color: '#94a3b8', display: 'block' }}>Pending Reviews</span>
+              <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#f59e0b', marginTop: '4px' }}>{pendingApps}</div>
+              <span style={{ fontSize: '0.68rem', color: '#fbbf24' }}>Requires Action</span>
             </div>
 
             <div
               className="glass-panel glass-panel-interactive animate-scale-up"
-              style={{ padding: '18px', cursor: 'pointer', transition: 'all 0.2s ease-in-out' }}
+              style={{ padding: '16px', cursor: 'pointer', transition: 'all 0.2s ease-in-out' }}
               onClick={() => {
                 setActiveTab('crm');
                 setCrmFilter('decided');
               }}
             >
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Approved / Rejected</span>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#10b981', marginTop: '4px' }}>
-                {approvedCount} <span style={{ fontSize: '1rem', color: '#f43f5e' }}>/ {rejectedCount}</span>
+              <span style={{ fontSize: '0.74rem', color: '#94a3b8', display: 'block' }}>Decisions Rendered</span>
+              <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#10b981', marginTop: '4px' }}>
+                {approvedCount} <span style={{ fontSize: '0.9rem', color: '#f43f5e' }}>/ {rejectedCount}</span>
               </div>
-              <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Final Decisions Rendered</span>
+              <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Approved / Rejected</span>
+            </div>
+
+            <div
+              className="glass-panel glass-panel-interactive animate-scale-up"
+              style={{ padding: '16px', cursor: 'pointer', transition: 'all 0.2s ease-in-out', border: '1px solid rgba(168, 85, 247, 0.3)', background: 'rgba(168, 85, 247, 0.06)' }}
+              onClick={() => {
+                setActiveTab('staff');
+                setStaffDepartmentFilter('all');
+                setStaffStatusFilter('all');
+              }}
+            >
+              <span style={{ fontSize: '0.74rem', color: '#c084fc', display: 'block', fontWeight: 600 }}>Staff Directory & RBAC</span>
+              <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#a855f7', marginTop: '4px' }}>
+                {departmentMembers.length}
+                <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 600, marginLeft: '6px' }}>
+                  ({departmentMembers.filter(m => m.employment_status === 'active').length} Active)
+                </span>
+              </div>
+              <span style={{ fontSize: '0.68rem', color: '#d8b4fe' }}>Manage Roles & RBAC →</span>
             </div>
           </div>
 
@@ -1416,50 +1510,212 @@ export const AdminWorkspace: React.FC = () => {
       {/* Tab 4: Staff Accounts & RBAC Matrix */}
       {activeTab === 'staff' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          
+          {/* Header & Quick Action Banner */}
           <div className="glass-panel" style={{ padding: '20px 24px' }}>
-            <div className="admin-team-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '18px' }}>
+            <div className="admin-team-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '18px', flexWrap: 'wrap' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Users2 size={20} color="#2563eb" />
-                  <h3 style={{ margin: 0, fontSize: '1.05rem' }}>Team directory & department assignments</h3>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #2563eb, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                    <Users2 size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>
+                      Staff Accounts, Department Roles & RBAC Matrix
+                    </h3>
+                    <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#94a3b8' }}>
+                      Central administrative directory for staff oversight, department assignments, regional country directors, and role-based access control.
+                    </p>
+                  </div>
                 </div>
-                <p style={{ margin: '6px 0 0', fontSize: '0.82rem', color: '#64748b' }}>
-                  Add team members, assign their primary and supporting departments, define their role, and choose either Senior or Assistant before access is activated.
-                </p>
               </div>
-              <button type="button" className="btn btn-primary" onClick={openAddDepartmentMember}>
-                <UserPlus size={16} />
-                Add team member
-              </button>
+
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setShowRbacMatrixModal(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#a855f7', borderColor: 'rgba(168, 85, 247, 0.4)' }}
+                >
+                  <ShieldCheck size={15} />
+                  RBAC Permissions Matrix
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={openAddDepartmentMember}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <UserPlus size={15} />
+                  Add Team Member
+                </button>
+              </div>
             </div>
 
-            <div className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px', marginTop: '18px' }}>
-              <div style={{ padding: '13px', border: '1px solid #dbe5f3', borderRadius: '11px', background: '#f8fbff' }}>
-                <span style={{ display: 'block', color: '#64748b', fontSize: '12px', fontWeight: 700 }}>Directory members</span>
+            {/* Interactive Stats Grid */}
+            <div className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px', marginTop: '18px' }}>
+              <div
+                onClick={() => { setStaffDepartmentFilter('all'); setStaffStatusFilter('all'); }}
+                style={{ padding: '13px', border: '1px solid #dbe5f3', borderRadius: '11px', background: staffDepartmentFilter === 'all' && staffStatusFilter === 'all' ? 'rgba(59, 130, 246, 0.15)' : '#f8fbff', cursor: 'pointer', transition: 'all 0.15s' }}
+              >
+                <span style={{ display: 'block', color: '#64748b', fontSize: '12px', fontWeight: 700 }}>Total Staff Directory</span>
                 <strong style={{ display: 'block', marginTop: '3px', color: '#163d8f', fontSize: '22px' }}>{departmentMembers.length}</strong>
+                <span style={{ fontSize: '0.68rem', color: '#2563eb' }}>Click to view all</span>
               </div>
-              <div style={{ padding: '13px', border: '1px solid #bbf7d0', borderRadius: '11px', background: '#f0fdf4' }}>
-                <span style={{ display: 'block', color: '#166534', fontSize: '12px', fontWeight: 700 }}>Active members</span>
+              <div
+                onClick={() => setStaffStatusFilter('active')}
+                style={{ padding: '13px', border: '1px solid #bbf7d0', borderRadius: '11px', background: staffStatusFilter === 'active' ? 'rgba(34, 197, 94, 0.15)' : '#f0fdf4', cursor: 'pointer', transition: 'all 0.15s' }}
+              >
+                <span style={{ display: 'block', color: '#166534', fontSize: '12px', fontWeight: 700 }}>Active Working Staff</span>
                 <strong style={{ display: 'block', marginTop: '3px', color: '#15803d', fontSize: '22px' }}>{departmentMembers.filter((member) => member.employment_status === 'active').length}</strong>
+                <span style={{ fontSize: '0.68rem', color: '#16a34a' }}>With portal authorization</span>
               </div>
-              <div style={{ padding: '13px', border: '1px solid #fde68a', borderRadius: '11px', background: '#fffbeb' }}>
-                <span style={{ display: 'block', color: '#a16207', fontSize: '12px', fontWeight: 700 }}>Awaiting activation</span>
-                <strong style={{ display: 'block', marginTop: '3px', color: '#b45309', fontSize: '22px' }}>{departmentMembers.filter((member) => member.employment_status === 'pending_activation').length}</strong>
+              <div
+                onClick={() => setStaffDepartmentFilter('country_directors')}
+                style={{ padding: '13px', border: '1px solid #bae6fd', borderRadius: '11px', background: staffDepartmentFilter === 'country_directors' ? 'rgba(14, 165, 233, 0.15)' : '#f0f9ff', cursor: 'pointer', transition: 'all 0.15s' }}
+              >
+                <span style={{ display: 'block', color: '#0369a1', fontSize: '12px', fontWeight: 700 }}>Country Directors</span>
+                <strong style={{ display: 'block', marginTop: '3px', color: '#0284c7', fontSize: '22px' }}>
+                  {departmentMembers.filter(m => m.primary_department === 'country_directors' || m.departments.includes('country_directors')).length}
+                </strong>
+                <span style={{ fontSize: '0.68rem', color: '#0284c7' }}>Regional representatives</span>
+              </div>
+              <div
+                style={{ padding: '13px', border: '1px solid #e9d5ff', borderRadius: '11px', background: '#faf5ff' }}
+              >
+                <span style={{ display: 'block', color: '#7e22ce', fontSize: '12px', fontWeight: 700 }}>Registered Profiles</span>
+                <strong style={{ display: 'block', marginTop: '3px', color: '#9333ea', fontSize: '22px' }}>{availableProfiles.length}</strong>
+                <span style={{ fontSize: '0.68rem', color: '#a855f7' }}>Total platform accounts</span>
               </div>
             </div>
 
             {departmentMemberNotice && (
-              <div className="department-member-form-success" role="status">
+              <div className="department-member-form-success" role="status" style={{ marginTop: '14px' }}>
                 {departmentMemberNotice}
               </div>
             )}
           </div>
 
-          <div className="glass-panel" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-              <BriefcaseBusiness size={18} color="#2563eb" />
-              <h3 style={{ margin: 0, fontSize: '0.98rem' }}>Staff roles and department coverage</h3>
+          {/* Interactive Staff Search & Filter Control Bar */}
+          <div className="glass-panel" style={{ padding: '16px 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '14px' }}>
+              
+              {/* Department Filter Pills */}
+              <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px', maxWidth: '100%', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 600, marginRight: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Filter size={13} /> Dept:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setStaffDepartmentFilter('all')}
+                  style={{
+                    fontSize: '0.72rem',
+                    padding: '4px 10px',
+                    borderRadius: '20px',
+                    border: staffDepartmentFilter === 'all' ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.08)',
+                    background: staffDepartmentFilter === 'all' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255,255,255,0.03)',
+                    color: staffDepartmentFilter === 'all' ? '#93c5fd' : '#94a3b8',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  All Staff ({departmentMembers.length})
+                </button>
+
+                {DEPARTMENT_OPTIONS.map(opt => {
+                  const count = departmentMembers.filter(m => m.primary_department === opt.value || m.departments.includes(opt.value)).length;
+                  const isSelected = staffDepartmentFilter === opt.value;
+
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setStaffDepartmentFilter(opt.value)}
+                      style={{
+                        fontSize: '0.72rem',
+                        padding: '4px 10px',
+                        borderRadius: '20px',
+                        border: isSelected ? '1px solid #a855f7' : '1px solid rgba(255,255,255,0.08)',
+                        background: isSelected ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255,255,255,0.03)',
+                        color: isSelected ? '#d8b4fe' : '#94a3b8',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {opt.label} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Status Filter */}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <select
+                  value={staffStatusFilter}
+                  onChange={e => setStaffStatusFilter(e.target.value)}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: '6px',
+                    background: '#1e293b',
+                    color: '#fff',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    fontSize: '0.75rem',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="active">Active Only</option>
+                  <option value="pending_activation">Pending Activation</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
             </div>
+
+            {/* Live Search Input */}
+            <div style={{ position: 'relative' }}>
+              <Search size={15} color="#64748b" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+              <input
+                type="text"
+                value={staffSearchTerm}
+                onChange={e => setStaffSearchTerm(e.target.value)}
+                placeholder="Search staff by full name, email, job title, or country of assignment..."
+                style={{
+                  width: '100%',
+                  padding: '8px 12px 8px 36px',
+                  borderRadius: '8px',
+                  background: 'rgba(255,255,255,0.05)',
+                  color: '#fff',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  fontSize: '0.8rem',
+                  outline: 'none'
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Interactive Staff Directory Table */}
+          <div className="glass-panel" style={{ padding: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <BriefcaseBusiness size={18} color="#2563eb" />
+                <h3 style={{ margin: 0, fontSize: '0.98rem', color: '#fff' }}>Staff Roles, Department Coverage & Country Oversight</h3>
+              </div>
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                Showing {departmentMembers.filter(member => {
+                  const matchDept = staffDepartmentFilter === 'all' || member.primary_department === staffDepartmentFilter || member.departments.includes(staffDepartmentFilter as DepartmentType);
+                  const matchStatus = staffStatusFilter === 'all' || member.employment_status === staffStatusFilter;
+                  const matchSearch = staffSearchTerm === '' ||
+                    member.full_name.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
+                    member.email.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
+                    member.job_title.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
+                    (member.working_country && member.working_country.toLowerCase().includes(staffSearchTerm.toLowerCase()));
+                  return matchDept && matchStatus && matchSearch;
+                }).length} staff member(s)
+              </span>
+            </div>
+
             {departmentMembers.length === 0 ? (
               <div style={{ padding: '34px 20px', border: '1px dashed #cbd5e1', borderRadius: '12px', background: '#f8fafc', textAlign: 'center' }}>
                 <UserRoundCheck size={30} color="#94a3b8" style={{ marginBottom: '8px' }} />
@@ -1472,73 +1728,173 @@ export const AdminWorkspace: React.FC = () => {
                 <table className="custom-table">
                   <thead>
                     <tr>
-                      <th>Team member</th>
-                      <th>Primary department</th>
-                      <th>Additional coverage</th>
-                      <th>Role</th>
-                      <th>Working Country</th>
+                      <th>Team Member</th>
+                      <th>Primary Dept</th>
+                      <th>Additional Coverage</th>
+                      <th>Job Title</th>
+                      <th>Assigned Country</th>
                       <th>Responsibility</th>
-                      <th>Onboarding status</th>
-                      <th aria-label="Actions" />
+                      <th>Status</th>
+                      <th style={{ textAlign: 'right' }}>Interactive Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {departmentMembers.map((member) => {
-                      const additionalDepartments = member.departments.filter(
-                        (department) => department !== member.primary_department
-                      );
-                      const status = member.employment_status === 'active'
-                        ? { label: 'Active', className: 'badge-documents_verified' }
-                        : member.employment_status === 'inactive'
-                          ? { label: 'Inactive', className: 'badge-rejected' }
-                          : { label: 'Pending activation', className: 'badge-documents_missing' };
+                    {departmentMembers
+                      .filter(member => {
+                        const matchDept = staffDepartmentFilter === 'all' || member.primary_department === staffDepartmentFilter || member.departments.includes(staffDepartmentFilter as DepartmentType);
+                        const matchStatus = staffStatusFilter === 'all' || member.employment_status === staffStatusFilter;
+                        const matchSearch = staffSearchTerm === '' ||
+                          member.full_name.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
+                          member.email.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
+                          member.job_title.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
+                          (member.working_country && member.working_country.toLowerCase().includes(staffSearchTerm.toLowerCase()));
+                        return matchDept && matchStatus && matchSearch;
+                      })
+                      .map((member) => {
+                        const additionalDepartments = member.departments.filter(
+                          (department) => department !== member.primary_department
+                        );
+                        const isCountryDirector = member.primary_department === 'country_directors';
+                        const status = member.employment_status === 'active'
+                          ? { label: 'Active', className: 'badge-documents_verified' }
+                          : member.employment_status === 'inactive'
+                            ? { label: 'Inactive', className: 'badge-rejected' }
+                            : { label: 'Pending activation', className: 'badge-documents_missing' };
 
-                      return (
-                        <tr key={member.id}>
-                          <td>
-                            <strong style={{ display: 'block', color: '#0f172a' }}>{member.full_name}</strong>
-                            <span style={{ color: '#64748b', fontSize: '12px' }}>{member.email}</span>
-                          </td>
-                          <td><span className="badge badge-under_review">{departmentLabel(member.primary_department)}</span></td>
-                          <td style={{ maxWidth: '205px' }}>
-                            {additionalDepartments.length ? (
-                              <span style={{ color: '#475569', fontSize: '12px', lineHeight: 1.45 }}>{additionalDepartments.map(departmentLabel).join(' · ')}</span>
-                            ) : (
-                              <span style={{ color: '#94a3b8', fontSize: '12px' }}>Primary only</span>
-                            )}
-                          </td>
-                          <td style={{ color: '#334155', fontWeight: 650 }}>{member.job_title}</td>
-                          <td>
-                            {member.working_country ? (
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', color: member.primary_department === 'country_directors' ? '#0ea5e9' : '#94a3b8', fontWeight: member.primary_department === 'country_directors' ? 700 : 400 }}>
-                                🌍 {member.working_country}
+                        const initials = member.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+
+                        return (
+                          <tr key={member.id} style={{ transition: 'background 0.15s' }}>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{
+                                  width: '34px',
+                                  height: '34px',
+                                  borderRadius: '50%',
+                                  background: isCountryDirector ? 'linear-gradient(135deg, #0ea5e9, #2563eb)' : 'linear-gradient(135deg, #475569, #1e293b)',
+                                  color: '#fff',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontWeight: 700,
+                                  fontSize: '0.75rem',
+                                  flexShrink: 0
+                                }}>
+                                  {initials}
+                                </div>
+                                <div>
+                                  <strong style={{ display: 'block', color: '#fff', fontSize: '0.86rem' }}>
+                                    {member.full_name}
+                                  </strong>
+                                  <span style={{ color: '#94a3b8', fontSize: '0.74rem' }}>{member.email}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td>
+                              <span className="badge badge-under_review" style={{ fontWeight: 600 }}>
+                                {departmentLabel(member.primary_department)}
                               </span>
-                            ) : (
-                              <span style={{ color: '#cbd5e1', fontSize: '0.78rem' }}>—</span>
-                            )}
-                          </td>
-                          <td>
-                            <span className={`badge ${member.is_assistant ? 'badge-submitted' : 'badge-draft'}`}>
-                              {member.is_assistant ? 'Assistant' : 'Senior'}
-                            </span>
-                          </td>
-                          <td><span className={`badge ${status.className}`}>{status.label}</span></td>
-                          <td>
-                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                              <button type="button" className="btn btn-secondary btn-sm" onClick={() => openEditDepartmentMember(member)}>
-                                <Pencil size={14} /> Edit
-                              </button>
-                              <button type="button" className="btn btn-secondary btn-sm" style={{ color: '#dc2626', borderColor: '#fecaca' }} onClick={() => {
-                                setDepartmentMemberPendingDelete(member);
-                                setDepartmentMemberDeleteError('');
-                              }}>
-                                <Trash2 size={14} /> Delete
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                            </td>
+                            <td style={{ maxWidth: '205px' }}>
+                              {additionalDepartments.length ? (
+                                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                  {additionalDepartments.map(d => (
+                                    <span key={d} style={{ fontSize: '0.68rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', color: '#cbd5e1' }}>
+                                      {departmentLabel(d)}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span style={{ color: '#64748b', fontSize: '0.72rem' }}>Primary only</span>
+                              )}
+                            </td>
+                            <td style={{ color: '#e2e8f0', fontWeight: 600, fontSize: '0.8rem' }}>
+                              {member.job_title}
+                            </td>
+                            <td>
+                              {member.working_country ? (
+                                <span style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
+                                  fontSize: '0.76rem',
+                                  padding: '3px 8px',
+                                  borderRadius: '6px',
+                                  background: isCountryDirector ? 'rgba(14, 165, 233, 0.15)' : 'rgba(255,255,255,0.05)',
+                                  color: isCountryDirector ? '#38bdf8' : '#cbd5e1',
+                                  border: isCountryDirector ? '1px solid rgba(14, 165, 233, 0.3)' : '1px solid rgba(255,255,255,0.08)',
+                                  fontWeight: isCountryDirector ? 700 : 500
+                                }}>
+                                  🌍 {member.working_country}
+                                </span>
+                              ) : (
+                                <span style={{ color: '#64748b', fontSize: '0.74rem' }}>—</span>
+                              )}
+                            </td>
+                            <td>
+                              <span className={`badge ${member.is_assistant ? 'badge-submitted' : 'badge-draft'}`}>
+                                {member.is_assistant ? 'Assistant' : 'Senior'}
+                              </span>
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span className={`badge ${status.className}`}>{status.label}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleStaffStatus(member)}
+                                  disabled={togglingStaffId === member.id}
+                                  title={`Click to mark as ${member.employment_status === 'active' ? 'Inactive' : 'Active'}`}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: member.employment_status === 'active' ? '#34d399' : '#f87171',
+                                    cursor: 'pointer',
+                                    padding: '2px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center'
+                                  }}
+                                >
+                                  {member.employment_status === 'active' ? <UserCheck size={14} /> : <UserX size={14} />}
+                                </button>
+                              </div>
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <div style={{ display: 'inline-flex', gap: '6px', flexWrap: 'wrap' }}>
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ fontSize: '0.72rem', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                  onClick={() => setSelectedStaffDossier(member)}
+                                  title="Inspect full RBAC dossier"
+                                >
+                                  <Eye size={13} /> Dossier
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ fontSize: '0.72rem', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                  onClick={() => openEditDepartmentMember(member)}
+                                  title="Edit member role & country"
+                                >
+                                  <Pencil size={13} /> Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-danger btn-sm"
+                                  style={{ fontSize: '0.72rem', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                                  onClick={() => {
+                                    setDepartmentMemberPendingDelete(member);
+                                    setDepartmentMemberDeleteError('');
+                                  }}
+                                  title="Revoke department access"
+                                >
+                                  <Trash2 size={13} /> Revoke
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
@@ -1547,16 +1903,16 @@ export const AdminWorkspace: React.FC = () => {
 
           {/* User Accounts Management Panel */}
           <div className="glass-panel" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Users size={18} color="#2563eb" />
-                <h3 style={{ margin: 0, fontSize: '0.98rem' }}>Registered User Accounts</h3>
+                <h3 style={{ margin: 0, fontSize: '0.98rem', color: '#fff' }}>Registered User Profiles & Portal Login Credentials</h3>
               </div>
-              <span className="badge badge-submitted">{availableProfiles.length} Total Accounts</span>
+              <span className="badge badge-submitted">{availableProfiles.length} Total Registered Accounts</span>
             </div>
 
-            <p style={{ margin: '0 0 16px', fontSize: '0.78rem', color: '#64748b' }}>
-              Below is the list of all registered profile accounts in Globe Scholars Pathways. Administrators can delete any account, which will permanently revoke their portal access and remove their credentials.
+            <p style={{ margin: '0 0 16px', fontSize: '0.78rem', color: '#94a3b8' }}>
+              Below is the comprehensive list of all registered profile accounts in Globe Scholars Pathways. Administrators can inspect authentication roles and revoke login credentials at any time.
             </p>
 
             <div className="custom-table-container">
@@ -1564,10 +1920,10 @@ export const AdminWorkspace: React.FC = () => {
                 <thead>
                   <tr>
                     <th>User Profile</th>
-                    <th>Department</th>
+                    <th>Department Assignment</th>
                     <th>Account Type</th>
-                    <th>Administrative Role</th>
-                    <th aria-label="Actions" />
+                    <th>Administrative Privileges</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1576,36 +1932,44 @@ export const AdminWorkspace: React.FC = () => {
                     return (
                       <tr key={p.id}>
                         <td>
-                          <strong style={{ display: 'block', color: '#0f172a' }}>{p.full_name}</strong>
-                          <span style={{ color: '#64748b', fontSize: '12px' }}>{p.email}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: p.is_admin ? '#dc2626' : p.account_type === 'staff' ? '#2563eb' : '#10b981', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 700 }}>
+                              {p.full_name.slice(0, 1).toUpperCase()}
+                            </div>
+                            <div>
+                              <strong style={{ display: 'block', color: '#fff', fontSize: '0.84rem' }}>{p.full_name}</strong>
+                              <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>{p.email}</span>
+                            </div>
+                          </div>
                         </td>
                         <td>
-                          <span className="badge badge-under_review">
-                            {p.department.toUpperCase().replace('_', ' ')}
+                          <span className="badge badge-under_review" style={{ textTransform: 'uppercase', fontSize: '0.68rem' }}>
+                            {p.department.replace(/_/g, ' ')}
                           </span>
                         </td>
                         <td>
-                          <span className={`badge ${p.account_type === 'staff' ? 'badge-submitted' : p.account_type === 'student' ? 'badge-documents_verified' : 'badge-draft'}`}>
+                          <span className={`badge ${p.account_type === 'staff' ? 'badge-submitted' : p.account_type === 'student' ? 'badge-documents_verified' : 'badge-draft'}`} style={{ textTransform: 'uppercase', fontSize: '0.68rem' }}>
                             {p.account_type || 'unassigned'}
                           </span>
                         </td>
                         <td>
                           {p.is_admin ? (
-                            <span className="badge badge-approved" style={{ fontWeight: 700 }}>Administrator</span>
+                            <span className="badge badge-approved" style={{ fontWeight: 700, fontSize: '0.7rem' }}>Super Administrator</span>
                           ) : (
-                            <span style={{ color: '#64748b', fontSize: '13px' }}>Standard User</span>
+                            <span style={{ color: '#94a3b8', fontSize: '0.74rem' }}>Standard Member</span>
                           )}
                         </td>
-                        <td>
+                        <td style={{ textAlign: 'right' }}>
                           <button
                             type="button"
                             className="btn btn-danger btn-sm"
                             disabled={isSelf}
                             style={{
-                              padding: '6px 12px',
-                              background: isSelf ? 'rgba(255,255,255,0.03)' : 'rgba(239, 68, 68, 0.1)',
-                              borderColor: isSelf ? 'transparent' : 'rgba(239, 68, 68, 0.2)',
-                              color: isSelf ? '#64748b' : '#ef4444',
+                              fontSize: '0.72rem',
+                              padding: '4px 10px',
+                              background: isSelf ? 'rgba(255,255,255,0.03)' : 'rgba(239, 68, 68, 0.12)',
+                              borderColor: isSelf ? 'transparent' : 'rgba(239, 68, 68, 0.3)',
+                              color: isSelf ? '#64748b' : '#f87171',
                               cursor: isSelf ? 'not-allowed' : 'pointer'
                             }}
                             onClick={async () => {
@@ -1618,7 +1982,7 @@ export const AdminWorkspace: React.FC = () => {
                               }
                             }}
                           >
-                            <Trash2 size={13} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                            <Trash2 size={12} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
                             Delete Account
                           </button>
                         </td>
@@ -1627,6 +1991,189 @@ export const AdminWorkspace: React.FC = () => {
                   })}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Interactive Staff RBAC Dossier */}
+      {selectedStaffDossier && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.82)', zIndex: 350, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div className="glass-panel animate-fade-in" style={{ width: '560px', maxHeight: '90vh', overflowY: 'auto', padding: '24px', background: '#0f172a', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '14px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'linear-gradient(135deg, #2563eb, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1rem', fontWeight: 700 }}>
+                  {selectedStaffDossier.full_name.slice(0, 2).toUpperCase()}
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#fff', fontWeight: 700 }}>
+                    {selectedStaffDossier.full_name}
+                  </h3>
+                  <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                    {selectedStaffDossier.email} • {selectedStaffDossier.job_title}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedStaffDossier(null)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              
+              {/* Profile Meta Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block' }}>Primary Department</span>
+                  <strong style={{ fontSize: '0.86rem', color: '#60a5fa' }}>{departmentLabel(selectedStaffDossier.primary_department)}</strong>
+                </div>
+                <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block' }}>Assigned Country</span>
+                  <strong style={{ fontSize: '0.86rem', color: '#38bdf8' }}>{selectedStaffDossier.working_country ? `🌍 ${selectedStaffDossier.working_country}` : 'Global / Not Specified'}</strong>
+                </div>
+                <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block' }}>Responsibility Level</span>
+                  <strong style={{ fontSize: '0.86rem', color: selectedStaffDossier.is_assistant ? '#fbbf24' : '#34d399' }}>
+                    {selectedStaffDossier.is_assistant ? 'Assistant Staff' : 'Senior Staff Owner'}
+                  </strong>
+                </div>
+                <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block' }}>Employment Status</span>
+                  <strong style={{ fontSize: '0.86rem', color: selectedStaffDossier.employment_status === 'active' ? '#34d399' : '#f87171', textTransform: 'capitalize' }}>
+                    {selectedStaffDossier.employment_status.replace('_', ' ')}
+                  </strong>
+                </div>
+              </div>
+
+              {/* Accessible Workspaces & Tools */}
+              <div>
+                <h4 style={{ fontSize: '0.84rem', color: '#fff', fontWeight: 600, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <ShieldCheck size={15} color="#3b82f6" /> Accessible Department Workspaces
+                </h4>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {selectedStaffDossier.departments.map(dept => (
+                    <span
+                      key={dept}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '12px',
+                        background: dept === selectedStaffDossier.primary_department ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255,255,255,0.05)',
+                        color: dept === selectedStaffDossier.primary_department ? '#93c5fd' : '#cbd5e1',
+                        border: dept === selectedStaffDossier.primary_department ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.08)',
+                        fontSize: '0.74rem',
+                        fontWeight: 600
+                      }}
+                    >
+                      {departmentLabel(dept)} {dept === selectedStaffDossier.primary_department ? '★ Primary' : ''}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action Buttons inside Dossier */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '14px' }}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedStaffDossier(null)}
+                  className="btn btn-secondary btn-sm"
+                >
+                  Close Dossier
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const member = selectedStaffDossier;
+                    setSelectedStaffDossier(null);
+                    openEditDepartmentMember(member);
+                  }}
+                  className="btn btn-primary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Pencil size={14} /> Edit Role & Country
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: RBAC Permissions Matrix Overview */}
+      {showRbacMatrixModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 350, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div className="glass-panel animate-fade-in" style={{ width: '680px', maxHeight: '90vh', overflowY: 'auto', padding: '24px', background: '#0f172a', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '14px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #7c3aed, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                  <ShieldCheck size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#fff', fontWeight: 700 }}>
+                    Role-Based Access Control (RBAC) Matrix
+                  </h3>
+                  <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                    Department workspaces and permission coverage across Globe Scholars Pathways.
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowRbacMatrixModal(false)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {[
+                { dept: 'Admissions', icon: '🎓', tools: 'Application Review, Formal Offer Decisions, Document Audits, Fee Catalog, Task Inbox' },
+                { dept: 'Counseling', icon: '💬', tools: 'Student Intake Register, Google Meet & Zoom Scheduling, Scholarship Advisory, Fee Catalog' },
+                { dept: 'Marketing', icon: '📢', tools: 'Social Media Hub (FB, WhatsApp, IG, TikTok), Broadcast Bulletins, Lead Capture, Fee Catalog' },
+                { dept: 'Human Resources', icon: '👥', tools: 'Staff Directory, Staff CV Library (PDF Preview & Storage), Performance Records, Recycle Bin' },
+                { dept: 'Finance', icon: '💰', tools: 'Registration Fees, Scholarship Disbursements, Payment Receipts, Account Ledger, Recycle Bin' },
+                { dept: 'Country Directors', icon: '🌍', tools: 'Regional Student Intake, Country Workspace, Country-Specific Operations' },
+                { dept: 'Operations & Management', icon: '⚙️', tools: 'Department KPIs, Cross-Department Work Assignments, Monthly Meetings, Reports' },
+                { dept: 'Administration', icon: '🛡️', tools: 'Full Superuser Oversight, Staff Directory & RBAC, Partner Universities, Global Bulletins' },
+              ].map((row, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '10px',
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '12px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '1.2rem' }}>{row.icon}</span>
+                    <div>
+                      <strong style={{ fontSize: '0.85rem', color: '#fff', display: 'block' }}>{row.dept}</strong>
+                      <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>{row.tools}</span>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: '0.68rem', padding: '3px 8px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.3)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    Authorized
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '14px' }}>
+              <button
+                type="button"
+                onClick={() => setShowRbacMatrixModal(false)}
+                className="btn btn-secondary btn-sm"
+              >
+                Close Matrix
+              </button>
             </div>
           </div>
         </div>
@@ -2150,31 +2697,301 @@ export const AdminWorkspace: React.FC = () => {
         </div>
       )}
 
-      {/* Modal: Add Partner University */}
+      {/* Modal: Add Partner University & Courses Offered Builder */}
       {showAddPartnerModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="glass-panel animate-fade-in" style={{ width: '440px', padding: '24px', background: '#0f172a' }}>
-            <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '16px' }}>Add New Partner University</h3>
-            <form onSubmit={handleAddPartner} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>University Name</label>
-                <input type="text" required placeholder="e.g. Stanford University" value={pName} onChange={e => setPName(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }} />
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 350, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div className="glass-panel animate-fade-in" style={{ width: '100%', maxWidth: '720px', maxHeight: '90vh', overflowY: 'auto', padding: '24px', background: '#0f172a', borderRadius: '16px', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+            
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '18px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, #1e40af, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                  <Building2 size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.08rem', color: '#fff', margin: 0, fontWeight: 700 }}>
+                    Add New Partner University & Courses Offered
+                  </h3>
+                  <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                    Register the university profile and define the degree programs and tuition fees it offers.
+                  </span>
+                </div>
               </div>
-              <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Country</label>
-                <input type="text" required value={pCountry} onChange={e => setPCountry(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }} />
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddPartnerModal(false);
+                  setAddPartnerError('');
+                }}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {addPartnerError && (
+              <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#fca5a5', fontSize: '0.78rem', marginBottom: '16px' }}>
+                {addPartnerError}
               </div>
+            )}
+
+            <form onSubmit={handleAddPartner} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              
+              {/* University Basic Information */}
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Contact Email</label>
-                <input type="email" required placeholder="admissions@stanford.edu" value={pEmail} onChange={e => setPEmail(e.target.value)} style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }} />
+                <h4 style={{ fontSize: '0.84rem', color: '#38bdf8', margin: '0 0 10px 0', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  1. University Profile Information
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', color: '#cbd5e1', display: 'block', marginBottom: '4px', fontWeight: 600 }}>
+                      University Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. University of Manchester"
+                      value={pName}
+                      onChange={e => setPName(e.target.value)}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.82rem' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.75rem', color: '#cbd5e1', display: 'block', marginBottom: '4px', fontWeight: 600 }}>
+                      Country *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. United Kingdom, Canada, USA..."
+                      value={pCountry}
+                      onChange={e => setPCountry(e.target.value)}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.82rem' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.75rem', color: '#cbd5e1', display: 'block', marginBottom: '4px', fontWeight: 600 }}>
+                      Admissions Contact Email *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="e.g. admissions@manchester.ac.uk"
+                      value={pEmail}
+                      onChange={e => setPEmail(e.target.value)}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.82rem' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.75rem', color: '#cbd5e1', display: 'block', marginBottom: '4px', fontWeight: 600 }}>
+                      Scholarships / Waivers Available
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      required
+                      value={pScholarships}
+                      onChange={e => setPScholarships(Math.max(0, Number(e.target.value)))}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.82rem' }}
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Scholarships Available</label>
-                <input type="number" min="0" required value={pScholarships} onChange={e => setPScholarships(Math.max(0, Number(e.target.value)))} style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }} />
+
+              {/* Course Offerings Builder */}
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <div>
+                    <h4 style={{ fontSize: '0.84rem', color: '#34d399', margin: 0, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <BookOpen size={15} color="#34d399" />
+                      2. Degree Programs & Courses Offered
+                    </h4>
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                      Add the courses and tuition fee structures that will be visible to Marketing, Admissions, and Counseling.
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPCourses(prev => [
+                        ...prev,
+                        { id: `c-${Date.now()}`, course_name: '', admission_fee: '150.00', tuition_fee: '3000.00' }
+                      ]);
+                    }}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: '6px',
+                      background: 'rgba(16, 185, 129, 0.15)',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      color: '#6ee7b7',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <Plus size={13} /> Add Another Course
+                  </button>
+                </div>
+
+                {/* Quick Suggestion Pills */}
+                <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '6px', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '0.68rem', color: '#64748b', alignSelf: 'center', whiteSpace: 'nowrap' }}>Quick Add:</span>
+                  {[
+                    'BSc Computer Science & AI',
+                    'MBA International Business',
+                    'MSc Data Science',
+                    'BEng Software Engineering',
+                    'LLB International Law',
+                    'MSc Public Health'
+                  ].map(preset => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => {
+                        // If last course is empty, fill it; otherwise append
+                        setPCourses(prev => {
+                          const last = prev[prev.length - 1];
+                          if (last && !last.course_name.trim()) {
+                            return prev.map((item, idx) => idx === prev.length - 1 ? { ...item, course_name: preset } : item);
+                          }
+                          return [...prev, { id: `c-${Date.now()}`, course_name: preset, admission_fee: '200.00', tuition_fee: '4500.00' }];
+                        });
+                      }}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: '12px',
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        color: '#94a3b8',
+                        fontSize: '0.68rem',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      + {preset}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Dynamic Course Rows */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {pCourses.map((c, index) => {
+                    const totalFee = (Number(c.admission_fee) || 0) + (Number(c.tuition_fee) || 0);
+
+                    return (
+                      <div
+                        key={c.id}
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: '8px',
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          display: 'grid',
+                          gridTemplateColumns: '3fr 1.5fr 1.5fr auto',
+                          gap: '10px',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <div>
+                          <label style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', marginBottom: '2px' }}>
+                            Course #{index + 1} Name
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. B.Sc. Computer Science"
+                            value={c.course_name}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setPCourses(prev => prev.map(item => item.id === c.id ? { ...item, course_name: val } : item));
+                            }}
+                            style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.78rem' }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ fontSize: '0.68rem', color: '#06b6d4', display: 'block', marginBottom: '2px', fontWeight: 600 }}>
+                            Admission Fee ($)
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={c.admission_fee}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setPCourses(prev => prev.map(item => item.id === c.id ? { ...item, admission_fee: val } : item));
+                            }}
+                            style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.78rem' }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ fontSize: '0.68rem', color: '#10b981', display: 'block', marginBottom: '2px', fontWeight: 600 }}>
+                            Tuition Fee ($)
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={c.tuition_fee}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setPCourses(prev => prev.map(item => item.id === c.id ? { ...item, tuition_fee: val } : item));
+                            }}
+                            style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.78rem' }}
+                          />
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: '0.65rem', color: '#38bdf8', marginBottom: '2px', whiteSpace: 'nowrap' }}>
+                            Total: ${totalFee.toFixed(0)}
+                          </span>
+                          {pCourses.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => setPCourses(prev => prev.filter(item => item.id !== c.id))}
+                              style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '2px' }}
+                              title="Remove course row"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                <button type="button" onClick={() => setShowAddPartnerModal(false)} className="btn btn-secondary btn-sm">Cancel</button>
-                <button type="submit" className="btn btn-primary btn-sm">Add Partner</button>
+
+              {/* Actions Footer */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '14px', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddPartnerModal(false);
+                    setAddPartnerError('');
+                  }}
+                  disabled={addingPartner}
+                  className="btn btn-secondary btn-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={addingPartner}
+                  className="btn btn-primary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)' }}
+                >
+                  <Building2 size={14} />
+                  {addingPartner ? 'Registering University & Courses...' : 'Register University & Courses'}
+                </button>
               </div>
             </form>
           </div>

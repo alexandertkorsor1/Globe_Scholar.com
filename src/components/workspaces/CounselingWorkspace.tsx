@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { useApplication } from '../../context/ApplicationContext';
 import { useAuth } from '../../context/AuthContext';
 import { DashboardLayout } from '../dashboard/DashboardLayout';
-import { Video, Calendar, Clock, Plus, Award, AlertTriangle, FileText, CheckCircle, Users, ClipboardList, Trash2, Mail, X, Eye } from 'lucide-react';
+import { Video, Calendar, Clock, Plus, Award, AlertTriangle, FileText, CheckCircle, Users, ClipboardList, Trash2, Mail, X, Eye, GraduationCap, Radio, Check, Search, UserCheck, UserPlus, Globe } from 'lucide-react';
 import { TrashBin } from '../shared/TrashBin';
 import { Student, Application, ApplicationDocument, StudentEmail } from '../../types/database';
 import { supabase } from '../../lib/supabase';
 import { formatRegisterDate, formatRegisterTime, getApplicationIntake } from '../../lib/department-registers';
 import { DepartmentTaskInbox } from '../shared/DepartmentTaskInbox';
+import { MarketingPostsFeed } from '../shared/MarketingPostsFeed';
+import { InstitutionFeeDirectory } from '../shared/InstitutionFeeDirectory';
 
 export const CounselingWorkspace: React.FC = () => {
   const {
@@ -26,6 +28,12 @@ export const CounselingWorkspace: React.FC = () => {
 
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+
+  // Multi-student / Specific student selection states
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [studentSearchTerm, setStudentSearchTerm] = useState('');
+  const [meetingType, setMeetingType] = useState<'individual' | 'group'>('individual');
+  const [schedulingInProgress, setSchedulingInProgress] = useState(false);
 
   // Meet form state
   const [scheduledAt, setScheduledAt] = useState('2026-03-25T14:00');
@@ -67,20 +75,54 @@ export const CounselingWorkspace: React.FC = () => {
     };
   });
 
+  const handleToggleStudentSelection = (studentId: string) => {
+    if (meetingType === 'individual') {
+      setSelectedStudentIds([studentId]);
+    } else {
+      setSelectedStudentIds(prev =>
+        prev.includes(studentId)
+          ? prev.filter(id => id !== studentId)
+          : [...prev, studentId]
+      );
+    }
+  };
+
+  const handleSelectAllFilteredStudents = (filtered: Student[]) => {
+    const ids = filtered.map(s => s.id);
+    setSelectedStudentIds(prev => [...new Set([...prev, ...ids])]);
+  };
+
+  const handleClearStudentSelection = () => {
+    setSelectedStudentIds([]);
+  };
+
   const handleSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStudent) {
-      alert('Please select a student.');
+    if (selectedStudentIds.length === 0) {
+      alert('Please select at least one student for this counseling session.');
       return;
     }
+
+    setSchedulingInProgress(true);
     try {
-      await scheduleCounselingSession(selectedStudent.id, scheduledAt, meetLink, sessionNotes);
+      const selectedStudentObjects = students.filter(s => selectedStudentIds.includes(s.id));
+      
+      // Schedule session for each selected student
+      for (const student of selectedStudentObjects) {
+        await scheduleCounselingSession(student.id, scheduledAt, meetLink, sessionNotes);
+      }
+
       setShowScheduleModal(false);
       setSessionNotes('');
-      alert(`Invitation calendar link dispatched & simulated email notification sent to ${selectedStudent.email}!`);
+      setSelectedStudentIds([]);
+      
+      const studentNames = selectedStudentObjects.map(s => `${s.first_name} ${s.last_name}`).join(', ');
+      alert(`🎉 Successfully scheduled counseling session for ${selectedStudentObjects.length} student(s) (${studentNames})!\nCalendar invites and email notifications dispatched.`);
     } catch (err) {
       console.error(err);
-      alert('Failed to schedule session.');
+      alert('Failed to schedule counseling session.');
+    } finally {
+      setSchedulingInProgress(false);
     }
   };
 
@@ -97,6 +139,8 @@ export const CounselingWorkspace: React.FC = () => {
 
   const sidebarNav = [
     { label: 'Sessions', icon: <Video style={{ width: 18, height: 18 }} />, active: true, onClick: () => goTo('counseling-sessions') },
+    { label: 'Marketing Updates', icon: <Radio style={{ width: 18, height: 18 }} />, onClick: () => goTo('counseling-marketing-updates') },
+    { label: 'Fee Structures & Courses', icon: <GraduationCap style={{ width: 18, height: 18 }} />, onClick: () => goTo('counseling-fee-directory') },
     { label: 'Students', icon: <Users style={{ width: 18, height: 18 }} />, onClick: () => goTo('counseling-students') },
     { label: 'Assigned Tasks', icon: <ClipboardList style={{ width: 18, height: 18 }} />, onClick: () => goTo('counseling-assigned-tasks') },
     { label: 'Student Documents', icon: <FileText style={{ width: 18, height: 18 }} />, onClick: () => goTo('counseling-student-documents') },
@@ -116,7 +160,7 @@ export const CounselingWorkspace: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
       {/* Banner */}
-      <div className="glass-panel" style={{ padding: '20px 24px' }}>
+      <div id="counseling-sessions" className="glass-panel" style={{ padding: '20px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -130,7 +174,8 @@ export const CounselingWorkspace: React.FC = () => {
           <button
             onClick={() => {
               if (students.length > 0) {
-                setSelectedStudent(students[0]);
+                setSelectedStudentIds([students[0].id]);
+                setMeetingType('individual');
               }
               setShowScheduleModal(true);
             }}
@@ -140,6 +185,16 @@ export const CounselingWorkspace: React.FC = () => {
             Schedule Meet Session
           </button>
         </div>
+      </div>
+
+      {/* ── LIVE MARKETING UPDATES & CAMPAIGNS ─────────────────────────── */}
+      <div id="counseling-marketing-updates">
+        <MarketingPostsFeed allowCreate={false} departmentTitle="Counseling" />
+      </div>
+
+      {/* ── INSTITUTION FEE STRUCTURES & COURSES DIRECTORY ──────────────── */}
+      <div id="counseling-fee-directory">
+        <InstitutionFeeDirectory departmentTitle="Counseling" />
       </div>
 
       <div id="counseling-assigned-tasks">
@@ -196,8 +251,11 @@ export const CounselingWorkspace: React.FC = () => {
                     {intake.student ? (
                       <button
                         onClick={() => {
-                          setSelectedStudent(intake.student || null);
-                          setShowScheduleModal(true);
+                          if (intake.student) {
+                            setSelectedStudentIds([intake.student.id]);
+                            setMeetingType('individual');
+                            setShowScheduleModal(true);
+                          }
                         }}
                         className="btn btn-primary btn-sm"
                         style={{ fontSize: '0.72rem' }}
@@ -237,11 +295,11 @@ export const CounselingWorkspace: React.FC = () => {
                 className="glass-panel glass-panel-interactive"
                 style={{
                   padding: '14px',
-                  background: selectedStudent?.id === std.id ? 'rgba(59, 130, 246, 0.2)' : 'rgba(18, 26, 43, 0.8)',
-                  borderColor: selectedStudent?.id === std.id ? '#60a5fa' : 'var(--border-color)',
+                  background: selectedStudentIds.includes(std.id) ? 'rgba(59, 130, 246, 0.2)' : 'rgba(18, 26, 43, 0.8)',
+                  borderColor: selectedStudentIds.includes(std.id) ? '#60a5fa' : 'var(--border-color)',
                   cursor: 'pointer'
                 }}
-                onClick={() => setSelectedStudent(std)}
+                onClick={() => handleToggleStudentSelection(std.id)}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
@@ -255,14 +313,15 @@ export const CounselingWorkspace: React.FC = () => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setSelectedStudent(std);
+                      setSelectedStudentIds([std.id]);
+                      setMeetingType('individual');
                       setShowScheduleModal(true);
                     }}
                     className="btn btn-primary btn-sm"
                     style={{ fontSize: '0.7rem', padding: '4px 8px' }}
                   >
                     <Video style={{ width: '12px', height: '12px' }} />
-                    Schedule Google Meet
+                    Schedule Meet
                   </button>
 
                   <button
@@ -534,46 +593,267 @@ export const CounselingWorkspace: React.FC = () => {
 
       {/* Modal: Schedule Google Meet Session */}
       {showScheduleModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="glass-panel animate-fade-in" style={{ width: '460px', padding: '24px', background: '#0f172a' }}>
-            <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '16px' }}>
-              Schedule Google Meet Session
-            </h3>
-
-            <form onSubmit={handleSchedule} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Target Student</label>
-                <select
-                  value={selectedStudent?.id || ''}
-                  onChange={e => {
-                    const std = students.find(s => s.id === e.target.value);
-                    if (std) setSelectedStudent(std);
-                  }}
-                  required
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', outline: 'none' }}
-                >
-                  <option value="" disabled>-- Select a student --</option>
-                  {students.map(s => (
-                    <option key={s.id} value={s.id} style={{ background: '#0f172a', color: '#fff' }}>
-                      {s.first_name} {s.last_name} ({s.email})
-                    </option>
-                  ))}
-                </select>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.82)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div className="glass-panel animate-fade-in" style={{ width: '620px', maxHeight: '92vh', overflowY: 'auto', padding: '24px', background: '#0f172a', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, #2563eb, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                  <Video size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', color: '#fff', margin: 0, fontWeight: 700 }}>
+                    Schedule Advisory & Counseling Session
+                  </h3>
+                  <p style={{ fontSize: '0.74rem', color: '#94a3b8', margin: '2px 0 0' }}>
+                    Select single individual or pick exact multiple students to invite to this meeting.
+                  </p>
+                </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+              <button
+                type="button"
+                onClick={() => setShowScheduleModal(false)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSchedule} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              
+              {/* Meeting Type Switcher */}
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#cbd5e1', display: 'block', fontWeight: 600, marginBottom: '6px' }}>
+                  Meeting Format & Student Attendance
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMeetingType('individual');
+                      if (selectedStudentIds.length > 1) {
+                        setSelectedStudentIds([selectedStudentIds[0]]);
+                      }
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: meetingType === 'individual' ? '1.5px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                      background: meetingType === 'individual' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255,255,255,0.03)',
+                      color: meetingType === 'individual' ? '#60a5fa' : '#94a3b8',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <UserCheck size={15} /> 1-on-1 Individual Session
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setMeetingType('group')}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: meetingType === 'group' ? '1.5px solid #a855f7' : '1px solid rgba(255,255,255,0.1)',
+                      background: meetingType === 'group' ? 'rgba(168, 85, 247, 0.2)' : 'rgba(255,255,255,0.03)',
+                      color: meetingType === 'group' ? '#c084fc' : '#94a3b8',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <Users size={15} /> Multi-Student / Cohort ({selectedStudentIds.length})
+                  </button>
+                </div>
+              </div>
+
+              {/* Student Selector Area */}
+              <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#cbd5e1', fontWeight: 600 }}>
+                      {meetingType === 'individual' ? 'Select Target Student:' : 'Select Students to Invite:'}
+                    </span>
+                    <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px', background: selectedStudentIds.length > 0 ? '#1e3a8a' : '#334155', color: selectedStudentIds.length > 0 ? '#93c5fd' : '#94a3b8', fontWeight: 600 }}>
+                      {selectedStudentIds.length} Selected
+                    </span>
+                  </div>
+
+                  {meetingType === 'group' && (
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const filtered = students.filter(s =>
+                            s.first_name.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+                            s.last_name.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+                            s.email.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+                            (s.country_of_residence && s.country_of_residence.toLowerCase().includes(studentSearchTerm.toLowerCase()))
+                          );
+                          handleSelectAllFilteredStudents(filtered);
+                        }}
+                        style={{ fontSize: '0.68rem', padding: '3px 8px', borderRadius: '5px', background: 'rgba(255,255,255,0.08)', color: '#94a3b8', border: 'none', cursor: 'pointer' }}
+                      >
+                        Select All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleClearStudentSelection}
+                        style={{ fontSize: '0.68rem', padding: '3px 8px', borderRadius: '5px', background: 'rgba(255,255,255,0.08)', color: '#f87171', border: 'none', cursor: 'pointer' }}
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Search Bar */}
+                <div style={{ position: 'relative', marginBottom: '10px' }}>
+                  <Search size={14} color="#64748b" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input
+                    type="text"
+                    value={studentSearchTerm}
+                    onChange={e => setStudentSearchTerm(e.target.value)}
+                    placeholder="Filter students by name, email, or country..."
+                    style={{
+                      width: '100%',
+                      padding: '7px 10px 7px 32px',
+                      borderRadius: '6px',
+                      background: 'rgba(255,255,255,0.05)',
+                      color: '#fff',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      fontSize: '0.76rem',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+
+                {/* Selected Student Chips */}
+                {selectedStudentIds.length > 0 && (
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px', maxHeight: '70px', overflowY: 'auto' }}>
+                    {students
+                      .filter(s => selectedStudentIds.includes(s.id))
+                      .map(std => (
+                        <span
+                          key={std.id}
+                          style={{
+                            fontSize: '0.7rem',
+                            padding: '3px 8px',
+                            borderRadius: '12px',
+                            background: meetingType === 'individual' ? '#1e3a8a' : '#581c87',
+                            color: meetingType === 'individual' ? '#93c5fd' : '#e9d5ff',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            border: '1px solid rgba(255,255,255,0.1)'
+                          }}
+                        >
+                          {std.first_name} {std.last_name}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStudentSelection(std.id)}
+                            style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center' }}
+                          >
+                            <X size={11} />
+                          </button>
+                        </span>
+                      ))}
+                  </div>
+                )}
+
+                {/* Scrollable Student Selection List */}
+                <div style={{ maxHeight: '175px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '2px' }}>
+                  {students
+                    .filter(s =>
+                      s.first_name.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+                      s.last_name.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+                      s.email.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+                      (s.country_of_residence && s.country_of_residence.toLowerCase().includes(studentSearchTerm.toLowerCase()))
+                    )
+                    .map(std => {
+                      const isSelected = selectedStudentIds.includes(std.id);
+
+                      return (
+                        <div
+                          key={std.id}
+                          onClick={() => handleToggleStudentSelection(std.id)}
+                          style={{
+                            padding: '8px 10px',
+                            borderRadius: '8px',
+                            background: isSelected ? 'rgba(37, 99, 235, 0.2)' : 'rgba(255,255,255,0.03)',
+                            border: isSelected ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.05)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            cursor: 'pointer',
+                            transition: 'background 0.15s'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <input
+                              type={meetingType === 'individual' ? 'radio' : 'checkbox'}
+                              checked={isSelected}
+                              onChange={() => {}} // Handled by div onClick
+                              style={{ cursor: 'pointer' }}
+                            />
+                            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: isSelected ? '#2563eb' : '#334155', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 700 }}>
+                              {std.first_name.slice(0, 1)}{std.last_name.slice(0, 1)}
+                            </div>
+                            <div>
+                              <strong style={{ fontSize: '0.8rem', color: '#fff', display: 'block' }}>
+                                {std.first_name} {std.last_name}
+                              </strong>
+                              <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                                {std.email}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div style={{ textAlign: 'right' }}>
+                            <span style={{ fontSize: '0.68rem', padding: '2px 6px', borderRadius: '6px', background: 'rgba(255,255,255,0.06)', color: '#cbd5e1' }}>
+                              {std.country_of_residence || 'International'}
+                            </span>
+                            {std.gpa && (
+                              <div style={{ fontSize: '0.66rem', color: '#10b981', marginTop: '2px' }}>
+                                GPA: {std.gpa}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+
+              {/* Timing & Platform Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Meeting Date & Time</label>
+                  <label style={{ fontSize: '0.75rem', color: '#cbd5e1', display: 'block', fontWeight: 600, marginBottom: '4px' }}>
+                    Meeting Date & Time *
+                  </label>
                   <input
                     type="datetime-local"
                     required
                     value={scheduledAt}
                     onChange={e => setScheduledAt(e.target.value)}
-                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.78rem' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Online Platform</label>
+                  <label style={{ fontSize: '0.75rem', color: '#cbd5e1', display: 'block', fontWeight: 600, marginBottom: '4px' }}>
+                    Meeting Platform *
+                  </label>
                   <select
                     value={platform}
                     onChange={e => {
@@ -581,42 +861,63 @@ export const CounselingWorkspace: React.FC = () => {
                       setPlatform(plat);
                       setMeetLink(plat === 'google_meet' ? 'https://meet.google.com/gsp-advisory-2026' : 'https://zoom.us/j/9886326999');
                     }}
-                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', outline: 'none' }}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', background: '#1e293b', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.78rem', outline: 'none' }}
                   >
-                    <option value="google_meet" style={{ background: '#0f172a', color: '#fff' }}>Google Meet</option>
-                    <option value="zoom" style={{ background: '#0f172a', color: '#fff' }}>Zoom Meeting</option>
+                    <option value="google_meet">Google Meet</option>
+                    <option value="zoom">Zoom Meeting</option>
                   </select>
                 </div>
               </div>
 
+              {/* Meet URL */}
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>
-                  {platform === 'google_meet' ? 'Google Meet URL' : 'Zoom Invitation Link'}
+                <label style={{ fontSize: '0.75rem', color: '#cbd5e1', display: 'block', fontWeight: 600, marginBottom: '4px' }}>
+                  {platform === 'google_meet' ? 'Google Meet Video URL *' : 'Zoom Invitation Link *'}
                 </label>
                 <input
                   type="url"
                   required
                   value={meetLink}
                   onChange={e => setMeetLink(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.78rem' }}
                 />
               </div>
 
+              {/* Notes */}
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Advisory & Scholarship Fitting Notes</label>
+                <label style={{ fontSize: '0.75rem', color: '#cbd5e1', display: 'block', fontWeight: 600, marginBottom: '4px' }}>
+                  Advisory Agenda & Scholarship Recommendation Notes
+                </label>
                 <textarea
                   required
-                  rows={4}
-                  placeholder="Record scholarship recommendations and counseling goals..."
+                  rows={3}
+                  placeholder="Record discussion agenda, academic goals, and scholarship recommendations to be shared with student(s)..."
                   value={sessionNotes}
                   onChange={e => setSessionNotes(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', fontSize: '0.78rem', resize: 'vertical' }}
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                <button type="button" onClick={() => setShowScheduleModal(false)} className="btn btn-secondary btn-sm">Cancel</button>
-                <button type="submit" className="btn btn-primary btn-sm">Dispatch Calendar Invite</button>
+              {/* Actions */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowScheduleModal(false)}
+                  className="btn btn-secondary btn-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={schedulingInProgress || selectedStudentIds.length === 0}
+                  className="btn btn-primary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px' }}
+                >
+                  <Video size={14} />
+                  {schedulingInProgress
+                    ? 'Dispatching Invitations...'
+                    : `Dispatch Invites (${selectedStudentIds.length} Student${selectedStudentIds.length === 1 ? '' : 's'})`}
+                </button>
               </div>
             </form>
           </div>
@@ -627,3 +928,4 @@ export const CounselingWorkspace: React.FC = () => {
     </DashboardLayout>
   );
 };
+

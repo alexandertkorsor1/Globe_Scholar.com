@@ -2,12 +2,15 @@ import React, { useState } from 'react';
 import { useApplication } from '../../context/ApplicationContext';
 import { useAuth } from '../../context/AuthContext';
 import { DashboardLayout } from '../dashboard/DashboardLayout';
-import { Award, Calendar, CheckCircle2, XCircle, Plus, Eye, FileText, Filter, LayoutDashboard, ClipboardList, ShieldCheck, Clock, AlertCircle, Bell, X, Upload, Trash2, BookOpen, Mail } from 'lucide-react';
+import { Award, Calendar, CheckCircle2, XCircle, Plus, Eye, FileText, Filter, LayoutDashboard, ClipboardList, ShieldCheck, Clock, AlertCircle, Bell, X, Upload, Trash2, BookOpen, Mail, GraduationCap, Radio } from 'lucide-react';
 import { DocumentManager } from '../documents/DocumentManager';
 import { Application, VisaApplication, VisaDocument } from '../../types/database';
 import { getApplicationIntake } from '../../lib/department-registers';
 import { DepartmentTaskInbox } from '../shared/DepartmentTaskInbox';
 import { supabase } from '../../lib/supabase';
+import { MarketingPostsFeed } from '../shared/MarketingPostsFeed';
+import { InstitutionFeeDirectory } from '../shared/InstitutionFeeDirectory';
+import { TrashBin } from '../shared/TrashBin';
 
 export const AdmissionsWorkspace: React.FC = () => {
   const {
@@ -157,6 +160,8 @@ export const AdmissionsWorkspace: React.FC = () => {
 
   const sidebarNav = [
     { label: 'Applications', icon: <ClipboardList style={{ width: 18, height: 18 }} />, active: true, onClick: () => goTo('admissions-queue') },
+    { label: 'Marketing Updates', icon: <Radio style={{ width: 18, height: 18 }} />, onClick: () => goTo('admissions-marketing-updates') },
+    { label: 'Fee Structures & Courses', icon: <GraduationCap style={{ width: 18, height: 18 }} />, onClick: () => goTo('admissions-fee-directory') },
     { label: 'Admission Windows', icon: <Calendar style={{ width: 18, height: 18 }} />, onClick: () => goTo('admission-windows') },
     { label: 'Assigned Tasks', icon: <FileText style={{ width: 18, height: 18 }} />, onClick: () => goTo('admissions-assigned-tasks') },
     { label: 'Visa Applications', icon: <ShieldCheck style={{ width: 18, height: 18 }} />, onClick: () => goTo('admissions-visa-applications') },
@@ -207,6 +212,16 @@ export const AdmissionsWorkspace: React.FC = () => {
             Configure Admission Window
           </button>
         </div>
+      </div>
+
+      {/* ── LIVE MARKETING UPDATES & CAMPAIGNS ─────────────────────────── */}
+      <div id="admissions-marketing-updates">
+        <MarketingPostsFeed allowCreate={false} departmentTitle="Admissions" />
+      </div>
+
+      {/* ── INSTITUTION FEE STRUCTURES & COURSES DIRECTORY ──────────────── */}
+      <div id="admissions-fee-directory">
+        <InstitutionFeeDirectory departmentTitle="Admissions" />
       </div>
 
       <div id="admissions-assigned-tasks">
@@ -422,6 +437,11 @@ export const AdmissionsWorkspace: React.FC = () => {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Admissions Recycle Bin */}
+      <div id="admissions-trash">
+        <TrashBin departmentKey="admissions" />
       </div>
 
       {/* Modal: Make Admissions Decision */}

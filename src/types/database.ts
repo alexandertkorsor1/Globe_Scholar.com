@@ -644,3 +644,35 @@ export interface StudentEmail {
   sender_name: string;
   created_at?: string;
 }
+
+export type MarketingPostCategory =
+  | 'campaign'
+  | 'webinar'
+  | 'fee_waiver'
+  | 'scholarship_drive'
+  | 'announcement'
+  | 'social_ad';
+
+export type MarketingPostPlatform =
+  | 'facebook'
+  | 'instagram'
+  | 'tiktok'
+  | 'whatsapp'
+  | 'general'
+  | 'all';
+
+export interface MarketingPost {
+  id: string;
+  title: string;
+  content: string;
+  category: MarketingPostCategory;
+  platform: MarketingPostPlatform;
+  external_link?: string | null;
+  target_audience?: string | null;
+  author_id?: string | null;
+  author_name: string;
+  author_role: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+}
