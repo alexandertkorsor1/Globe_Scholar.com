@@ -31,6 +31,13 @@ export const DashboardSidebar: React.FC<
     Record<string, boolean>
   >({});
 
+  React.useEffect(() => {
+    const activeItem = items.find((item) => item.active);
+    if (activeItem) {
+      setSelectedLabel(activeItem.label);
+    }
+  }, [items]);
+
   const toggleMenu = (label: string) => {
     setExpandedMenus((prev) => ({
       ...prev,

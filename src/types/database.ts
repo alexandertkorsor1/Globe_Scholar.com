@@ -582,3 +582,16 @@ export interface TrashItem {
   deleted_at: string;
   original_table: string;
 }
+
+export interface MonthlyMeeting {
+  id: string;
+  title: string;
+  scheduled_at: string;
+  duration_minutes: number;
+  platform: 'google_meet' | 'zoom';
+  meeting_link: string;
+  agenda?: string | null;
+  created_by?: string | null;
+  created_at?: string;
+  deleted_at?: string | null;
+}

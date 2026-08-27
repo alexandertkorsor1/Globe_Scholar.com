@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ArrowRight, FileUp, MessageSquare } from 'lucide-react';
+import { ArrowRight, FileUp, MessageSquare, Calendar } from 'lucide-react';
+import { MonthlyMeetingsView } from '../shared/MonthlyMeetingsView';
 import {
   DashboardSidebar,
   DashboardNavigationItem,
@@ -46,6 +47,27 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   onSettings,
 }) => {
   const { currentProfile } = useAuth();
+  const [currentView, setCurrentView] = useState<'workspace' | 'meetings'>('workspace');
+
+  const modifiedNavigation = [
+    ...navigation.map((item) => ({
+      ...item,
+      active: currentView === 'workspace' && item.active,
+      onClick: () => {
+        setCurrentView('workspace');
+        item.onClick?.();
+      },
+    })),
+    {
+      label: 'Monthly Meetings',
+      icon: <Calendar style={{ width: 18, height: 18 }} />,
+      active: currentView === 'meetings',
+      onClick: () => {
+        setCurrentView('meetings');
+      },
+    },
+  ];
+
   const { submitDepartmentReport, communications } = useApplication();
   const settingsStorageKey = `gsp:${department
     .toLowerCase()
@@ -114,7 +136,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     >
       <DashboardSidebar
         department={department}
-        items={navigation}
+        items={modifiedNavigation}
       />
 
       <div
@@ -171,7 +193,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             boxSizing: 'border-box',
           }}
         >
-          {children}
+          {currentView === 'meetings' ? (
+            <MonthlyMeetingsView />
+          ) : (
+            children
+          )}
         </main>
       </div>
 

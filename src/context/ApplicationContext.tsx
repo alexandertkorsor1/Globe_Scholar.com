@@ -38,7 +38,8 @@ import {
   HrInterviewStatus,
   HrLeaveType,
   HrLeaveStatus,
-  TrashItem
+  TrashItem,
+  MonthlyMeeting
 } from '../types/database';
 import {
   INITIAL_APPLICATIONS,
@@ -195,6 +196,9 @@ getDepartmentReportDownloadUrl: (
   fetchTrashItems: (departmentKey: string) => Promise<TrashItem[]>;
   restoreTrashItem: (type: string, id: string) => Promise<void>;
   deleteTrashItemPermanently: (type: string, id: string) => Promise<void>;
+  monthlyMeetings: MonthlyMeeting[];
+  scheduleMonthlyMeeting: (meeting: Omit<MonthlyMeeting, 'id' | 'created_at' | 'created_by' | 'deleted_at'>) => Promise<MonthlyMeeting>;
+  deleteMonthlyMeeting: (id: string) => Promise<void>;
 }
 
 const ApplicationContext = createContext<ApplicationContextType | undefined>(undefined);
@@ -357,6 +361,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [hrEmployeeRecords, setHrEmployeeRecords] = useState<HrEmployeeRecord[]>(initialHrEmployees);
   const [hrInterviews, setHrInterviews] = useState<HrInterview[]>(initialHrInterviews);
   const [hrLeaveRequests, setHrLeaveRequests] = useState<HrLeaveRequest[]>(initialHrLeaves);
+  const [monthlyMeetings, setMonthlyMeetings] = useState<MonthlyMeeting[]>([]);
 
   useEffect(() => {
     if (loading) return;
@@ -515,9 +520,25 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       );
     };
 
+    const loadMonthlyMeetings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('monthly_meetings')
+          .select('*')
+          .is('deleted_at', null)
+          .order('scheduled_at', { ascending: true });
+        
+        if (error) throw error;
+        setMonthlyMeetings(data as MonthlyMeeting[]);
+      } catch (err) {
+        console.warn('Failed to load monthly meetings:', err);
+      }
+    };
+
     loadApplications();
     loadFinancialRecords();
     loadPaymentReceipts();
+    loadMonthlyMeetings();
 
     const loadPartnerUniversities = async () => {
       const { data: universities, error: universitiesError } = await supabase
@@ -3100,6 +3121,26 @@ const createApplication = async (
       }
     }
 
+    // 6. Monthly Meetings
+    if (isAdmin || ['admin', 'operations', 'management'].includes(departmentKey)) {
+      const { data } = await supabase
+        .from('monthly_meetings')
+        .select('id, title, deleted_at')
+        .not('deleted_at', 'is', null);
+      if (data) {
+        data.forEach(item => {
+          items.push({
+            id: item.id,
+            type: 'monthly_meeting' as any,
+            display_name: `Monthly Meeting: ${item.title}`,
+            department: 'admin',
+            deleted_at: item.deleted_at,
+            original_table: 'monthly_meetings'
+          });
+        });
+      }
+    }
+
     return items.sort((a, b) => new Date(b.deleted_at).getTime() - new Date(a.deleted_at).getTime());
   };
 
@@ -3110,6 +3151,7 @@ const createApplication = async (
     else if (type === 'employee') tableName = 'hr_employee_records';
     else if (type === 'visa_document') tableName = 'student_visa_documents';
     else if (type === 'staff_member') tableName = 'department_members';
+    else if (type === 'monthly_meeting') tableName = 'monthly_meetings';
 
     if (!tableName) throw new Error('Unsupported item type for restore.');
 
@@ -3130,6 +3172,9 @@ const createApplication = async (
     } else if (type === 'employee') {
       const { data } = await supabase.from('hr_employee_records').select('*').is('deleted_at', null);
       if (data) setHrEmployeeRecords(data);
+    } else if (type === 'monthly_meeting') {
+      const { data } = await supabase.from('monthly_meetings').select('*').is('deleted_at', null).order('scheduled_at', { ascending: true });
+      if (data) setMonthlyMeetings(data as MonthlyMeeting[]);
     }
   };
 
@@ -3140,6 +3185,7 @@ const createApplication = async (
     else if (type === 'employee') tableName = 'hr_employee_records';
     else if (type === 'visa_document') tableName = 'student_visa_documents';
     else if (type === 'staff_member') tableName = 'department_members';
+    else if (type === 'monthly_meeting') tableName = 'monthly_meetings';
 
     if (!tableName) throw new Error('Unsupported item type for permanent delete.');
 
@@ -3149,6 +3195,51 @@ const createApplication = async (
       .eq('id', id);
 
     if (error) throw error;
+  };
+
+  const scheduleMonthlyMeeting = async (meeting: Omit<MonthlyMeeting, 'id' | 'created_at' | 'created_by' | 'deleted_at'>): Promise<MonthlyMeeting> => {
+    if (!currentProfile?.id) throw new Error('Not authenticated.');
+    
+    const canSchedule = currentProfile.is_admin || ['admin', 'operations', 'management'].includes(currentProfile.department);
+    if (!canSchedule) {
+      throw new Error('Only Admin, Operations, or Management departments can schedule monthly meetings.');
+    }
+
+    const { data, error } = await supabase
+      .from('monthly_meetings')
+      .insert({
+        ...meeting,
+        created_by: currentProfile.id
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error('Failed to create monthly meeting:', error);
+      throw error;
+    }
+
+    const newMeeting = data as MonthlyMeeting;
+    setMonthlyMeetings(prev => [...prev, newMeeting].sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()));
+    
+    await addCommunication(
+      'notification',
+      `Monthly Meeting Scheduled: ${meeting.title}`,
+      `A new monthly meeting has been scheduled for ${new Date(meeting.scheduled_at).toLocaleString()} on ${meeting.platform.toUpperCase().replace('_', ' ')}. agenda: ${meeting.agenda || 'No agenda provided.'}`,
+      'medium',
+      'all'
+    );
+
+    return newMeeting;
+  };
+
+  const deleteMonthlyMeeting = async (id: string): Promise<void> => {
+    const { error } = await supabase
+      .from('monthly_meetings')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) throw error;
+    setMonthlyMeetings(prev => prev.filter(m => m.id !== id));
   };
 
   return (
@@ -3222,7 +3313,10 @@ const createApplication = async (
         fetchTrashItems,
         restoreTrashItem,
         deleteTrashItemPermanently,
-  }}
+        monthlyMeetings,
+        scheduleMonthlyMeeting,
+        deleteMonthlyMeeting,
+      }}
     >
       {children}
     </ApplicationContext.Provider>
