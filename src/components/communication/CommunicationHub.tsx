@@ -40,6 +40,12 @@ export const CommunicationHub: React.FC<CommunicationHubProps> = ({ isOpen, onCl
   if (!isOpen) return null;
 
   const filteredComms = communications.filter(c => {
+    const isRelevant =
+      c.sender_id === currentProfile.id ||
+      c.department === 'all' ||
+      c.department === currentProfile.department;
+    if (!isRelevant) return false;
+
     if (activeTab === 'all') return true;
     return c.type === activeTab;
   });

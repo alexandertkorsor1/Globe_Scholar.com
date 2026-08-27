@@ -3222,12 +3222,28 @@ const createApplication = async (
     const newMeeting = data as MonthlyMeeting;
     setMonthlyMeetings(prev => [...prev, newMeeting].sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()));
     
-    await addCommunication(
-      'notification',
-      `Monthly Meeting Scheduled: ${meeting.title}`,
-      `A new monthly meeting has been scheduled for ${new Date(meeting.scheduled_at).toLocaleString()} on ${meeting.platform.toUpperCase().replace('_', ' ')}. agenda: ${meeting.agenda || 'No agenda provided.'}`,
-      'medium',
-      'all'
+    const depts: DepartmentType[] = [
+      'admin',
+      'marketing',
+      'admissions',
+      'counseling',
+      'data_applications',
+      'operations',
+      'finance',
+      'country_directors',
+      'management'
+    ];
+
+    await Promise.all(
+      depts.map(d =>
+        addCommunication(
+          'notification',
+          `Monthly Meeting Scheduled: ${meeting.title}`,
+          `A new monthly meeting has been scheduled for ${new Date(meeting.scheduled_at).toLocaleString()} on ${meeting.platform.toUpperCase().replace('_', ' ')}. agenda: ${meeting.agenda || 'No agenda provided.'}`,
+          'medium',
+          d
+        ).catch(err => console.error(`Failed to send meeting notification to ${d}:`, err))
+      )
     );
 
     return newMeeting;
