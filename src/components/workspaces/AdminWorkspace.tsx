@@ -132,6 +132,7 @@ export const AdminWorkspace: React.FC = () => {
 } = useApplication();
 
   const [activeTab, setActiveTab] = useState<AdminTab>('kpis');
+  const [crmFilter, setCrmFilter] = useState<'all' | 'students' | 'pending' | 'decided'>('all');
   const [selectedDeptDrill, setSelectedDeptDrill] = useState<DepartmentType>('admissions');
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [reviewNote, setReviewNote] = useState('');
@@ -572,25 +573,53 @@ export const AdminWorkspace: React.FC = () => {
           
           {/* Executive Stat Grid */}
           <div className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
-            <div className="glass-panel" style={{ padding: '18px' }}>
+            <div
+              className="glass-panel glass-panel-interactive animate-scale-up"
+              style={{ padding: '18px', cursor: 'pointer', transition: 'all 0.2s ease-in-out' }}
+              onClick={() => {
+                setActiveTab('crm');
+                setCrmFilter('all');
+              }}
+            >
               <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Total Applications</span>
               <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#6366f1', marginTop: '4px' }}>{totalApps}</div>
               <span style={{ fontSize: '0.7rem', color: '#34d399' }}>Across 8 departments</span>
             </div>
 
-            <div className="glass-panel" style={{ padding: '18px' }}>
+            <div
+              className="glass-panel glass-panel-interactive animate-scale-up"
+              style={{ padding: '18px', cursor: 'pointer', transition: 'all 0.2s ease-in-out' }}
+              onClick={() => {
+                setActiveTab('crm');
+                setCrmFilter('students');
+              }}
+            >
               <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Active Students</span>
               <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#06b6d4', marginTop: '4px' }}>{activeStudents}</div>
               <span style={{ fontSize: '0.7rem', color: '#38bdf8' }}>Registered on Portal</span>
             </div>
 
-            <div className="glass-panel" style={{ padding: '18px' }}>
+            <div
+              className="glass-panel glass-panel-interactive animate-scale-up"
+              style={{ padding: '18px', cursor: 'pointer', transition: 'all 0.2s ease-in-out' }}
+              onClick={() => {
+                setActiveTab('crm');
+                setCrmFilter('pending');
+              }}
+            >
               <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Pending Reviews</span>
               <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#f59e0b', marginTop: '4px' }}>{pendingApps}</div>
               <span style={{ fontSize: '0.7rem', color: '#fbbf24' }}>Requires Department Action</span>
             </div>
 
-            <div className="glass-panel" style={{ padding: '18px' }}>
+            <div
+              className="glass-panel glass-panel-interactive animate-scale-up"
+              style={{ padding: '18px', cursor: 'pointer', transition: 'all 0.2s ease-in-out' }}
+              onClick={() => {
+                setActiveTab('crm');
+                setCrmFilter('decided');
+              }}
+            >
               <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block' }}>Approved / Rejected</span>
               <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#10b981', marginTop: '4px' }}>
                 {approvedCount} <span style={{ fontSize: '1rem', color: '#f43f5e' }}>/ {rejectedCount}</span>
@@ -706,6 +735,8 @@ export const AdminWorkspace: React.FC = () => {
           financialRecords={financialRecords}
           title="Admin CRM Register"
           description="Executive CRM sheet showing the full student journey across intake, payment, department owner, and next required action."
+          filterType={crmFilter}
+          onFilterChange={setCrmFilter}
         />
       )}
 

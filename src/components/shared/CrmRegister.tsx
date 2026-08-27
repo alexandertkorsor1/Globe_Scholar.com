@@ -12,6 +12,8 @@ interface CrmRegisterProps {
   financialRecords: FinancialRecord[];
   title?: string;
   description?: string;
+  filterType?: 'all' | 'students' | 'pending' | 'decided';
+  onFilterChange?: (filter: 'all' | 'students' | 'pending' | 'decided') => void;
 }
 
 const ownerForStatus = (status: Application['status']) => {
@@ -60,68 +62,121 @@ export const CrmRegister: React.FC<CrmRegisterProps> = ({
   financialRecords,
   title = 'CRM Student Pipeline Register',
   description = 'Central relationship view for every student lead, application status, payment signal, department owner, and next action.',
-}) => (
-  <div className="glass-panel" style={{ padding: '20px' }}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', marginBottom: '14px', flexWrap: 'wrap' }}>
-      <div>
-        <h3 style={{ fontSize: '1rem', color: '#fff' }}>{title}</h3>
-        <p style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '4px' }}>{description}</p>
+  filterType = 'all',
+  onFilterChange,
+}) => {
+  const filteredApps = applications.filter((app) => {
+    if (filterType === 'all') return true;
+    const intake = getApplicationIntake(app, students);
+    
+    if (filterType === 'students') {
+      return !!intake.student;
+    }
+    
+    if (filterType === 'pending') {
+      return !['approved', 'rejected'].includes(app.status);
+    }
+    
+    if (filterType === 'decided') {
+      return ['approved', 'rejected'].includes(app.status);
+    }
+    
+    return true;
+  });
+
+  return (
+    <div className="glass-panel" style={{ padding: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', marginBottom: '14px', flexWrap: 'wrap' }}>
+        <div>
+          <h3 style={{ fontSize: '1rem', color: '#fff' }}>{title}</h3>
+          <p style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '4px', marginBottom: 0 }}>{description}</p>
+        </div>
+        <span className="badge badge-submitted">{filteredApps.length} CRM Records</span>
       </div>
-      <span className="badge badge-submitted">{applications.length} CRM Records</span>
-    </div>
 
-    <div className="custom-table-container">
-      <table className="custom-table">
-        <thead>
-          <tr>
-            <th>CRM / App #</th>
-            <th>Student</th>
-            <th>Email</th>
-            <th>Phone</th>
-            <th>Country</th>
-            <th>Target Institution</th>
-            <th>Stage</th>
-            <th>Payment</th>
-            <th>Department Owner</th>
-            <th>Last Touch</th>
-            <th>Next Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {applications.map((application) => {
-            const intake = getApplicationIntake(application, students);
-            const fee = getRegistrationFeeSummary(application.id, financialRecords);
-            const owner = ownerForStatus(application.status);
+      {/* Filter Selector Tabs */}
+      {onFilterChange && (
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', background: 'rgba(255,255,255,0.03)', padding: '6px', borderRadius: '8px', width: 'fit-content' }}>
+          {[
+            { id: 'all', label: 'All Applications' },
+            { id: 'students', label: 'Active Students' },
+            { id: 'pending', label: 'Pending Reviews' },
+            { id: 'decided', label: 'Approved / Rejected' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => onFilterChange(tab.id as any)}
+              className="btn btn-sm"
+              style={{
+                padding: '6px 12px',
+                fontSize: '0.75rem',
+                borderRadius: '6px',
+                background: filterType === tab.id ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
+                borderColor: filterType === tab.id ? '#60a5fa' : 'transparent',
+                color: filterType === tab.id ? '#60a5fa' : '#94a3b8',
+                fontWeight: filterType === tab.id ? 700 : 500,
+                cursor: 'pointer'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
 
-            return (
-              <tr key={application.id}>
-                <td><strong style={{ color: '#2563eb' }}>{application.application_number}</strong></td>
-                <td style={{ fontWeight: 700 }}>{intake.name}</td>
-                <td style={{ minWidth: '210px' }}>{intake.email}</td>
-                <td>{intake.phone}</td>
-                <td>{intake.country}</td>
-                <td>{application.target_university}</td>
-                <td><span className={`badge badge-${application.status}`}>{application.status.replace(/_/g, ' ')}</span></td>
-                <td>
-                  <span className={`badge badge-${fee.isCleared ? 'approved' : fee.status === 'pending' ? 'under_review' : 'draft'}`}>
-                    {fee.isCleared ? 'paid' : fee.status.replace(/_/g, ' ')}
-                  </span>
-                </td>
-                <td>{owner}</td>
-                <td>{formatRegisterDate(application.updated_at || application.created_at)}</td>
-                <td style={{ minWidth: '220px' }}>{nextActionForApplication(application, fee.status)}</td>
-              </tr>
-            );
-          })}
-          {applications.length === 0 && (
+      <div className="custom-table-container">
+        <table className="custom-table">
+          <thead>
             <tr>
-              <td colSpan={11} style={{ padding: '28px', textAlign: 'center', color: '#94a3b8' }}>
-                No CRM records are available yet.
-              </td>
+              <th>CRM / App #</th>
+              <th>Student</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Country</th>
+              <th>Target Institution</th>
+              <th>Stage</th>
+              <th>Payment</th>
+              <th>Department Owner</th>
+              <th>Last Touch</th>
+              <th>Next Action</th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {filteredApps.map((application) => {
+              const intake = getApplicationIntake(application, students);
+              const fee = getRegistrationFeeSummary(application.id, financialRecords);
+              const owner = ownerForStatus(application.status);
+
+              return (
+                <tr key={application.id}>
+                  <td><strong style={{ color: '#2563eb' }}>{application.application_number}</strong></td>
+                  <td style={{ fontWeight: 700 }}>{intake.name}</td>
+                  <td style={{ minWidth: '210px' }}>{intake.email}</td>
+                  <td>{intake.phone}</td>
+                  <td>{intake.country}</td>
+                  <td>{application.target_university}</td>
+                  <td><span className={`badge badge-${application.status}`}>{application.status.replace(/_/g, ' ')}</span></td>
+                  <td>
+                    <span className={`badge badge-${fee.isCleared ? 'approved' : fee.status === 'pending' ? 'under_review' : 'draft'}`}>
+                      {fee.isCleared ? 'paid' : fee.status.replace(/_/g, ' ')}
+                    </span>
+                  </td>
+                  <td>{owner}</td>
+                  <td>{formatRegisterDate(application.updated_at || application.created_at)}</td>
+                  <td style={{ minWidth: '220px' }}>{nextActionForApplication(application, fee.status)}</td>
+                </tr>
+              );
+            })}
+            {filteredApps.length === 0 && (
+              <tr>
+                <td colSpan={11} style={{ padding: '28px', textAlign: 'center', color: '#94a3b8' }}>
+                  No CRM records match the selected filter.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
-);
+  );
+};
