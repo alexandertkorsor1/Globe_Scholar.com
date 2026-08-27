@@ -15,6 +15,9 @@ const KPI_DEPARTMENTS: Array<{ value: DepartmentType; label: string }> = [
   { value: 'operations', label: 'Operations' },
   { value: 'country_directors', label: 'Country Directors' },
   { value: 'finance', label: 'Finance' },
+  { value: 'management', label: 'Management' },
+  { value: 'institutional_relations', label: 'Institutional Relations' },
+  { value: 'human_resources', label: 'Human Resources' },
 ];
 
 const emptyKpiInput: DepartmentKpiInput = {

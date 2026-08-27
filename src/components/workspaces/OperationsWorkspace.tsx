@@ -131,6 +131,7 @@ export const OperationsWorkspace: React.FC = () => {
     { value: 'data_applications', label: 'Data & Applications' },
     { value: 'finance', label: 'Finance' },
     { value: 'country_directors', label: 'Country Directors' },
+    { value: 'management', label: 'Management' },
     { value: 'institutional_relations', label: 'Institutional Relations' },
     { value: 'human_resources', label: 'Human Resources' },
   ];
