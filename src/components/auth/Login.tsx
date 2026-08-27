@@ -569,16 +569,27 @@ export const Login: React.FC<LoginProps> = ({
             <label htmlFor="student-country" style={labelStyle}>
               Country
             </label>
-            <input
+            <select
               id="student-country"
-              type="text"
               value={country}
               onChange={(event) => setCountry(event.target.value)}
-              placeholder="Country of residence"
-              autoComplete="country-name"
               required
               style={inputStyle}
-            />
+            >
+              <option value="">Select country of residence</option>
+              <option value="United States">United States</option>
+              <option value="United Kingdom">United Kingdom</option>
+              <option value="Canada">Canada</option>
+              <option value="Australia">Australia</option>
+              <option value="Denmark">Denmark</option>
+              <option value="Germany">Germany</option>
+              <option value="India">India</option>
+              <option value="Nigeria">Nigeria</option>
+              <option value="Ghana">Ghana</option>
+              <option value="Kenya">Kenya</option>
+              <option value="South Africa">South Africa</option>
+              <option value="Other">Other</option>
+            </select>
 
             <label htmlFor="student-address" style={labelStyle}>
               Current address

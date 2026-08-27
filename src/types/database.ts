@@ -44,6 +44,7 @@ export type DepartmentReportStatus =
 
 export type DocType =
   | 'passport'
+  | 'passport_photo'
   | 'secondary_school_certificate'
   | 'academic_transcript'
   | 'degree_certificate'

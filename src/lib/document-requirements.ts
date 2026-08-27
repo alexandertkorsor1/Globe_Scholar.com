@@ -20,12 +20,14 @@ export const STUDY_LEVEL_OPTIONS: Array<{
 export const DOCUMENT_REQUIREMENTS: Record<StudyLevel, DocumentRequirement[]> = {
   foundation: [
     { id: 'passport', type: 'passport', title: 'Passport biometric page', description: 'A clear, valid copy of the photo-information page.' },
+    { id: 'passport-photo', type: 'passport_photo', title: 'Passport-size photo', description: 'A recent passport-size color photograph with a white background.' },
     { id: 'secondary-school-certificate', type: 'secondary_school_certificate', title: 'Secondary school certificate', description: 'Your final school-leaving certificate or equivalent.' },
     { id: 'secondary-school-transcript', type: 'academic_transcript', title: 'Secondary school transcript', description: 'Your complete marks sheet or academic record.' },
     { id: 'financial-statement', type: 'financial_statement', title: 'Proof of funds', description: 'A recent bank statement or official financial sponsor letter.' },
   ],
   undergraduate: [
     { id: 'passport', type: 'passport', title: 'Passport biometric page', description: 'A clear, valid copy of the photo-information page.' },
+    { id: 'passport-photo', type: 'passport_photo', title: 'Passport-size photo', description: 'A recent passport-size color photograph with a white background.' },
     { id: 'secondary-school-certificate', type: 'secondary_school_certificate', title: 'Secondary school certificate', description: 'Your final school-leaving certificate or equivalent.' },
     { id: 'secondary-school-transcript', type: 'academic_transcript', title: 'Secondary school transcript', description: 'Your complete marks sheet or academic record.' },
     { id: 'personal-statement', type: 'personal_statement', title: 'Personal statement', description: 'Explain your academic goals and why you selected this programme.' },
@@ -33,6 +35,7 @@ export const DOCUMENT_REQUIREMENTS: Record<StudyLevel, DocumentRequirement[]> = 
   ],
   postgraduate: [
     { id: 'passport', type: 'passport', title: 'Passport biometric page', description: 'A clear, valid copy of the photo-information page.' },
+    { id: 'passport-photo', type: 'passport_photo', title: 'Passport-size photo', description: 'A recent passport-size color photograph with a white background.' },
     { id: 'bachelor-degree-certificate', type: 'degree_certificate', title: "Bachelor's degree certificate", description: 'Your completed undergraduate degree certificate.' },
     { id: 'bachelor-transcript', type: 'academic_transcript', title: "Bachelor's academic transcript", description: 'Your complete undergraduate transcript or marks sheets.' },
     { id: 'personal-statement', type: 'personal_statement', title: 'Personal statement', description: 'Explain your academic goals and why you selected this programme.' },
@@ -43,6 +46,7 @@ export const DOCUMENT_REQUIREMENTS: Record<StudyLevel, DocumentRequirement[]> = 
   ],
   doctoral: [
     { id: 'passport', type: 'passport', title: 'Passport biometric page', description: 'A clear, valid copy of the photo-information page.' },
+    { id: 'passport-photo', type: 'passport_photo', title: 'Passport-size photo', description: 'A recent passport-size color photograph with a white background.' },
     { id: 'graduate-degree-certificates', type: 'degree_certificate', title: "Bachelor's and Master's degree certificates", description: 'Combine your completed degree certificates into one PDF.' },
     { id: 'graduate-transcripts', type: 'academic_transcript', title: "Bachelor's and Master's transcripts", description: 'Combine all relevant university transcripts into one PDF.' },
     { id: 'research-proposal', type: 'research_proposal', title: 'Research proposal', description: 'A concise proposal describing your research question and methodology.' },
