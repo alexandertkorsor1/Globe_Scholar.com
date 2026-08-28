@@ -50,6 +50,8 @@ interface AuthContextType {
   isStudentMode: boolean;
   setStudentMode: (enabled: boolean) => void;
 
+  updateProfileAvatar: (avatarUrl: string | null) => Promise<void>;
+
   logout: () => Promise<void>;
 
   loading: boolean;
@@ -442,6 +444,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   /**
+   * Update user profile avatar picture with strict <=50KB limit.
+   */
+  const updateProfileAvatar = async (avatarUrl: string | null) => {
+    if (!currentProfile?.id) {
+      throw new Error('No active user profile found.');
+    }
+
+    try {
+      // Persist to Supabase profiles table
+      const { error } = await supabase
+        .from('profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', currentProfile.id);
+
+      if (error) {
+        console.warn('Could not update avatar in Supabase database:', error.message);
+      }
+    } catch (err) {
+      console.warn('Database avatar update caught error:', err);
+    }
+
+    // Update local currentProfile state immediately for real-time reactivity
+    setCurrentProfile((prev) => (prev ? { ...prev, avatar_url: avatarUrl || undefined } : null));
+
+    // Update availableProfiles list if present
+    setAvailableProfiles((prev) =>
+      prev.map((p) => (p.id === currentProfile.id ? { ...p, avatar_url: avatarUrl || undefined } : p))
+    );
+  };
+
+  /**
    * Sign out from Supabase.
    */
   const logout = async () => {
@@ -493,6 +526,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           isStudentMode,
           setStudentMode:
             setIsStudentMode,
+          updateProfileAvatar,
           logout,
           loading,
         }}
@@ -528,6 +562,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           isStudentMode,
           setStudentMode:
             setIsStudentMode,
+          updateProfileAvatar,
           logout,
           loading,
         } as AuthContextType

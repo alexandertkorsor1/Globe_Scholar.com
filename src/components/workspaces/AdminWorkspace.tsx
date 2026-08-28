@@ -17,6 +17,7 @@ import { CrmRegister } from '../shared/CrmRegister';
 import { KpiPerformanceTracker } from '../shared/KpiPerformanceTracker';
 import { DepartmentTaskInbox } from '../shared/DepartmentTaskInbox';
 import { TrashBin } from '../shared/TrashBin';
+import { ProfileAvatar } from '../common/ProfileAvatar';
 import {
   Building2,
   LayoutDashboard,
@@ -2639,27 +2640,20 @@ export const AdminWorkspace: React.FC = () => {
                             ? { label: 'Inactive', className: 'badge-rejected' }
                             : { label: 'Pending activation', className: 'badge-documents_missing' };
 
-                        const initials = member.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+                        const memberProfile = (availableProfiles || []).find(
+                          p => p.email?.toLowerCase() === member.email?.toLowerCase()
+                        );
 
                         return (
                           <tr key={member.id} style={{ transition: 'background 0.15s' }}>
                             <td>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <div style={{
-                                  width: '34px',
-                                  height: '34px',
-                                  borderRadius: '50%',
-                                  background: isCountryDirector ? 'linear-gradient(135deg, #0ea5e9, #2563eb)' : 'linear-gradient(135deg, #475569, #1e293b)',
-                                  color: '#fff',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontWeight: 700,
-                                  fontSize: '0.75rem',
-                                  flexShrink: 0
-                                }}>
-                                  {initials}
-                                </div>
+                                <ProfileAvatar
+                                  avatarUrl={memberProfile?.avatar_url}
+                                  name={member.full_name}
+                                  size={34}
+                                  editable={false}
+                                />
                                 <div>
                                   <strong style={{ display: 'block', color: '#fff', fontSize: '0.86rem' }}>
                                     {member.full_name}
@@ -2892,10 +2886,20 @@ export const AdminWorkspace: React.FC = () => {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.82)', zIndex: 350, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
           <div className="glass-panel animate-fade-in" style={{ width: '560px', maxHeight: '90vh', overflowY: 'auto', padding: '24px', background: '#0f172a', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '14px', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'linear-gradient(135deg, #2563eb, #7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1rem', fontWeight: 700 }}>
-                  {selectedStaffDossier.full_name.slice(0, 2).toUpperCase()}
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                {(() => {
+                  const dossierProfile = (availableProfiles || []).find(
+                    p => p.email?.toLowerCase() === selectedStaffDossier.email?.toLowerCase()
+                  );
+                  return (
+                    <ProfileAvatar
+                      avatarUrl={dossierProfile?.avatar_url}
+                      name={selectedStaffDossier.full_name}
+                      size={48}
+                      editable={false}
+                    />
+                  );
+                })()}
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#fff', fontWeight: 700 }}>
                     {selectedStaffDossier.full_name}

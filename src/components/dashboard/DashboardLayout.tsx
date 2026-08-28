@@ -154,6 +154,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           subtitle={subtitle}
           userName={userName}
           userRole={userRole}
+          avatarUrl={currentProfile.avatar_url}
           notificationCount={notificationCount ?? unreadCommunications}
           onNotifications={() => {
             onNotifications?.();

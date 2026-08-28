@@ -35,6 +35,7 @@ import {
   STUDY_LEVEL_OPTIONS,
 } from '../../lib/document-requirements';
 import { ApplicationJourney } from './ApplicationJourney';
+import { ProfileAvatar } from '../common/ProfileAvatar';
 
 export const StudentPortal: React.FC = () => {
   const {
@@ -60,7 +61,7 @@ export const StudentPortal: React.FC = () => {
     studentEmails,
   } = useApplication();
 
-  const { currentProfile, logout } = useAuth();
+  const { currentProfile, logout, updateProfileAvatar } = useAuth();
 
   const documentFileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -1518,20 +1519,20 @@ export const StudentPortal: React.FC = () => {
               </button>
             </header>
 
-            <div className="student-account-summary">
-              <div className="student-account-avatar">
-                {currentProfile.full_name
-                  .split(' ')
-                  .map((name) => name[0])
-                  .slice(0, 2)
-                  .join('')
-                  .toUpperCase()}
-              </div>
+            <div className="student-account-summary" style={{ flexDirection: 'column', gap: '14px', alignItems: 'center', textAlign: 'center' }}>
+              <ProfileAvatar
+                avatarUrl={currentProfile.avatar_url}
+                name={currentProfile.full_name}
+                size={84}
+                editable={true}
+                showDetails={true}
+                onAvatarChange={updateProfileAvatar}
+              />
               <div>
-                <strong>{currentProfile.full_name}</strong>
-                <span>{currentProfile.email}</span>
+                <strong style={{ fontSize: '1.05rem', color: '#fff', display: 'block' }}>{currentProfile.full_name}</strong>
+                <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{currentProfile.email}</span>
               </div>
-              <span className="student-account-status">Active account</span>
+              <span className="student-account-status">Active student account</span>
             </div>
 
             <div className="student-settings-section">

@@ -6,6 +6,7 @@ interface DashboardTopbarProps {
   subtitle?: string;
   userName?: string;
   userRole?: string;
+  avatarUrl?: string | null;
   notificationCount?: number;
   onNotifications?: () => void;
   onMessages?: () => void;
@@ -25,6 +26,7 @@ export const DashboardTopbar: React.FC<
   subtitle,
   userName,
   userRole = 'Staff',
+  avatarUrl,
   notificationCount = 0,
   onNotifications,
   onMessages,
@@ -216,6 +218,7 @@ export const DashboardTopbar: React.FC<
                 width: '38px',
                 height: '38px',
                 borderRadius: '50%',
+                overflow: 'hidden',
                 background:
                   'linear-gradient(135deg, #3366FF, #6366f1)',
                 color: '#ffffff',
@@ -225,9 +228,22 @@ export const DashboardTopbar: React.FC<
                 fontSize: '13px',
                 fontWeight: 700,
                 flexShrink: 0,
+                border: '2px solid #e5e7eb',
               }}
             >
-              {initials}
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={userName || 'User'}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                  }}
+                />
+              ) : (
+                initials
+              )}
             </div>
 
             {/* Name + Role */}
@@ -279,7 +295,7 @@ export const DashboardTopbar: React.FC<
                 position: 'absolute',
                 top: 'calc(100% + 8px)',
                 right: 0,
-                width: '200px',
+                width: '220px',
                 background: '#ffffff',
                 border: '1px solid #e5e7eb',
                 borderRadius: '12px',
@@ -310,6 +326,36 @@ export const DashboardTopbar: React.FC<
                   fontFamily: 'var(--font-body)',
                 }}
               >
+                <User
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    color: '#2563eb',
+                  }}
+                />
+                Profile &amp; Photo (50KB)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowUserMenu(false);
+                  onSettings?.();
+                }}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '10px 16px 12px',
+                  border: 'none',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  color: '#374151',
+                  fontFamily: 'var(--font-body)',
+                }}
+              >
                 <Settings
                   style={{
                     width: '16px',
@@ -317,7 +363,7 @@ export const DashboardTopbar: React.FC<
                     color: '#9ca3af',
                   }}
                 />
-                Settings
+                Security &amp; Password
               </button>
 
               <div

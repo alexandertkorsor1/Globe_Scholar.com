@@ -1,17 +1,24 @@
 import React, { useState } from 'react';
-import { X, KeyRound, Eye, EyeOff, Lock } from 'lucide-react';
+import { X, KeyRound, Eye, EyeOff, Lock, User } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
+import { ProfileAvatar } from '../common/ProfileAvatar';
 import type { Profile } from '../../types/database';
 
 interface UserSettingsModalProps {
   user: Profile;
   onClose: () => void;
+  initialTab?: 'password' | 'profile';
 }
 
 export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   user,
   onClose,
+  initialTab = 'profile',
 }) => {
+  const { updateProfileAvatar, currentProfile } = useAuth();
+  const activeUser = currentProfile || user;
+
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -21,7 +28,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [activeTab, setActiveTab] = useState<'password' | 'profile'>('password');
+  const [activeTab, setActiveTab] = useState<'password' | 'profile'>(initialTab);
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,6 +191,25 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
         >
           <button
             type="button"
+            onClick={() => setActiveTab('profile')}
+            style={{
+              flex: 1,
+              padding: '14px 16px',
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 600,
+              color: activeTab === 'profile' ? '#1d4ed8' : '#6b7280',
+              borderBottom: activeTab === 'profile' ? '2px solid #1d4ed8' : 'none',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <User size={16} style={{ marginRight: '6px', display: 'inline' }} />
+            Profile & Photo
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab('password')}
             style={{
               flex: 1,
@@ -200,24 +226,6 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
           >
             <Lock size={16} style={{ marginRight: '6px', display: 'inline' }} />
             Change Password
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('profile')}
-            style={{
-              flex: 1,
-              padding: '14px 16px',
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: 600,
-              color: activeTab === 'profile' ? '#1d4ed8' : '#6b7280',
-              borderBottom: activeTab === 'profile' ? '2px solid #1d4ed8' : 'none',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            Profile Info
           </button>
         </div>
 
@@ -456,133 +464,165 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
 
           {/* Profile Info Tab */}
           {activeTab === 'profile' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              {/* Profile Avatar Card */}
               <div
                 style={{
-                  padding: '14px',
-                  borderRadius: '8px',
-                  background: '#f3f4f6',
-                  border: '1px solid #e5e7eb',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)',
+                  border: '1px solid #e2e8f0',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '12px',
                 }}
               >
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: '#6b7280',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Full Name
-                </label>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: '14px',
-                    color: '#111827',
-                    fontWeight: 500,
-                  }}
-                >
-                  {user.full_name}
-                </p>
+                <ProfileAvatar
+                  avatarUrl={activeUser.avatar_url}
+                  name={activeUser.full_name}
+                  size={96}
+                  editable={true}
+                  showDetails={true}
+                  onAvatarChange={updateProfileAvatar}
+                />
               </div>
 
               <div
                 style={{
-                  padding: '14px',
-                  borderRadius: '8px',
-                  background: '#f3f4f6',
-                  border: '1px solid #e5e7eb',
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '12px',
                 }}
               >
-                <label
+                <div
                   style={{
-                    display: 'block',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: '#6b7280',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
+                    padding: '12px 14px',
+                    borderRadius: '8px',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
                   }}
                 >
-                  Email Address
-                </label>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: '14px',
-                    color: '#111827',
-                    fontWeight: 500,
-                  }}
-                >
-                  {user.email}
-                </p>
-              </div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#64748b',
+                      marginBottom: '4px',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Full Name
+                  </label>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: '14px',
+                      color: '#0f172a',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {activeUser.full_name}
+                  </p>
+                </div>
 
-              <div
-                style={{
-                  padding: '14px',
-                  borderRadius: '8px',
-                  background: '#f3f4f6',
-                  border: '1px solid #e5e7eb',
-                }}
-              >
-                <label
+                <div
                   style={{
-                    display: 'block',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: '#6b7280',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
+                    padding: '12px 14px',
+                    borderRadius: '8px',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
                   }}
                 >
-                  Department
-                </label>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: '14px',
-                    color: '#111827',
-                    fontWeight: 500,
-                  }}
-                >
-                  {user.department.replace('_', ' ').toUpperCase()}
-                </p>
-              </div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#64748b',
+                      marginBottom: '4px',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Department
+                  </label>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: '14px',
+                      color: '#2563eb',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {(activeUser.department || 'Admissions').replace(/_/g, ' ').toUpperCase()}
+                  </p>
+                </div>
 
-              <div
-                style={{
-                  padding: '14px',
-                  borderRadius: '8px',
-                  background: '#f3f4f6',
-                  border: '1px solid #e5e7eb',
-                }}
-              >
-                <label
+                <div
                   style={{
-                    display: 'block',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: '#6b7280',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase',
+                    padding: '12px 14px',
+                    borderRadius: '8px',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
                   }}
                 >
-                  Job Title
-                </label>
-                <p
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#64748b',
+                      marginBottom: '4px',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Email Address
+                  </label>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: '13px',
+                      color: '#0f172a',
+                      fontWeight: 500,
+                      wordBreak: 'break-all',
+                    }}
+                  >
+                    {activeUser.email}
+                  </p>
+                </div>
+
+                <div
                   style={{
-                    margin: 0,
-                    fontSize: '14px',
-                    color: '#111827',
-                    fontWeight: 500,
+                    padding: '12px 14px',
+                    borderRadius: '8px',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
                   }}
                 >
-                  {user.job_title || 'Not specified'}
-                </p>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#64748b',
+                      marginBottom: '4px',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Job Title / Role
+                  </label>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: '13px',
+                      color: '#0f172a',
+                      fontWeight: 500,
+                    }}
+                  >
+                    {activeUser.job_title || 'Department Officer'}
+                  </p>
+                </div>
               </div>
             </div>
           )}

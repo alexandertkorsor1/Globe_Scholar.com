@@ -9,10 +9,13 @@ import {
   LogOut,
   GraduationCap,
   ChevronDown,
-  Building2
+  Building2,
+  User,
+  Camera
 } from 'lucide-react';
 import { DepartmentType } from '../../types/database';
 import brandLogo from '../../brand-logo.jpg';
+import { UserSettingsModal } from '../dashboard/UserSettingsModal';
 
 interface HeaderProps {
   onOpenComms: () => void;
@@ -79,6 +82,7 @@ export const Header: React.FC<HeaderProps> = ({
   const { communications } = useApplication();
 
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+  const [showProfileSettings, setShowProfileSettings] = useState(false);
 
   const unreadCount = communications.filter(
     c => !c.is_read
@@ -86,6 +90,14 @@ export const Header: React.FC<HeaderProps> = ({
 
   const currentDeptInfo =
     DEPT_LABELS[currentProfile.department] || fallbackDeptInfo;
+
+  const userInitials = (currentProfile.full_name || 'User')
+    .split(' ')
+    .filter(Boolean)
+    .map(n => n[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
 
   return (
     <header
@@ -305,9 +317,40 @@ export const Header: React.FC<HeaderProps> = ({
                     background:
                       'rgba(18, 26, 43, 0.9)',
                     position: 'relative',
-                    zIndex: 10002
+                    zIndex: 10002,
+                    display: 'flex',
+                    alignItems: 'center'
                   }}
                 >
+                  {/* Avatar thumbnail */}
+                  <div
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      overflow: 'hidden',
+                      background: 'linear-gradient(135deg, #1e3a8a, #3b82f6)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#fff',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      border: '1.5px solid rgba(255,255,255,0.25)',
+                      flexShrink: 0
+                    }}
+                  >
+                    {currentProfile.avatar_url ? (
+                      <img
+                        src={currentProfile.avatar_url}
+                        alt={currentProfile.full_name}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      userInitials
+                    )}
+                  </div>
+
                   <div
                     style={{
                       textAlign: 'left'
@@ -498,20 +541,48 @@ export const Header: React.FC<HeaderProps> = ({
                         ))}
                     </div>
 
-                    {/* Logout */}
+                    {/* Profile & Photo Settings Action */}
                     <div
                       style={{
-                        marginTop: '12px',
-                        paddingTop: '12px',
-                        borderTop:
-                          '1px solid rgba(255,255,255,0.12)',
-                        textAlign: 'center',
+                        marginTop: '10px',
+                        paddingTop: '10px',
+                        borderTop: '1px solid rgba(255,255,255,0.08)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
                         position: 'sticky',
                         bottom: 0,
                         background: '#0f172a',
                         zIndex: 10
                       }}
                     >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowRoleDropdown(false);
+                          setShowProfileSettings(true);
+                        }}
+                        style={{
+                          width: '100%',
+                          background: 'rgba(59, 130, 246, 0.15)',
+                          border: '1px solid rgba(59, 130, 246, 0.4)',
+                          color: '#60a5fa',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <Camera size={14} />
+                        Profile Picture &amp; Details (Max 50KB)
+                      </button>
+
                       <button
                         onClick={() => {
                           setShowRoleDropdown(false);
@@ -524,7 +595,7 @@ export const Header: React.FC<HeaderProps> = ({
                           border:
                             '1px solid rgba(244, 63, 94, 0.35)',
                           color: '#fb7185',
-                          fontSize: '0.8rem',
+                          fontSize: '0.78rem',
                           fontWeight: 700,
                           cursor: 'pointer',
                           display: 'flex',
@@ -532,7 +603,7 @@ export const Header: React.FC<HeaderProps> = ({
                           justifyContent:
                             'center',
                           gap: '8px',
-                          padding: '10px 12px',
+                          padding: '8px 12px',
                           borderRadius: '8px',
                           transition:
                             'all 0.2s ease'
@@ -540,8 +611,8 @@ export const Header: React.FC<HeaderProps> = ({
                       >
                         <LogOut
                           style={{
-                            width: '15px',
-                            height: '15px'
+                            width: '14px',
+                            height: '14px'
                           }}
                         />
 
@@ -555,6 +626,14 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
       </div>
+
+      {showProfileSettings && currentProfile && (
+        <UserSettingsModal
+          user={currentProfile}
+          initialTab="profile"
+          onClose={() => setShowProfileSettings(false)}
+        />
+      )}
     </header>
   );
 };
