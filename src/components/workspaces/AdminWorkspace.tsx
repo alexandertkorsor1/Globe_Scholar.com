@@ -7,6 +7,9 @@ import type {
   PartnerUniversity,
   VisaApplication,
   VisaDocument,
+  HrLeaveRequest,
+  HrLeaveType,
+  HrLeaveStatus,
 } from '../../types/database';
 import { useApplication } from '../../context/ApplicationContext';
 import { useAuth } from '../../context/AuthContext';
@@ -66,6 +69,8 @@ import {
   CreditCard,
   Clock,
   Calendar,
+  CalendarOff,
+  Download,
   DollarSign,
   CheckCircle,
   ExternalLink,
@@ -100,7 +105,7 @@ const RESPONSIBILITY_OPTIONS = [
   },
 ];
 
-type AdminTab = 'kpis' | 'crm' | 'performance' | 'drilldown' | 'partnerships' | 'staff' | 'work_assignments' | 'visa_applications' | 'student_documents' | 'trash';
+type AdminTab = 'kpis' | 'crm' | 'performance' | 'drilldown' | 'partnerships' | 'staff' | 'leave_approvals' | 'work_assignments' | 'visa_applications' | 'student_documents' | 'trash';
 
 const ADMIN_TABS: Array<{ id: AdminTab; label: string }> = [
   { id: 'kpis', label: 'Executive Dashboard' },
@@ -110,6 +115,7 @@ const ADMIN_TABS: Array<{ id: AdminTab; label: string }> = [
   { id: 'work_assignments', label: 'Work Assignments' },
   { id: 'partnerships', label: 'Partner Universities & Agreements' },
   { id: 'staff', label: 'Staff Accounts & Department Members' },
+  { id: 'leave_approvals', label: 'Leave Requests & Approvals' },
   { id: 'student_documents', label: 'Student Documents' },
 ];
 
@@ -189,9 +195,22 @@ export const AdminWorkspace: React.FC = () => {
   deleteMarketingPost,
   counselingSessions,
   hrLeaveRequests,
+  reviewHrLeaveRequest,
   hrEmployeeRecords,
   monthlyMeetings
 } = useApplication();
+
+  // Staff Leave Approvals State
+  const [leaveSearchTerm, setLeaveSearchTerm] = useState('');
+  const [leaveDeptFilter, setLeaveDeptFilter] = useState<string>('all');
+  const [leaveStatusFilter, setLeaveStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [selectedLeaveReview, setSelectedLeaveReview] = useState<HrLeaveRequest | null>(null);
+  const [selectedLeaveDossierForAdmin, setSelectedLeaveDossierForAdmin] = useState<HrLeaveRequest | null>(null);
+  const [leaveReviewDecision, setLeaveReviewDecision] = useState<'approved' | 'rejected'>('approved');
+  const [leaveReviewNote, setLeaveReviewNote] = useState('');
+  const [submittingLeaveReview, setSubmittingLeaveReview] = useState(false);
+  const [adminViewingPdf, setAdminViewingPdf] = useState<{ url: string; name: string } | null>(null);
+  const [leaveActionNotice, setLeaveActionNotice] = useState('');
 
   const [activeTab, setActiveTab] = useState<AdminTab>('kpis');
   const [crmFilter, setCrmFilter] = useState<'all' | 'students' | 'pending' | 'decided'>('all');
@@ -689,6 +708,27 @@ export const AdminWorkspace: React.FC = () => {
     }
   };
 
+  const handleReviewLeaveSubmit = async () => {
+    if (!selectedLeaveReview) return;
+    setSubmittingLeaveReview(true);
+    try {
+      await reviewHrLeaveRequest(
+        selectedLeaveReview.id,
+        leaveReviewDecision,
+        leaveReviewNote.trim() || (leaveReviewDecision === 'approved' ? 'Approved by Administration.' : 'Declined by Administration.')
+      );
+      setLeaveActionNotice(`Leave request for ${selectedLeaveReview.employee_name} has been ${leaveReviewDecision.toUpperCase()}.`);
+      setSelectedLeaveReview(null);
+      setLeaveReviewNote('');
+      setTimeout(() => setLeaveActionNotice(''), 4000);
+    } catch (err) {
+      console.error('Failed to review leave:', err);
+      alert('Failed to submit leave review decision.');
+    } finally {
+      setSubmittingLeaveReview(false);
+    }
+  };
+
   const sidebarNav = [
     { label: 'Overview', icon: <LayoutDashboard style={{ width: 18, height: 18 }} />, active: activeTab === 'kpis', onClick: () => setActiveTab('kpis') },
     { label: 'CRM', icon: <BriefcaseBusiness style={{ width: 18, height: 18 }} />, active: activeTab === 'crm', onClick: () => setActiveTab('crm') },
@@ -697,6 +737,7 @@ export const AdminWorkspace: React.FC = () => {
     { label: 'Work Assignments', icon: <ClipboardList style={{ width: 18, height: 18 }} />, active: activeTab === 'work_assignments', onClick: () => setActiveTab('work_assignments') },
     { label: 'Partnerships', icon: <GraduationCap style={{ width: 18, height: 18 }} />, active: activeTab === 'partnerships', onClick: () => setActiveTab('partnerships') },
     { label: 'Staff & Members', icon: <Users2 style={{ width: 18, height: 18 }} />, active: activeTab === 'staff', onClick: () => setActiveTab('staff') },
+    { label: 'Leave Approvals', icon: <CalendarOff style={{ width: 18, height: 18 }} />, active: activeTab === 'leave_approvals', onClick: () => setActiveTab('leave_approvals') },
     { label: 'Visa Applications', icon: <ShieldCheck style={{ width: 18, height: 18 }} />, active: activeTab === 'visa_applications', onClick: () => setActiveTab('visa_applications') },
     { label: 'Recycle Bin', icon: <Trash2 style={{ width: 18, height: 18 }} />, active: activeTab === 'trash', onClick: () => setActiveTab('trash') },
   ];
@@ -786,7 +827,7 @@ export const AdminWorkspace: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
           {/* Executive Stat Grid */}
-          <div className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '14px' }}>
+          <div className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '14px' }}>
             <div
               className="glass-panel glass-panel-interactive animate-scale-up"
               style={{ padding: '16px', cursor: 'pointer', transition: 'all 0.2s ease-in-out' }}
@@ -852,7 +893,7 @@ export const AdminWorkspace: React.FC = () => {
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span style={{ fontSize: '0.74rem', color: '#c084fc', display: 'block', fontWeight: 600 }}>Staff Directory & RBAC</span>
+                <span style={{ fontSize: '0.74rem', color: '#c084fc', display: 'block', fontWeight: 600 }}>Staff Directory</span>
                 <button
                   type="button"
                   onClick={(e) => {
@@ -867,14 +908,40 @@ export const AdminWorkspace: React.FC = () => {
                 </button>
               </div>
               <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#a855f7', marginTop: '4px' }}>
-                {departmentMembers.length}
+                {(departmentMembers || []).length}
                 <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 600, marginLeft: '6px' }}>
-                  ({departmentMembers.filter(m => m.employment_status === 'active').length} Active)
+                  ({(departmentMembers || []).filter(m => m.employment_status === 'active').length} Active)
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
-                <span style={{ fontSize: '0.68rem', color: '#d8b4fe' }}>Manage Roles & RBAC →</span>
-                <span style={{ fontSize: '0.66rem', color: '#a855f7', fontWeight: 600 }}>View All Staff</span>
+                <span style={{ fontSize: '0.68rem', color: '#d8b4fe' }}>Manage Roles →</span>
+                <span style={{ fontSize: '0.66rem', color: '#a855f7', fontWeight: 600 }}>View Roster</span>
+              </div>
+            </div>
+
+            <div
+              className="glass-panel glass-panel-interactive animate-scale-up"
+              style={{ padding: '16px', cursor: 'pointer', transition: 'all 0.2s ease-in-out', border: '1px solid rgba(14, 165, 233, 0.3)', background: 'rgba(14, 165, 233, 0.06)' }}
+              onClick={() => {
+                setActiveTab('leave_approvals');
+                setLeaveStatusFilter('pending');
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <span style={{ fontSize: '0.74rem', color: '#38bdf8', display: 'block', fontWeight: 600 }}>Leave Requests</span>
+                <span className="badge badge-under_review" style={{ fontSize: '0.68rem', padding: '2px 6px' }}>
+                  {(hrLeaveRequests || []).filter(r => r.status === 'pending').length} Pending
+                </span>
+              </div>
+              <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#0ea5e9', marginTop: '4px' }}>
+                {(hrLeaveRequests || []).length}
+                <span style={{ fontSize: '0.78rem', color: '#10b981', fontWeight: 600, marginLeft: '6px' }}>
+                  ({(hrLeaveRequests || []).filter(r => r.status === 'approved').length} Approved)
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
+                <span style={{ fontSize: '0.68rem', color: '#7dd3fc' }}>Approve Leaves →</span>
+                <span style={{ fontSize: '0.66rem', color: '#0ea5e9', fontWeight: 600 }}>Manage Leaves</span>
               </div>
             </div>
           </div>
@@ -3403,6 +3470,716 @@ export const AdminWorkspace: React.FC = () => {
               >
                 Close Matrix
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Staff Leave Requests & Approvals (Executive Administration) */}
+      {activeTab === 'leave_approvals' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          
+          {/* Header Banner & Stat Cards */}
+          <div className="glass-panel" style={{ padding: '22px 26px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'linear-gradient(135deg, #0ea5e9, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 4px 12px rgba(14, 165, 233, 0.3)' }}>
+                  <CalendarOff size={22} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#fff', fontWeight: 800 }}>
+                    Staff Leave Requests & Executive Approvals
+                  </h3>
+                  <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>
+                    Review cross-department leave applications, inspect attached PDF documents, and approve or decline requests with formal feedback.
+                  </p>
+                </div>
+              </div>
+
+              {leaveActionNotice && (
+                <div style={{ padding: '8px 16px', borderRadius: '8px', background: '#dcfce7', border: '1px solid #86efac', color: '#166534', fontSize: '0.84rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <CheckCircle2 size={16} /> {leaveActionNotice}
+                </div>
+              )}
+            </div>
+
+            {/* Leave Metrics Grid */}
+            <div className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '14px', marginTop: '20px' }}>
+              <div
+                onClick={() => setLeaveStatusFilter('all')}
+                style={{
+                  padding: '14px',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  background: leaveStatusFilter === 'all' ? 'rgba(99, 102, 241, 0.18)' : 'rgba(255,255,255,0.03)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s'
+                }}
+              >
+                <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, display: 'block' }}>Total Requests</span>
+                <strong style={{ fontSize: '1.6rem', color: '#fff', display: 'block', marginTop: '2px' }}>{(hrLeaveRequests || []).length}</strong>
+                <span style={{ fontSize: '0.68rem', color: '#818cf8' }}>Across all departments</span>
+              </div>
+
+              <div
+                onClick={() => setLeaveStatusFilter('pending')}
+                style={{
+                  padding: '14px',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(245, 158, 11, 0.3)',
+                  background: leaveStatusFilter === 'pending' ? 'rgba(245, 158, 11, 0.18)' : 'rgba(245, 158, 11, 0.05)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s'
+                }}
+              >
+                <span style={{ fontSize: '0.72rem', color: '#fbbf24', fontWeight: 700, display: 'block' }}>Pending Review</span>
+                <strong style={{ fontSize: '1.6rem', color: '#f59e0b', display: 'block', marginTop: '2px' }}>
+                  {(hrLeaveRequests || []).filter(r => r.status === 'pending').length}
+                </strong>
+                <span style={{ fontSize: '0.68rem', color: '#fde68a' }}>Requires Executive Decision</span>
+              </div>
+
+              <div
+                onClick={() => setLeaveStatusFilter('approved')}
+                style={{
+                  padding: '14px',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  background: leaveStatusFilter === 'approved' ? 'rgba(16, 185, 129, 0.18)' : 'rgba(16, 185, 129, 0.05)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s'
+                }}
+              >
+                <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 700, display: 'block' }}>Approved Leaves</span>
+                <strong style={{ fontSize: '1.6rem', color: '#10b981', display: 'block', marginTop: '2px' }}>
+                  {(hrLeaveRequests || []).filter(r => r.status === 'approved').length}
+                </strong>
+                <span style={{ fontSize: '0.68rem', color: '#a7f3d0' }}>Time-Off Confirmed</span>
+              </div>
+
+              <div
+                onClick={() => setLeaveStatusFilter('rejected')}
+                style={{
+                  padding: '14px',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  background: leaveStatusFilter === 'rejected' ? 'rgba(239, 68, 68, 0.18)' : 'rgba(239, 68, 68, 0.05)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s'
+                }}
+              >
+                <span style={{ fontSize: '0.72rem', color: '#f87171', fontWeight: 700, display: 'block' }}>Declined / Rejected</span>
+                <strong style={{ fontSize: '1.6rem', color: '#ef4444', display: 'block', marginTop: '2px' }}>
+                  {(hrLeaveRequests || []).filter(r => r.status === 'rejected' || r.status === 'denied').length}
+                </strong>
+                <span style={{ fontSize: '0.68rem', color: '#fca5a5' }}>Reviewed with Notes</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Leave Management Main Panel */}
+          <div className="glass-panel" style={{ padding: '24px' }}>
+            
+            {/* Department Filter Pills */}
+            <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '10px', marginBottom: '14px' }}>
+              <button
+                type="button"
+                onClick={() => setLeaveDeptFilter('all')}
+                className={`btn btn-sm ${leaveDeptFilter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '0.74rem', padding: '4px 10px', borderRadius: '20px' }}
+              >
+                All Departments ({(hrLeaveRequests || []).length})
+              </button>
+              {DEPARTMENT_OPTIONS.map((dept) => {
+                const count = (hrLeaveRequests || []).filter(r => r.department === dept.value).length;
+                return (
+                  <button
+                    key={dept.value}
+                    type="button"
+                    onClick={() => setLeaveDeptFilter(dept.value)}
+                    className={`btn btn-sm ${leaveDeptFilter === dept.value ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ fontSize: '0.74rem', padding: '4px 10px', borderRadius: '20px', whiteSpace: 'nowrap' }}
+                  >
+                    {dept.label} ({count})
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Search & Status Controls */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ position: 'relative', flex: '1', minWidth: '240px', maxWidth: '420px' }}>
+                <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                <input
+                  type="text"
+                  placeholder="Search staff name, email, department or reason..."
+                  value={leaveSearchTerm}
+                  onChange={(e) => setLeaveSearchTerm(e.target.value)}
+                  className="form-input"
+                  style={{ paddingLeft: '36px', height: '36px', fontSize: '0.8rem', background: '#fff', color: '#0f172a' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>Filter by Status:</span>
+                <select
+                  value={leaveStatusFilter}
+                  onChange={(e) => setLeaveStatusFilter(e.target.value as any)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    background: '#fff',
+                    fontSize: '0.8rem',
+                    color: '#1e293b',
+                    outline: 'none',
+                    fontWeight: 600
+                  }}
+                >
+                  <option value="all">All Statuses ({(hrLeaveRequests || []).length})</option>
+                  <option value="pending">Pending Review ({(hrLeaveRequests || []).filter(r => r.status === 'pending').length})</option>
+                  <option value="approved">Approved ({(hrLeaveRequests || []).filter(r => r.status === 'approved').length})</option>
+                  <option value="rejected">Rejected ({(hrLeaveRequests || []).filter(r => r.status === 'rejected' || r.status === 'denied').length})</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Filtered Leave Applications Table */}
+            {(() => {
+              const filtered = (hrLeaveRequests || []).filter((req) => {
+                if (leaveDeptFilter !== 'all' && req.department !== leaveDeptFilter) return false;
+                if (leaveStatusFilter === 'pending' && req.status !== 'pending') return false;
+                if (leaveStatusFilter === 'approved' && req.status !== 'approved') return false;
+                if (leaveStatusFilter === 'rejected' && req.status !== 'rejected' && req.status !== 'denied') return false;
+
+                if (leaveSearchTerm.trim()) {
+                  const q = leaveSearchTerm.toLowerCase();
+                  const matchName = req.employee_name?.toLowerCase().includes(q);
+                  const matchEmail = req.employee_email?.toLowerCase().includes(q);
+                  const matchDept = req.department?.toLowerCase().includes(q);
+                  const matchReason = req.reason?.toLowerCase().includes(q);
+                  return matchName || matchEmail || matchDept || matchReason;
+                }
+                return true;
+              });
+
+              if (filtered.length === 0) {
+                return (
+                  <div style={{ padding: '40px 20px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed rgba(255,255,255,0.1)' }}>
+                    <CalendarOff size={34} color="#94a3b8" style={{ marginBottom: '8px' }} />
+                    <h4 style={{ margin: 0, color: '#fff', fontSize: '0.96rem' }}>No leave requests matching your criteria.</h4>
+                    <p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: '0.78rem' }}>
+                      Try adjusting your department pill or status filter to see other staff submissions.
+                    </p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="custom-table-container">
+                  <table className="custom-table">
+                    <thead>
+                      <tr>
+                        <th>Staff Member</th>
+                        <th>Department</th>
+                        <th>Leave Type</th>
+                        <th>Departure</th>
+                        <th>Expected Return</th>
+                        <th>Attached PDF</th>
+                        <th>Status</th>
+                        <th style={{ textAlign: 'right' }}>Admin Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.map((req) => {
+                        const isApproved = req.status === 'approved';
+                        const isRejected = req.status === 'rejected' || req.status === 'denied';
+                        const isPending = req.status === 'pending';
+
+                        return (
+                          <tr key={req.id}>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <ProfileAvatar
+                                  avatarUrl={null}
+                                  name={req.employee_name}
+                                  size={32}
+                                />
+                                <div>
+                                  <strong style={{ color: '#fff', fontSize: '0.86rem', display: 'block' }}>
+                                    {req.employee_name}
+                                  </strong>
+                                  <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>{req.employee_email}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td>
+                              <span className="badge badge-under_review" style={{ textTransform: 'capitalize', fontSize: '0.72rem' }}>
+                                {req.department?.replace(/_/g, ' ')}
+                              </span>
+                            </td>
+                            <td>
+                              <strong style={{ color: '#e2e8f0', fontSize: '0.82rem', textTransform: 'capitalize', display: 'block' }}>
+                                {req.leave_type?.replace(/_/g, ' ')}
+                              </strong>
+                              {req.reason && (
+                                <span style={{ color: '#94a3b8', fontSize: '0.72rem', display: 'block', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {req.reason}
+                                </span>
+                              )}
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <Calendar size={12} color="#38bdf8" />
+                                <strong style={{ color: '#fff', fontSize: '0.8rem' }}>{req.start_date}</strong>
+                              </div>
+                              <span style={{ color: '#94a3b8', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}>
+                                <Clock size={10} /> {req.start_time || '09:00 AM'}
+                              </span>
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <Calendar size={12} color="#34d399" />
+                                <strong style={{ color: '#fff', fontSize: '0.8rem' }}>{req.end_date}</strong>
+                              </div>
+                              <span style={{ color: '#94a3b8', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}>
+                                <Clock size={10} /> {req.return_time || '05:00 PM'}
+                              </span>
+                            </td>
+                            <td>
+                              {req.pdf_url ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setAdminViewingPdf({ url: req.pdf_url!, name: req.pdf_name || 'Leave_Attachment.pdf' })}
+                                  className="btn btn-secondary btn-sm"
+                                  style={{
+                                    fontSize: '0.72rem',
+                                    padding: '3px 8px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    color: '#f87171',
+                                    borderColor: 'rgba(239, 68, 68, 0.3)',
+                                    background: 'rgba(239, 68, 68, 0.1)'
+                                  }}
+                                  title="View Uploaded PDF Document"
+                                >
+                                  <FileText size={12} /> {req.pdf_name ? (req.pdf_name.length > 15 ? req.pdf_name.slice(0, 12) + '...' : req.pdf_name) : 'View PDF'}
+                                </button>
+                              ) : (
+                                <span style={{ color: '#64748b', fontSize: '0.72rem' }}>None</span>
+                              )}
+                            </td>
+                            <td>
+                              <span
+                                className={`badge ${
+                                  isApproved
+                                    ? 'badge-documents_verified'
+                                    : isRejected
+                                    ? 'badge-rejected'
+                                    : 'badge-documents_missing'
+                                }`}
+                                style={{ fontWeight: 700 }}
+                              >
+                                {isApproved ? '✅ Approved' : isRejected ? '❌ Rejected' : '⏳ Pending'}
+                              </span>
+                              {req.admin_notes && (
+                                <div style={{ marginTop: '3px', fontSize: '0.7rem', color: isApproved ? '#86efac' : '#fca5a5', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  Note: {req.admin_notes}
+                                </div>
+                              )}
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                                {isPending ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedLeaveReview(req);
+                                        setLeaveReviewDecision('approved');
+                                        setLeaveReviewNote('Approved by Administration. Enjoy your time off.');
+                                      }}
+                                      className="btn btn-primary btn-sm"
+                                      style={{ fontSize: '0.72rem', padding: '3px 8px', background: '#16a34a', borderColor: '#15803d', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                                      title="Approve Leave Application"
+                                    >
+                                      <CheckCircle2 size={12} /> Approve
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedLeaveReview(req);
+                                        setLeaveReviewDecision('rejected');
+                                        setLeaveReviewNote('Request declined due to operational coverage requirements.');
+                                      }}
+                                      className="btn btn-danger btn-sm"
+                                      style={{ fontSize: '0.72rem', padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                                      title="Reject Leave Application"
+                                    >
+                                      <XCircle size={12} /> Reject
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedLeaveReview(req);
+                                      setLeaveReviewDecision(isApproved ? 'rejected' : 'approved');
+                                      setLeaveReviewNote(req.admin_notes || '');
+                                    }}
+                                    className="btn btn-secondary btn-sm"
+                                    style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                                    title="Modify Leave Decision"
+                                  >
+                                    Change Decision
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedLeaveDossierForAdmin(req)}
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ fontSize: '0.72rem', padding: '3px 7px' }}
+                                  title="View Full Application Details"
+                                >
+                                  <Eye size={12} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* Admin Leave Decision Review Modal */}
+      {selectedLeaveReview && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 450, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div className="glass-panel animate-fade-in" style={{ width: '560px', maxHeight: '90vh', overflowY: 'auto', padding: '24px', background: '#0f172a', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CalendarOff size={20} color="#38bdf8" />
+                <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#fff', fontWeight: 800 }}>
+                  Review Leave Request Decision
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedLeaveReview(null)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Application Overview */}
+            <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <strong style={{ fontSize: '0.94rem', color: '#fff' }}>{selectedLeaveReview.employee_name}</strong>
+                <span className="badge badge-under_review" style={{ textTransform: 'capitalize', fontSize: '0.72rem' }}>
+                  {selectedLeaveReview.department?.replace(/_/g, ' ')}
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.78rem', color: '#cbd5e1' }}>
+                <div>
+                  <span style={{ color: '#94a3b8', display: 'block', fontSize: '0.7rem' }}>Category:</span>
+                  <strong style={{ color: '#fff', textTransform: 'capitalize' }}>{selectedLeaveReview.leave_type?.replace(/_/g, ' ')}</strong>
+                </div>
+                <div>
+                  <span style={{ color: '#94a3b8', display: 'block', fontSize: '0.7rem' }}>Departure:</span>
+                  <strong>{selectedLeaveReview.start_date} ({selectedLeaveReview.start_time || '09:00 AM'})</strong>
+                </div>
+                <div>
+                  <span style={{ color: '#94a3b8', display: 'block', fontSize: '0.7rem' }}>Return:</span>
+                  <strong>{selectedLeaveReview.end_date} ({selectedLeaveReview.return_time || '05:00 PM'})</strong>
+                </div>
+                <div>
+                  <span style={{ color: '#94a3b8', display: 'block', fontSize: '0.7rem' }}>PDF Attachment:</span>
+                  {selectedLeaveReview.pdf_url ? (
+                    <button
+                      type="button"
+                      onClick={() => setAdminViewingPdf({ url: selectedLeaveReview.pdf_url!, name: selectedLeaveReview.pdf_name || 'Leave_Attachment.pdf' })}
+                      style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: 0, fontSize: '0.76rem', textDecoration: 'underline' }}
+                    >
+                      📄 {selectedLeaveReview.pdf_name || 'View PDF'}
+                    </button>
+                  ) : (
+                    <span style={{ color: '#64748b' }}>None</span>
+                  )}
+                </div>
+              </div>
+              {selectedLeaveReview.reason && (
+                <div style={{ marginTop: '4px', fontSize: '0.78rem', color: '#cbd5e1', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '6px' }}>
+                  <strong style={{ color: '#94a3b8' }}>Reason:</strong> {selectedLeaveReview.reason}
+                </div>
+              )}
+            </div>
+
+            {/* Decision Selector */}
+            <div style={{ marginBottom: '14px' }}>
+              <label className="form-label" style={{ fontWeight: 700, color: '#fff', fontSize: '0.82rem', marginBottom: '8px', display: 'block' }}>
+                Select Decision Action:
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLeaveReviewDecision('approved');
+                    if (!leaveReviewNote || leaveReviewNote.includes('declined')) {
+                      setLeaveReviewNote('Approved by Administration. Enjoy your time off.');
+                    }
+                  }}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '10px',
+                    border: `2px solid ${leaveReviewDecision === 'approved' ? '#10b981' : 'rgba(255,255,255,0.1)'}`,
+                    background: leaveReviewDecision === 'approved' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255,255,255,0.02)',
+                    color: leaveReviewDecision === 'approved' ? '#34d399' : '#cbd5e1',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    fontSize: '0.86rem'
+                  }}
+                >
+                  <CheckCircle2 size={16} /> Approve Leave
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLeaveReviewDecision('rejected');
+                    if (!leaveReviewNote || leaveReviewNote.includes('Approved')) {
+                      setLeaveReviewNote('Request declined due to operational coverage requirements.');
+                    }
+                  }}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '10px',
+                    border: `2px solid ${leaveReviewDecision === 'rejected' ? '#ef4444' : 'rgba(255,255,255,0.1)'}`,
+                    background: leaveReviewDecision === 'rejected' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255,255,255,0.02)',
+                    color: leaveReviewDecision === 'rejected' ? '#f87171' : '#cbd5e1',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    fontSize: '0.86rem'
+                  }}
+                >
+                  <XCircle size={16} /> Reject / Decline
+                </button>
+              </div>
+            </div>
+
+            {/* Admin Notes Textarea */}
+            <div style={{ marginBottom: '16px' }}>
+              <label className="form-label" style={{ fontWeight: 600, color: '#fff', fontSize: '0.8rem' }}>
+                Executive Remarks & Guidance Note (Visible to Employee):
+              </label>
+              <textarea
+                rows={3}
+                className="form-input"
+                value={leaveReviewNote}
+                onChange={(e) => setLeaveReviewNote(e.target.value)}
+                placeholder="Enter comments, handover instructions, or reason for decision..."
+                style={{ background: '#fff', color: '#0f172a', resize: 'vertical' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '14px' }}>
+              <button
+                type="button"
+                onClick={() => setSelectedLeaveReview(null)}
+                className="btn btn-secondary btn-sm"
+                disabled={submittingLeaveReview}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleReviewLeaveSubmit}
+                disabled={submittingLeaveReview}
+                className="btn btn-primary btn-sm"
+                style={{
+                  background: leaveReviewDecision === 'approved' ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                  border: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Send size={14} /> {submittingLeaveReview ? 'Saving...' : `Confirm ${leaveReviewDecision === 'approved' ? 'Approval' : 'Rejection'}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Dossier Modal */}
+      {selectedLeaveDossierForAdmin && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 450, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div className="glass-panel animate-fade-in" style={{ width: '560px', maxHeight: '90vh', overflowY: 'auto', padding: '24px', background: '#0f172a', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CalendarOff size={20} color="#38bdf8" />
+                <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#fff', fontWeight: 800 }}>
+                  Staff Leave Dossier
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedLeaveDossierForAdmin(null)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ padding: '12px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <strong style={{ fontSize: '0.92rem', color: '#fff', display: 'block' }}>{selectedLeaveDossierForAdmin.employee_name}</strong>
+                  <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>{selectedLeaveDossierForAdmin.employee_email}</span>
+                </div>
+                <span className="badge badge-under_review" style={{ textTransform: 'uppercase', fontSize: '0.7rem' }}>
+                  {selectedLeaveDossierForAdmin.department?.replace(/_/g, ' ')}
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div style={{ padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block' }}>Category</span>
+                  <strong style={{ fontSize: '0.84rem', color: '#fff', textTransform: 'capitalize' }}>
+                    {selectedLeaveDossierForAdmin.leave_type?.replace(/_/g, ' ')}
+                  </strong>
+                </div>
+                <div style={{ padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block' }}>Status</span>
+                  <strong style={{ fontSize: '0.84rem', color: selectedLeaveDossierForAdmin.status === 'approved' ? '#34d399' : (selectedLeaveDossierForAdmin.status === 'rejected' || selectedLeaveDossierForAdmin.status === 'denied') ? '#f87171' : '#fbbf24', textTransform: 'capitalize' }}>
+                    {selectedLeaveDossierForAdmin.status}
+                  </strong>
+                </div>
+                <div style={{ padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block' }}>Departure</span>
+                  <strong style={{ fontSize: '0.82rem', color: '#fff' }}>
+                    {selectedLeaveDossierForAdmin.start_date} ({selectedLeaveDossierForAdmin.start_time || '09:00 AM'})
+                  </strong>
+                </div>
+                <div style={{ padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block' }}>Return</span>
+                  <strong style={{ fontSize: '0.82rem', color: '#fff' }}>
+                    {selectedLeaveDossierForAdmin.end_date} ({selectedLeaveDossierForAdmin.return_time || '05:00 PM'})
+                  </strong>
+                </div>
+              </div>
+
+              <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <span style={{ fontSize: '0.7rem', color: '#94a3b8', display: 'block' }}>Reason for Leave:</span>
+                <p style={{ margin: '3px 0 0', fontSize: '0.82rem', color: '#cbd5e1' }}>
+                  {selectedLeaveDossierForAdmin.reason || 'No description entered.'}
+                </p>
+              </div>
+
+              {(selectedLeaveDossierForAdmin.emergency_contact || selectedLeaveDossierForAdmin.handover_notes) && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  {selectedLeaveDossierForAdmin.emergency_contact && (
+                    <div style={{ padding: '8px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)' }}>
+                      <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block' }}>Emergency Phone:</span>
+                      <strong style={{ fontSize: '0.78rem', color: '#fff' }}>{selectedLeaveDossierForAdmin.emergency_contact}</strong>
+                    </div>
+                  )}
+                  {selectedLeaveDossierForAdmin.handover_notes && (
+                    <div style={{ padding: '8px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)' }}>
+                      <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block' }}>Handover Notes:</span>
+                      <strong style={{ fontSize: '0.78rem', color: '#fff' }}>{selectedLeaveDossierForAdmin.handover_notes}</strong>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {selectedLeaveDossierForAdmin.pdf_url && (
+                <div style={{ padding: '12px 14px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FileText size={18} color="#f87171" />
+                    <div>
+                      <strong style={{ fontSize: '0.82rem', color: '#fff', display: 'block' }}>
+                        {selectedLeaveDossierForAdmin.pdf_name || 'Leave_Attachment.pdf'}
+                      </strong>
+                      <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Supporting PDF Attachment</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAdminViewingPdf({ url: selectedLeaveDossierForAdmin.pdf_url!, name: selectedLeaveDossierForAdmin.pdf_name || 'Leave_Attachment.pdf' })}
+                    className="btn btn-primary btn-sm"
+                    style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <Eye size={12} /> View PDF
+                  </button>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedLeaveDossierForAdmin(null)}
+                  className="btn btn-secondary btn-sm"
+                >
+                  Close Dossier
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full-Screen In-App PDF Document Viewer for Admin */}
+      {adminViewingPdf && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div className="glass-panel animate-fade-in" style={{ width: '850px', height: '90vh', display: 'flex', flexDirection: 'column', background: '#0f172a', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1e293b', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <FileText size={20} color="#f43f5e" />
+                <div>
+                  <h4 style={{ margin: 0, color: '#fff', fontSize: '0.94rem' }}>{adminViewingPdf.name}</h4>
+                  <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Staff Supporting Leave Document Preview</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <a
+                  href={adminViewingPdf.url}
+                  download={adminViewingPdf.name}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.74rem', color: '#38bdf8' }}
+                >
+                  <Download size={13} /> Download PDF
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setAdminViewingPdf(null)}
+                  style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div style={{ flex: 1, background: '#334155' }}>
+              <iframe
+                src={adminViewingPdf.url}
+                title={adminViewingPdf.name}
+                style={{ width: '100%', height: '100%', border: 'none' }}
+              />
             </div>
           </div>
         </div>

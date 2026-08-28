@@ -3145,7 +3145,7 @@ const createApplication = async (
       status,
       reviewed_by: currentProfile.id,
       reviewed_at: new Date().toISOString(),
-      ...(notes ? { reason: notes } : {})
+      admin_notes: notes || null
     };
 
     try {

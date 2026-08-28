@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ArrowRight, FileUp, MessageSquare, Calendar } from 'lucide-react';
+import { ArrowRight, FileUp, MessageSquare, Calendar, CalendarOff } from 'lucide-react';
 import { MonthlyMeetingsView } from '../shared/MonthlyMeetingsView';
+import { StaffLeavePortalView } from '../shared/StaffLeavePortalView';
 import {
   DashboardSidebar,
   DashboardNavigationItem,
@@ -47,7 +48,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   onSettings,
 }) => {
   const { currentProfile } = useAuth();
-  const [currentView, setCurrentView] = useState<'workspace' | 'meetings'>('workspace');
+  const [currentView, setCurrentView] = useState<'workspace' | 'meetings' | 'leave'>('workspace');
 
   const modifiedNavigation = [
     ...navigation.map((item) => ({
@@ -58,6 +59,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         item.onClick?.();
       },
     })),
+    {
+      label: 'Leave Applications',
+      icon: <CalendarOff style={{ width: 18, height: 18 }} />,
+      active: currentView === 'leave',
+      onClick: () => {
+        setCurrentView('leave');
+      },
+    },
     {
       label: 'Monthly Meetings',
       icon: <Calendar style={{ width: 18, height: 18 }} />,
@@ -196,6 +205,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         >
           {currentView === 'meetings' ? (
             <MonthlyMeetingsView />
+          ) : currentView === 'leave' ? (
+            <StaffLeavePortalView />
           ) : (
             children
           )}

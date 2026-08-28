@@ -560,8 +560,8 @@ export interface HrInterview {
   created_at: string;
 }
 
-export type HrLeaveType = 'annual' | 'sick' | 'personal' | 'maternity' | 'unpaid';
-export type HrLeaveStatus = 'pending' | 'approved' | 'denied';
+export type HrLeaveType = 'annual' | 'sick' | 'personal' | 'maternity' | 'paternity' | 'compassionate' | 'study' | 'official_duty' | 'unpaid' | 'emergency';
+export type HrLeaveStatus = 'pending' | 'approved' | 'rejected' | 'denied';
 
 export interface HrLeaveRequest {
   id: string;
@@ -570,8 +570,15 @@ export interface HrLeaveRequest {
   department: DepartmentType;
   leave_type: HrLeaveType;
   start_date: string;
-  end_date: string;
+  start_time?: string | null;
+  end_date: string; // Return date
+  return_time?: string | null; // Return time
   reason?: string | null;
+  pdf_url?: string | null; // Base64 data URL or Storage URL
+  pdf_name?: string | null; // Attached PDF document name
+  emergency_contact?: string | null;
+  handover_notes?: string | null;
+  admin_notes?: string | null;
   status: HrLeaveStatus;
   reviewed_by?: string | null;
   reviewed_at?: string | null;
