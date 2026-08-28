@@ -109,7 +109,7 @@ const ADMIN_TABS: Array<{ id: AdminTab; label: string }> = [
   { id: 'drilldown', label: 'Department Drill-Down' },
   { id: 'work_assignments', label: 'Work Assignments' },
   { id: 'partnerships', label: 'Partner Universities & Agreements' },
-  { id: 'staff', label: 'Staff Accounts & RBAC' },
+  { id: 'staff', label: 'Staff Accounts & Department Members' },
   { id: 'student_documents', label: 'Student Documents' },
 ];
 
@@ -532,9 +532,14 @@ export const AdminWorkspace: React.FC = () => {
     }
   };
 
-  const openAddDepartmentMember = () => {
+  const openAddDepartmentMember = (preselectedDepartment?: DepartmentType) => {
     setEditingDepartmentMember(null);
-    setDepartmentMemberForm(emptyDepartmentMember);
+    const targetDept = preselectedDepartment || 'admissions';
+    setDepartmentMemberForm({
+      ...emptyDepartmentMember,
+      primary_department: targetDept,
+      departments: [targetDept],
+    });
     setDepartmentMemberPasswordConfirm('');
     setShowDepartmentMemberPassword(false);
     setShowDepartmentMemberPasswordConfirm(false);
@@ -690,7 +695,7 @@ export const AdminWorkspace: React.FC = () => {
     { label: 'Departments', icon: <Building2 style={{ width: 18, height: 18 }} />, active: activeTab === 'drilldown', onClick: () => setActiveTab('drilldown') },
     { label: 'Work Assignments', icon: <ClipboardList style={{ width: 18, height: 18 }} />, active: activeTab === 'work_assignments', onClick: () => setActiveTab('work_assignments') },
     { label: 'Partnerships', icon: <GraduationCap style={{ width: 18, height: 18 }} />, active: activeTab === 'partnerships', onClick: () => setActiveTab('partnerships') },
-    { label: 'Staff & RBAC', icon: <Users2 style={{ width: 18, height: 18 }} />, active: activeTab === 'staff', onClick: () => setActiveTab('staff') },
+    { label: 'Staff & Members', icon: <Users2 style={{ width: 18, height: 18 }} />, active: activeTab === 'staff', onClick: () => setActiveTab('staff') },
     { label: 'Visa Applications', icon: <ShieldCheck style={{ width: 18, height: 18 }} />, active: activeTab === 'visa_applications', onClick: () => setActiveTab('visa_applications') },
     { label: 'Recycle Bin', icon: <Trash2 style={{ width: 18, height: 18 }} />, active: activeTab === 'trash', onClick: () => setActiveTab('trash') },
   ];
@@ -710,7 +715,7 @@ export const AdminWorkspace: React.FC = () => {
       
       {/* Header Banner */}
       <div className="glass-panel" style={{ padding: '20px 24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Building2 style={{ color: '#3366FF' }} />
@@ -721,8 +726,22 @@ export const AdminWorkspace: React.FC = () => {
             </p>
           </div>
 
-		
-		<div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+		<div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+  <button
+    onClick={() => openAddDepartmentMember()}
+    className="btn btn-primary btn-sm"
+    style={{
+      background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
+      border: 'none',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '6px'
+    }}
+  >
+    <UserPlus style={{ width: '14px', height: '14px' }} />
+    Add Department Member
+  </button>
+
   <button
     onClick={() => setShowGlobalNotifyModal(true)}
     className="btn btn-secondary btn-sm"
@@ -830,14 +849,31 @@ export const AdminWorkspace: React.FC = () => {
                 setStaffStatusFilter('all');
               }}
             >
-              <span style={{ fontSize: '0.74rem', color: '#c084fc', display: 'block', fontWeight: 600 }}>Staff Directory & RBAC</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <span style={{ fontSize: '0.74rem', color: '#c084fc', display: 'block', fontWeight: 600 }}>Staff Directory & RBAC</span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openAddDepartmentMember();
+                  }}
+                  className="btn btn-primary btn-sm"
+                  style={{ fontSize: '0.68rem', padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: '3px', background: 'linear-gradient(135deg, #2563eb, #7c3aed)', border: 'none' }}
+                  title="Add New Department Member"
+                >
+                  <UserPlus size={11} /> + Add
+                </button>
+              </div>
               <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#a855f7', marginTop: '4px' }}>
                 {departmentMembers.length}
                 <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 600, marginLeft: '6px' }}>
                   ({departmentMembers.filter(m => m.employment_status === 'active').length} Active)
                 </span>
               </div>
-              <span style={{ fontSize: '0.68rem', color: '#d8b4fe' }}>Manage Roles & RBAC →</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
+                <span style={{ fontSize: '0.68rem', color: '#d8b4fe' }}>Manage Roles & RBAC →</span>
+                <span style={{ fontSize: '0.66rem', color: '#a855f7', fontWeight: 600 }}>View All Staff</span>
+              </div>
             </div>
           </div>
 
@@ -1766,24 +1802,24 @@ export const AdminWorkspace: React.FC = () => {
             {/* Sub-Tab 3: Assigned Staff Directory */}
             {deptDrillSubTab === 'staff' && (
               <div className="glass-panel" style={{ padding: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
                   <h4 style={{ margin: 0, fontSize: '0.96rem', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Users2 size={16} color="#a855f7" />
                     Team Members Deployed in {departmentLabel(selectedDeptDrill)} ({currentDeptStaff.length})
                   </h4>
                   <button
                     type="button"
-                    onClick={openAddDepartmentMember}
+                    onClick={() => openAddDepartmentMember(selectedDeptDrill)}
                     className="btn btn-primary btn-sm"
-                    style={{ fontSize: '0.74rem' }}
+                    style={{ fontSize: '0.74rem', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
                   >
-                    <UserPlus size={13} /> Add Team Member
+                    <UserPlus size={13} /> Add Member to {departmentLabel(selectedDeptDrill)}
                   </button>
                 </div>
 
                 {currentDeptStaff.length === 0 ? (
                   <div style={{ padding: '30px', textAlign: 'center', color: '#64748b', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px dashed rgba(255,255,255,0.05)' }}>
-                    No staff members currently assigned to this department.
+                    No staff members currently assigned to {departmentLabel(selectedDeptDrill)}.
                   </div>
                 ) : (
                   <div className="custom-table-container">
@@ -1795,46 +1831,72 @@ export const AdminWorkspace: React.FC = () => {
                           <th>Assigned Country</th>
                           <th>Responsibility</th>
                           <th>Status</th>
-                          <th style={{ textAlign: 'right' }}>Action</th>
+                          <th style={{ textAlign: 'right' }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {currentDeptStaff.map(member => (
-                          <tr key={member.id}>
-                            <td>
-                              <strong style={{ color: '#fff', display: 'block', fontSize: '0.84rem' }}>{member.full_name}</strong>
-                              <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>{member.email}</span>
-                            </td>
-                            <td style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>{member.job_title}</td>
-                            <td>
-                              {member.working_country ? (
-                                <span style={{ fontSize: '0.74rem', color: '#38bdf8' }}>🌍 {member.working_country}</span>
-                              ) : (
-                                <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Global</span>
-                              )}
-                            </td>
-                            <td>
-                              <span className={`badge ${member.is_assistant ? 'badge-submitted' : 'badge-draft'}`}>
-                                {member.is_assistant ? 'Assistant' : 'Senior Lead'}
-                              </span>
-                            </td>
-                            <td>
-                              <span className={`badge ${member.employment_status === 'active' ? 'badge-documents_verified' : 'badge-rejected'}`}>
-                                {member.employment_status.toUpperCase()}
-                              </span>
-                            </td>
-                            <td style={{ textAlign: 'right' }}>
-                              <button
-                                type="button"
-                                onClick={() => setSelectedStaffDossier(member)}
-                                className="btn btn-secondary btn-sm"
-                                style={{ fontSize: '0.72rem', padding: '4px 8px' }}
-                              >
-                                <Eye size={12} /> Dossier
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                        {currentDeptStaff.map(member => {
+                          const memberProfile = (availableProfiles || []).find(
+                            p => p.email?.toLowerCase() === member.email?.toLowerCase()
+                          );
+
+                          return (
+                            <tr key={member.id}>
+                              <td>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                  <ProfileAvatar
+                                    avatarUrl={memberProfile?.avatar_url}
+                                    name={member.full_name}
+                                    size={32}
+                                    editable={false}
+                                  />
+                                  <div>
+                                    <strong style={{ color: '#fff', display: 'block', fontSize: '0.84rem' }}>{member.full_name}</strong>
+                                    <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>{member.email}</span>
+                                  </div>
+                                </div>
+                              </td>
+                              <td style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>{member.job_title}</td>
+                              <td>
+                                {member.working_country ? (
+                                  <span style={{ fontSize: '0.74rem', color: '#38bdf8' }}>🌍 {member.working_country}</span>
+                                ) : (
+                                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Global</span>
+                                )}
+                              </td>
+                              <td>
+                                <span className={`badge ${member.is_assistant ? 'badge-submitted' : 'badge-draft'}`}>
+                                  {member.is_assistant ? 'Assistant' : 'Senior Lead'}
+                                </span>
+                              </td>
+                              <td>
+                                <span className={`badge ${member.employment_status === 'active' ? 'badge-documents_verified' : 'badge-rejected'}`}>
+                                  {member.employment_status.toUpperCase()}
+                                </span>
+                              </td>
+                              <td style={{ textAlign: 'right' }}>
+                                <div style={{ display: 'inline-flex', gap: '6px' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedStaffDossier(member)}
+                                    className="btn btn-secondary btn-sm"
+                                    style={{ fontSize: '0.72rem', padding: '4px 8px' }}
+                                  >
+                                    <Eye size={12} /> Dossier
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => openEditDepartmentMember(member)}
+                                    className="btn btn-secondary btn-sm"
+                                    style={{ fontSize: '0.72rem', padding: '4px 8px', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}
+                                  >
+                                    <Pencil size={12} /> Edit
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -2432,7 +2494,7 @@ export const AdminWorkspace: React.FC = () => {
                 <button
                   type="button"
                   className="btn btn-primary btn-sm"
-                  onClick={openAddDepartmentMember}
+                  onClick={() => openAddDepartmentMember()}
                   style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
                   <UserPlus size={15} />
@@ -2610,7 +2672,7 @@ export const AdminWorkspace: React.FC = () => {
                 <UserRoundCheck size={30} color="#94a3b8" style={{ marginBottom: '8px' }} />
                 <p style={{ margin: 0, color: '#475569', fontWeight: 700 }}>Your staff directory is ready.</p>
                 <p style={{ margin: '5px 0 14px', color: '#64748b', fontSize: '13px' }}>Add the first team member to record their department assignments and role.</p>
-                <button type="button" className="btn btn-primary btn-sm" onClick={openAddDepartmentMember}><UserPlus size={14} /> Add team member</button>
+                <button type="button" className="btn btn-primary btn-sm" onClick={() => openAddDepartmentMember()}><UserPlus size={14} /> Add team member</button>
               </div>
             ) : (
               <div className="custom-table-container">
