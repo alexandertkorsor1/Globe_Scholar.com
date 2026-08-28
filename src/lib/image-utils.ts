@@ -153,3 +153,56 @@ export const compressImageToAvatar = (
     img.src = objectUrl;
   });
 };
+
+/**
+ * Convert Base64 data URL back to a standard File object.
+ */
+export const dataUrlToFile = (dataUrl: string, filename: string): File => {
+  const arr = dataUrl.split(',');
+  const mimeMatch = arr[0].match(/:(.*?);/);
+  const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new File([u8arr], filename, { type: mime });
+};
+
+/**
+ * Compress an image specifically for Passport Photo uploads with strict 50KB limit.
+ * Produces crisp standard 3:4 or 1:1 aspect ratio passport image under 50KB.
+ */
+export const compressPassportPhotoFile = async (
+  file: File,
+  maxSizeBytes = MAX_AVATAR_SIZE_BYTES
+): Promise<{ file: File; dataUrl: string; sizeBytes: number; sizeKb: number }> => {
+  const result = await compressImageToAvatar(file, maxSizeBytes);
+  const compressedFileName = file.name.replace(/\.[^/.]+$/, '') + '-passport-50kb.jpg';
+  const compressedFile = dataUrlToFile(result.dataUrl, compressedFileName);
+
+  return {
+    file: compressedFile,
+    dataUrl: result.dataUrl,
+    sizeBytes: result.sizeBytes,
+    sizeKb: result.sizeKb,
+  };
+};
+
+/**
+ * Check if a document type or title is a passport photo / passport picture.
+ */
+export const isPassportPhotoType = (docTypeOrTitle?: string): boolean => {
+  if (!docTypeOrTitle) return false;
+  const lower = docTypeOrTitle.toLowerCase();
+  return (
+    lower.includes('passport_photo') ||
+    lower.includes('passport-photo') ||
+    lower.includes('passport-size photo') ||
+    lower.includes('passport photo') ||
+    lower.includes('passport pic') ||
+    lower.includes('passport photograph')
+  );
+};
+

@@ -36,6 +36,12 @@ import {
 } from '../../lib/document-requirements';
 import { ApplicationJourney } from './ApplicationJourney';
 import { ProfileAvatar } from '../common/ProfileAvatar';
+import {
+  isPassportPhotoType,
+  compressPassportPhotoFile,
+  MAX_AVATAR_SIZE_BYTES,
+  MAX_AVATAR_SIZE_LABEL,
+} from '../../lib/image-utils';
 
 export const StudentPortal: React.FC = () => {
   const {
@@ -1245,7 +1251,44 @@ export const StudentPortal: React.FC = () => {
                   return;
                 }
 
-                if (file.size > 10 * 1024 * 1024) {
+                const isPassportPhoto = isPassportPhotoType(nextRequiredDocument.type) || isPassportPhotoType(nextRequiredDocument.title);
+
+                // Handle Passport Photo 50KB limit
+                if (isPassportPhoto) {
+                  if (file.size > MAX_AVATAR_SIZE_BYTES) {
+                    if (file.type.startsWith('image/')) {
+                      try {
+                        setIsUploadingDocument(true);
+                        setDocumentUploadMessage('Optimizing passport photo to fit under 50 KB limit...');
+                        const compressed = await compressPassportPhotoFile(file);
+                        await addDocument(
+                          myApp.id,
+                          nextRequiredDocument.type,
+                          compressed.file
+                        );
+                        setDocumentUploadMessage(
+                          `${nextRequiredDocument.title} optimized & uploaded (${compressed.sizeKb} KB).`
+                        );
+                        setIsUploadingDocument(false);
+                        e.target.value = '';
+                        return;
+                      } catch (compressErr) {
+                        setDocumentUploadMessage(
+                          `Passport photo exceeds strict 50 KB limit (${(file.size / 1024).toFixed(1)} KB). Please select an image under 50 KB.`
+                        );
+                        setIsUploadingDocument(false);
+                        e.target.value = '';
+                        return;
+                      }
+                    } else {
+                      setDocumentUploadMessage(
+                        `Passport photo exceeds strict 50 KB limit (${(file.size / 1024).toFixed(1)} KB). Please upload an image under 50 KB.`
+                      );
+                      e.target.value = '';
+                      return;
+                    }
+                  }
+                } else if (file.size > 10 * 1024 * 1024) {
                   setDocumentUploadMessage('Choose a file smaller than 10 MB.');
                   e.target.value = '';
                   return;

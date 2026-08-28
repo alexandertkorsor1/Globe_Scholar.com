@@ -14,6 +14,12 @@ import {
   Eye
 } from 'lucide-react';
 import { ApplicationDocument, DocType } from '../../types/database';
+import {
+  isPassportPhotoType,
+  compressPassportPhotoFile,
+  MAX_AVATAR_SIZE_BYTES,
+  MAX_AVATAR_SIZE_LABEL,
+} from '../../lib/image-utils';
 
 interface DocumentManagerProps {
   applicationId: string;
@@ -44,11 +50,31 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({ applicationId 
       return;
     }
 
+    let fileToUpload = selectedFile;
+    const isPassportPhoto = isPassportPhotoType(newDocType) || newDocType === 'passport_photo';
+
+    if (isPassportPhoto) {
+      if (selectedFile.size > MAX_AVATAR_SIZE_BYTES) {
+        if (selectedFile.type.startsWith('image/')) {
+          try {
+            const compressed = await compressPassportPhotoFile(selectedFile);
+            fileToUpload = compressed.file;
+          } catch {
+            alert(`Passport picture exceeds strict 50 KB limit (${(selectedFile.size / 1024).toFixed(1)} KB). Please select an image under 50 KB.`);
+            return;
+          }
+        } else {
+          alert(`Passport picture exceeds strict 50 KB limit (${(selectedFile.size / 1024).toFixed(1)} KB). Please upload a photo under 50 KB.`);
+          return;
+        }
+      }
+    }
+
     try {
       await addDocument(
         applicationId,
         newDocType,
-        selectedFile
+        fileToUpload
       );
 
       setSelectedFile(null);
@@ -234,6 +260,7 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({ applicationId 
                   onChange={e => setNewDocType(e.target.value as DocType)}
                   style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}
                 >
+                  <option value="passport_photo">Passport-Size Photo (Max 50 KB)</option>
                   <option value="passport">Passport Biometric Page</option>
                   <option value="academic_transcript">Official Academic Transcript</option>
                   <option value="english_proficiency">IELTS / TOEFL Score Certificate</option>
