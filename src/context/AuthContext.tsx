@@ -200,9 +200,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       if (memberError) {
         console.error('Failed to load staff directory:', memberError);
       } else {
-        setDepartmentMembers(
-          (memberData || []) as DepartmentMember[]
-        );
+        const sanitizedMembers = (memberData || []).map((m: any) => ({
+          ...m,
+          departments: Array.isArray(m.departments)
+            ? m.departments
+            : m.primary_department
+            ? [m.primary_department]
+            : ['admissions'],
+          employment_status: m.employment_status || 'active',
+          is_assistant: Boolean(m.is_assistant),
+        }));
+        setDepartmentMembers(sanitizedMembers as DepartmentMember[]);
       }
     };
 

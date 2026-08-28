@@ -125,6 +125,21 @@ const emptyDepartmentMember: DepartmentMemberInput = {
 const departmentLabel = (department: DepartmentType) =>
   DEPARTMENT_OPTIONS.find((option) => option.value === department)?.label || department;
 
+const hasDepartment = (member?: DepartmentMember | null, dept?: DepartmentType): boolean => {
+  if (!member || !dept) return false;
+  if (member.primary_department === dept) return true;
+  if (Array.isArray(member.departments) && member.departments.includes(dept)) return true;
+  return false;
+};
+
+const getMemberDepartments = (member?: DepartmentMember | null): DepartmentType[] => {
+  if (!member) return [];
+  if (Array.isArray(member.departments) && member.departments.length > 0) {
+    return member.departments;
+  }
+  return member.primary_department ? [member.primary_department] : [];
+};
+
 export const AdminWorkspace: React.FC = () => {
   const {
     currentProfile,
@@ -308,12 +323,12 @@ export const AdminWorkspace: React.FC = () => {
   const missingDocsCount = applications.reduce((acc, a) => acc + a.missing_documents_count, 0);
   const approvedCount = applications.filter(a => a.status === 'approved').length;
   const rejectedCount = applications.filter(a => a.status === 'rejected').length;
-  const selectedDepartmentReports = departmentReports.filter(
+  const selectedDepartmentReports = (departmentReports || []).filter(
     (report) => report.department === selectedDeptDrill
   );
-  const selectedDepartmentStaff = departmentMembers.filter(
+  const selectedDepartmentStaff = (departmentMembers || []).filter(
     (member) =>
-      member.departments.includes(selectedDeptDrill) &&
+      hasDepartment(member, selectedDeptDrill) &&
       member.employment_status !== 'inactive'
   );
 
@@ -532,7 +547,7 @@ export const AdminWorkspace: React.FC = () => {
       email: member.email,
       job_title: member.job_title,
       primary_department: member.primary_department,
-      departments: member.departments,
+      departments: getMemberDepartments(member),
       is_assistant: member.is_assistant,
       employment_status: member.employment_status,
       working_country: member.working_country || '',
@@ -548,9 +563,10 @@ export const AdminWorkspace: React.FC = () => {
 
   const toggleMemberDepartment = (department: DepartmentType) => {
     setDepartmentMemberForm((current) => {
-      const departments = current.departments.includes(department)
-        ? current.departments.filter((item) => item !== department)
-        : [...current.departments, department];
+      const curDepts = current.departments || [];
+      const departments = curDepts.includes(department)
+        ? curDepts.filter((item) => item !== department)
+        : [...curDepts, department];
 
       return {
         ...current,
@@ -571,12 +587,12 @@ export const AdminWorkspace: React.FC = () => {
       return;
     }
 
-    if (!departmentMemberForm.departments.length) {
+    if (!(departmentMemberForm.departments || []).length) {
       setDepartmentMemberError('Assign this member to at least one department.');
       return;
     }
 
-    if (!departmentMemberForm.departments.includes(departmentMemberForm.primary_department)) {
+    if (!(departmentMemberForm.departments || []).includes(departmentMemberForm.primary_department)) {
       setDepartmentMemberError('The primary department must be one of the selected department assignments.');
       return;
     }
@@ -950,26 +966,37 @@ export const AdminWorkspace: React.FC = () => {
 
       {/* Tab 2: Interactive Department Zoom & Deep-Dive Command Center */}
       {activeTab === 'drilldown' && (() => {
-        const currentDeptStaff = departmentMembers.filter(
-          m => m.primary_department === selectedDeptDrill || m.departments.includes(selectedDeptDrill)
+        const safeMembers = departmentMembers || [];
+        const safeAssignments = workAssignments || [];
+        const safeReports = departmentReports || [];
+        const safeApps = applications || [];
+        const safeFinances = financialRecords || [];
+        const safePosts = marketingPosts || [];
+        const safeSessions = counselingSessions || [];
+        const safeHrLeaves = hrLeaveRequests || [];
+        const safePartners = partnerUniversities || [];
+        const safeCourses = universityCourses || [];
+
+        const currentDeptStaff = safeMembers.filter(
+          m => hasDepartment(m, selectedDeptDrill)
         );
-        const deptTasks = workAssignments.filter(
+        const deptTasks = safeAssignments.filter(
           t => t.assigned_department === selectedDeptDrill
         );
-        const deptReports = departmentReports.filter(
+        const deptReports = safeReports.filter(
           r => r.department === selectedDeptDrill
         );
-        const admissionsApps = applications.filter(
+        const admissionsApps = safeApps.filter(
           a => ['submitted', 'under_review', 'documents_missing', 'admissions_review', 'approved'].includes(a.status)
         );
-        const financeApprovedTotal = financialRecords
+        const financeApprovedTotal = safeFinances
           .filter(f => f.status === 'approved')
           .reduce((sum, f) => sum + (Number(f.amount) || 0), 0);
-        const financePendingTotal = financialRecords
+        const financePendingTotal = safeFinances
           .filter(f => f.status === 'pending')
           .reduce((sum, f) => sum + (Number(f.amount) || 0), 0);
-        const countryDirectorStaff = departmentMembers.filter(
-          m => m.primary_department === 'country_directors' || m.departments.includes('country_directors')
+        const countryDirectorStaff = safeMembers.filter(
+          m => hasDepartment(m, 'country_directors')
         );
 
         const getDeptIcon = (dept: DepartmentType) => {
@@ -1007,7 +1034,7 @@ export const AdminWorkspace: React.FC = () => {
               <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', maxWidth: '100%', flexWrap: 'wrap' }}>
                 {DEPARTMENT_OPTIONS.map(opt => {
                   const isSelected = selectedDeptDrill === opt.value;
-                  const staffCount = departmentMembers.filter(m => m.primary_department === opt.value || m.departments.includes(opt.value)).length;
+                  const staffCount = safeMembers.filter(m => hasDepartment(m, opt.value)).length;
                   
                   return (
                     <button
@@ -1233,8 +1260,8 @@ export const AdminWorkspace: React.FC = () => {
                               {post.content}
                             </p>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.7rem', color: '#64748b', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '8px' }}>
-                              <span>By: <strong style={{ color: '#94a3b8' }}>{post.author_name}</strong></span>
-                              <span>{new Date(post.created_at).toLocaleDateString()}</span>
+                              <span>By: <strong style={{ color: '#94a3b8' }}>{post.author_name || 'Marketing Team'}</strong></span>
+                              <span>{post.created_at ? new Date(post.created_at).toLocaleDateString() : 'Recent'}</span>
                             </div>
                           </div>
                         ))}
@@ -1249,14 +1276,14 @@ export const AdminWorkspace: React.FC = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                       <h4 style={{ margin: 0, fontSize: '0.96rem', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Video size={16} color="#34d399" />
-                        Scheduled Advisory & Counseling Sessions ({counselingSessions.length})
+                        Scheduled Advisory & Counseling Sessions ({safeSessions.length})
                       </h4>
                       <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
                         Live student meetings and counseling video conferences.
                       </span>
                     </div>
 
-                    {counselingSessions.length === 0 ? (
+                    {safeSessions.length === 0 ? (
                       <div style={{ padding: '30px', textAlign: 'center', color: '#64748b', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px dashed rgba(255,255,255,0.05)' }}>
                         No counseling sessions currently scheduled.
                       </div>
@@ -1273,7 +1300,7 @@ export const AdminWorkspace: React.FC = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {counselingSessions.map(s => (
+                            {safeSessions.map(s => (
                               <tr key={s.id}>
                                 <td style={{ fontWeight: 600, color: '#fff' }}>
                                   {s.student_name || 'Student Candidate'}
@@ -1282,7 +1309,7 @@ export const AdminWorkspace: React.FC = () => {
                                   </div>
                                 </td>
                                 <td style={{ fontSize: '0.76rem', color: '#cbd5e1' }}>
-                                  {new Date(s.scheduled_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                  {s.scheduled_at ? new Date(s.scheduled_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Pending'}
                                 </td>
                                 <td>
                                   {s.google_meet_link ? (
@@ -1390,7 +1417,7 @@ export const AdminWorkspace: React.FC = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                       <h4 style={{ margin: 0, fontSize: '0.96rem', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <CreditCard size={16} color="#fbbf24" />
-                        Financial Disbursements & Fee Collections Register ({financialRecords.length})
+                        Financial Disbursements & Fee Collections Register ({safeFinances.length})
                       </h4>
                       <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
                         Registration fees, tuition collections, and commission records.
@@ -1410,7 +1437,7 @@ export const AdminWorkspace: React.FC = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {financialRecords.map(f => (
+                          {safeFinances.map(f => (
                             <tr key={f.id}>
                               <td style={{ fontWeight: 600, color: '#fff' }}>
                                 {f.student_name}
@@ -1431,7 +1458,7 @@ export const AdminWorkspace: React.FC = () => {
                                 </span>
                               </td>
                               <td style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
-                                {new Date(f.created_at).toLocaleDateString()}
+                                {f.created_at ? new Date(f.created_at).toLocaleDateString() : 'Recent'}
                               </td>
                             </tr>
                           ))}
@@ -2426,7 +2453,7 @@ export const AdminWorkspace: React.FC = () => {
               >
                 <span style={{ display: 'block', color: '#0369a1', fontSize: '12px', fontWeight: 700 }}>Country Directors</span>
                 <strong style={{ display: 'block', marginTop: '3px', color: '#0284c7', fontSize: '22px' }}>
-                  {departmentMembers.filter(m => m.primary_department === 'country_directors' || m.departments.includes('country_directors')).length}
+                  {(departmentMembers || []).filter(m => hasDepartment(m, 'country_directors')).length}
                 </strong>
                 <span style={{ fontSize: '0.68rem', color: '#0284c7' }}>Regional representatives</span>
               </div>
@@ -2434,7 +2461,7 @@ export const AdminWorkspace: React.FC = () => {
                 style={{ padding: '13px', border: '1px solid #e9d5ff', borderRadius: '11px', background: '#faf5ff' }}
               >
                 <span style={{ display: 'block', color: '#7e22ce', fontSize: '12px', fontWeight: 700 }}>Registered Profiles</span>
-                <strong style={{ display: 'block', marginTop: '3px', color: '#9333ea', fontSize: '22px' }}>{availableProfiles.length}</strong>
+                <strong style={{ display: 'block', marginTop: '3px', color: '#9333ea', fontSize: '22px' }}>{(availableProfiles || []).length}</strong>
                 <span style={{ fontSize: '0.68rem', color: '#a855f7' }}>Total platform accounts</span>
               </div>
             </div>
@@ -2470,11 +2497,11 @@ export const AdminWorkspace: React.FC = () => {
                     whiteSpace: 'nowrap'
                   }}
                 >
-                  All Staff ({departmentMembers.length})
+                  All Staff ({(departmentMembers || []).length})
                 </button>
 
                 {DEPARTMENT_OPTIONS.map(opt => {
-                  const count = departmentMembers.filter(m => m.primary_department === opt.value || m.departments.includes(opt.value)).length;
+                  const count = (departmentMembers || []).filter(m => hasDepartment(m, opt.value)).length;
                   const isSelected = staffDepartmentFilter === opt.value;
 
                   return (
@@ -2553,20 +2580,20 @@ export const AdminWorkspace: React.FC = () => {
                 <h3 style={{ margin: 0, fontSize: '0.98rem', color: '#fff' }}>Staff Roles, Department Coverage & Country Oversight</h3>
               </div>
               <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                Showing {departmentMembers.filter(member => {
-                  const matchDept = staffDepartmentFilter === 'all' || member.primary_department === staffDepartmentFilter || member.departments.includes(staffDepartmentFilter as DepartmentType);
+                Showing {(departmentMembers || []).filter(member => {
+                  const matchDept = staffDepartmentFilter === 'all' || hasDepartment(member, staffDepartmentFilter as DepartmentType);
                   const matchStatus = staffStatusFilter === 'all' || member.employment_status === staffStatusFilter;
                   const matchSearch = staffSearchTerm === '' ||
-                    member.full_name.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
-                    member.email.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
-                    member.job_title.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
+                    member.full_name?.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
+                    member.email?.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
+                    member.job_title?.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
                     (member.working_country && member.working_country.toLowerCase().includes(staffSearchTerm.toLowerCase()));
                   return matchDept && matchStatus && matchSearch;
                 }).length} staff member(s)
               </span>
             </div>
 
-            {departmentMembers.length === 0 ? (
+            {(departmentMembers || []).length === 0 ? (
               <div style={{ padding: '34px 20px', border: '1px dashed #cbd5e1', borderRadius: '12px', background: '#f8fafc', textAlign: 'center' }}>
                 <UserRoundCheck size={30} color="#94a3b8" style={{ marginBottom: '8px' }} />
                 <p style={{ margin: 0, color: '#475569', fontWeight: 700 }}>Your staff directory is ready.</p>
@@ -2589,19 +2616,20 @@ export const AdminWorkspace: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {departmentMembers
+                    {(departmentMembers || [])
                       .filter(member => {
-                        const matchDept = staffDepartmentFilter === 'all' || member.primary_department === staffDepartmentFilter || member.departments.includes(staffDepartmentFilter as DepartmentType);
+                        const matchDept = staffDepartmentFilter === 'all' || hasDepartment(member, staffDepartmentFilter as DepartmentType);
                         const matchStatus = staffStatusFilter === 'all' || member.employment_status === staffStatusFilter;
                         const matchSearch = staffSearchTerm === '' ||
-                          member.full_name.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
-                          member.email.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
-                          member.job_title.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
+                          member.full_name?.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
+                          member.email?.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
+                          member.job_title?.toLowerCase().includes(staffSearchTerm.toLowerCase()) ||
                           (member.working_country && member.working_country.toLowerCase().includes(staffSearchTerm.toLowerCase()));
                         return matchDept && matchStatus && matchSearch;
                       })
                       .map((member) => {
-                        const additionalDepartments = member.departments.filter(
+                        const memberDepts = getMemberDepartments(member);
+                        const additionalDepartments = memberDepts.filter(
                           (department) => department !== member.primary_department
                         );
                         const isCountryDirector = member.primary_department === 'country_directors';
@@ -2918,7 +2946,7 @@ export const AdminWorkspace: React.FC = () => {
                   <ShieldCheck size={15} color="#3b82f6" /> Accessible Department Workspaces
                 </h4>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  {selectedStaffDossier.departments.map(dept => (
+                  {getMemberDepartments(selectedStaffDossier).map(dept => (
                     <span
                       key={dept}
                       style={{
@@ -3430,7 +3458,7 @@ export const AdminWorkspace: React.FC = () => {
                       setDepartmentMemberForm((current) => ({
                         ...current,
                         primary_department: primaryDepartment,
-                        departments: current.departments.includes(primaryDepartment) ? current.departments : [...current.departments, primaryDepartment],
+                        departments: (current.departments || []).includes(primaryDepartment) ? current.departments : [...(current.departments || []), primaryDepartment],
                       }));
                     }}>
                       {DEPARTMENT_OPTIONS.map((department) => <option key={department.value} value={department.value}>{department.label}</option>)}
@@ -3456,14 +3484,10 @@ export const AdminWorkspace: React.FC = () => {
                   <input
                     id="member-working-country"
                     className="form-input"
-                    value={departmentMemberForm.working_country}
-                    onChange={(event) =>
-                      setDepartmentMemberForm((current) => ({
-                        ...current,
-                        working_country: event.target.value,
-                      }))
-                    }
-                    placeholder={departmentMemberForm.primary_department === 'country_directors' ? 'e.g. Nigeria' : 'e.g. United Kingdom (optional)'}
+                    type="text"
+                    value={departmentMemberForm.working_country || ''}
+                    onChange={(event) => setDepartmentMemberForm((current) => ({ ...current, working_country: event.target.value }))}
+                    placeholder="e.g. Ghana, Kenya, Nigeria, Liberia, Sierra Leone"
                     required={departmentMemberForm.primary_department === 'country_directors'}
                   />
                 </div>
@@ -3474,7 +3498,7 @@ export const AdminWorkspace: React.FC = () => {
                   <div className="department-member-checkboxes">
                     {DEPARTMENT_OPTIONS.map((department) => (
                       <label key={department.value} className="department-member-checkbox">
-                        <input type="checkbox" checked={departmentMemberForm.departments.includes(department.value)} onChange={() => toggleMemberDepartment(department.value)} />
+                        <input type="checkbox" checked={(departmentMemberForm.departments || []).includes(department.value)} onChange={() => toggleMemberDepartment(department.value)} />
                         <span>{department.label}</span>
                       </label>
                     ))}

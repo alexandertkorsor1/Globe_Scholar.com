@@ -83,10 +83,10 @@ export const KpiPerformanceTracker: React.FC<KpiPerformanceTrackerProps> = ({
 
   const staffSuggestions = useMemo(
     () =>
-      departmentMembers
+      (departmentMembers || [])
         .filter((member) =>
           member.employment_status !== 'inactive' &&
-          member.departments.includes(form.department)
+          (member.primary_department === form.department || (Array.isArray(member.departments) && member.departments.includes(form.department)))
         )
         .map((member) => `${member.full_name} — ${member.job_title}`),
     [departmentMembers, form.department]
