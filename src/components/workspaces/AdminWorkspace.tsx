@@ -57,7 +57,17 @@ import {
   Unlock,
   UserCheck,
   UserX,
-  Check
+  Check,
+  Radio,
+  Video,
+  CreditCard,
+  Clock,
+  Calendar,
+  DollarSign,
+  CheckCircle,
+  ExternalLink,
+  Layers,
+  Activity
 } from 'lucide-react';
 
 const DEPARTMENT_OPTIONS: Array<{ value: DepartmentType; label: string }> = [
@@ -154,12 +164,21 @@ export const AdminWorkspace: React.FC = () => {
   loadVisaDocuments,
   reviewVisaApplication,
   sendStudentEmail,
-  deleteApplication
+  deleteApplication,
+  workAssignments,
+  updateWorkAssignmentStatus,
+  marketingPosts,
+  deleteMarketingPost,
+  counselingSessions,
+  hrLeaveRequests,
+  hrEmployeeRecords,
+  monthlyMeetings
 } = useApplication();
 
   const [activeTab, setActiveTab] = useState<AdminTab>('kpis');
   const [crmFilter, setCrmFilter] = useState<'all' | 'students' | 'pending' | 'decided'>('all');
   const [selectedDeptDrill, setSelectedDeptDrill] = useState<DepartmentType>('admissions');
+  const [deptDrillSubTab, setDeptDrillSubTab] = useState<'live_work' | 'tasks' | 'staff' | 'formal_reports'>('live_work');
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [reviewNote, setReviewNote] = useState('');
   const [showAddPartnerModal, setShowAddPartnerModal] = useState(false);
@@ -929,46 +948,877 @@ export const AdminWorkspace: React.FC = () => {
         />
       )}
 
-      {/* Tab 2: Department Drill-Down */}
-      {activeTab === 'drilldown' && (
-        <div className="glass-panel" style={{ padding: '20px' }}>
-          <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '14px' }}>
-            Department Performance & Report Review
-          </h3>
+      {/* Tab 2: Interactive Department Zoom & Deep-Dive Command Center */}
+      {activeTab === 'drilldown' && (() => {
+        const currentDeptStaff = departmentMembers.filter(
+          m => m.primary_department === selectedDeptDrill || m.departments.includes(selectedDeptDrill)
+        );
+        const deptTasks = workAssignments.filter(
+          t => t.assigned_department === selectedDeptDrill
+        );
+        const deptReports = departmentReports.filter(
+          r => r.department === selectedDeptDrill
+        );
+        const admissionsApps = applications.filter(
+          a => ['submitted', 'under_review', 'documents_missing', 'admissions_review', 'approved'].includes(a.status)
+        );
+        const financeApprovedTotal = financialRecords
+          .filter(f => f.status === 'approved')
+          .reduce((sum, f) => sum + (Number(f.amount) || 0), 0);
+        const financePendingTotal = financialRecords
+          .filter(f => f.status === 'pending')
+          .reduce((sum, f) => sum + (Number(f.amount) || 0), 0);
+        const countryDirectorStaff = departmentMembers.filter(
+          m => m.primary_department === 'country_directors' || m.departments.includes('country_directors')
+        );
 
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', overflowX: 'auto' }}>
-            {([
-              'marketing',
-              'counseling',
-              'admissions',
-              'data_applications',
-              'operations',
-              'finance',
-              'country_directors',
-              'management',
-              'institutional_relations',
-              'human_resources',
-            ] as DepartmentType[]).map(dept => (
-              <button
-                key={dept}
-                onClick={() => setSelectedDeptDrill(dept)}
-                className={`btn btn-sm ${selectedDeptDrill === dept ? 'btn-primary' : 'btn-secondary'}`}
-              >
-                {dept.toUpperCase().replace(/_/g, ' ')}
-              </button>
-            ))}
+        const getDeptIcon = (dept: DepartmentType) => {
+          switch (dept) {
+            case 'admissions': return <GraduationCap size={18} color="#60a5fa" />;
+            case 'counseling': return <Video size={18} color="#34d399" />;
+            case 'marketing': return <Radio size={18} color="#f472b6" />;
+            case 'finance': return <CreditCard size={18} color="#fbbf24" />;
+            case 'country_directors': return <Globe size={18} color="#38bdf8" />;
+            case 'data_applications': return <FileCheck size={18} color="#a78bfa" />;
+            case 'operations': return <ClipboardList size={18} color="#f97316" />;
+            case 'human_resources': return <Users2 size={18} color="#ec4899" />;
+            case 'institutional_relations': return <Building2 size={18} color="#2dd4bf" />;
+            default: return <ShieldCheck size={18} color="#c084fc" />;
+          }
+        };
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            
+            {/* Top Department Switcher Bar with Live Badges */}
+            <div className="glass-panel" style={{ padding: '16px 20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Layers size={18} color="#3b82f6" />
+                  <h3 style={{ margin: 0, fontSize: '1rem', color: '#fff', fontWeight: 700 }}>
+                    Cross-Department Zoom & Live Activity Hub
+                  </h3>
+                </div>
+                <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                  Select any department to inspect its live operations, team queue, dispatched tasks, and staff.
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', maxWidth: '100%', flexWrap: 'wrap' }}>
+                {DEPARTMENT_OPTIONS.map(opt => {
+                  const isSelected = selectedDeptDrill === opt.value;
+                  const staffCount = departmentMembers.filter(m => m.primary_department === opt.value || m.departments.includes(opt.value)).length;
+                  
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => setSelectedDeptDrill(opt.value)}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '10px',
+                        border: isSelected ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.08)',
+                        background: isSelected ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(30, 64, 175, 0.35))' : 'rgba(255,255,255,0.03)',
+                        color: isSelected ? '#fff' : '#94a3b8',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        fontSize: '0.78rem',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.15s',
+                        boxShadow: isSelected ? '0 0 12px rgba(59, 130, 246, 0.25)' : 'none'
+                      }}
+                    >
+                      {getDeptIcon(opt.value)}
+                      <span>{opt.label}</span>
+                      <span style={{
+                        fontSize: '0.66rem',
+                        padding: '1px 6px',
+                        borderRadius: '10px',
+                        background: isSelected ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.06)',
+                        color: isSelected ? '#fff' : '#64748b',
+                        fontWeight: 700
+                      }}>
+                        {staffCount}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Department Zoom Header & KPI Dashboard */}
+            <div className="glass-panel" style={{ padding: '20px 24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px', marginBottom: '18px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #1e3a8a, #2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', border: '1px solid rgba(59, 130, 246, 0.4)' }}>
+                    {getDeptIcon(selectedDeptDrill)}
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#fff' }}>
+                      {departmentLabel(selectedDeptDrill)} Department Live Command Center
+                    </h3>
+                    <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#94a3b8' }}>
+                      Real-time visibility into active pipelines, student interactions, task progress, and team member assignments.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Sub-Tab Navigation Bar */}
+                <div style={{ display: 'flex', gap: '6px', background: 'rgba(255,255,255,0.04)', padding: '4px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <button
+                    type="button"
+                    onClick={() => setDeptDrillSubTab('live_work')}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: deptDrillSubTab === 'live_work' ? '#2563eb' : 'transparent',
+                      color: deptDrillSubTab === 'live_work' ? '#fff' : '#94a3b8',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    <Activity size={13} />
+                    Live Work & Pipeline
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDeptDrillSubTab('tasks')}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: deptDrillSubTab === 'tasks' ? '#2563eb' : 'transparent',
+                      color: deptDrillSubTab === 'tasks' ? '#fff' : '#94a3b8',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    <ClipboardList size={13} />
+                    Tasks ({deptTasks.length})
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDeptDrillSubTab('staff')}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: deptDrillSubTab === 'staff' ? '#2563eb' : 'transparent',
+                      color: deptDrillSubTab === 'staff' ? '#fff' : '#94a3b8',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    <Users2 size={13} />
+                    Staff ({currentDeptStaff.length})
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDeptDrillSubTab('formal_reports')}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: deptDrillSubTab === 'formal_reports' ? '#2563eb' : 'transparent',
+                      color: deptDrillSubTab === 'formal_reports' ? '#fff' : '#94a3b8',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    <FileText size={13} />
+                    Executive Reports ({deptReports.length})
+                  </button>
+                </div>
+              </div>
+
+              {/* 4 Metric Cards for Selected Department */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '12px' }}>
+                <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700, display: 'block' }}>Department Staff</span>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', marginTop: '2px' }}>
+                    {currentDeptStaff.length} <span style={{ fontSize: '0.75rem', color: '#34d399', fontWeight: 600 }}>({currentDeptStaff.filter(s => s.employment_status === 'active').length} active)</span>
+                  </div>
+                </div>
+
+                <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700, display: 'block' }}>
+                    {selectedDeptDrill === 'marketing' ? 'Marketing Posts' :
+                     selectedDeptDrill === 'counseling' ? 'Counseling Sessions' :
+                     selectedDeptDrill === 'finance' ? 'Total Disbursed' :
+                     selectedDeptDrill === 'country_directors' ? 'Assigned Countries' :
+                     selectedDeptDrill === 'human_resources' ? 'Leave Requests' :
+                     selectedDeptDrill === 'institutional_relations' ? 'Partner Institutions' :
+                     'Active Applications'}
+                  </span>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#38bdf8', marginTop: '2px' }}>
+                    {selectedDeptDrill === 'marketing' ? marketingPosts.length :
+                     selectedDeptDrill === 'counseling' ? counselingSessions.length :
+                     selectedDeptDrill === 'finance' ? `$${financeApprovedTotal.toLocaleString()}` :
+                     selectedDeptDrill === 'country_directors' ? countryDirectorStaff.length :
+                     selectedDeptDrill === 'human_resources' ? hrLeaveRequests.length :
+                     selectedDeptDrill === 'institutional_relations' ? partnerUniversities.length :
+                     admissionsApps.length}
+                  </div>
+                </div>
+
+                <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700, display: 'block' }}>Work Directives</span>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fbbf24', marginTop: '2px' }}>
+                    {deptTasks.length} <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500 }}>({deptTasks.filter(t => t.status === 'completed').length} done)</span>
+                  </div>
+                </div>
+
+                <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700, display: 'block' }}>Formal Reports</span>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#a78bfa', marginTop: '2px' }}>
+                    {deptReports.length} <span style={{ fontSize: '0.75rem', color: '#34d399', fontWeight: 500 }}>({deptReports.filter(r => r.status === 'approved').length} reviewed)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Sub-Tab 1: Live Department Work & Pipeline */}
+            {deptDrillSubTab === 'live_work' && (
+              <div className="glass-panel" style={{ padding: '20px' }}>
+                
+                {/* 1. MARKETING DEPARTMENT VIEW */}
+                {selectedDeptDrill === 'marketing' && (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.96rem', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Radio size={16} color="#f472b6" />
+                        Marketing Announcements, Campaigns & Broadcasts ({marketingPosts.length})
+                      </h4>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                        Published posts visible to Admissions, Counseling, and global staff.
+                      </span>
+                    </div>
+
+                    {marketingPosts.length === 0 ? (
+                      <div style={{ padding: '30px', textAlign: 'center', color: '#64748b', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px dashed rgba(255,255,255,0.05)' }}>
+                        No marketing announcements posted yet.
+                      </div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '12px' }}>
+                        {marketingPosts.map(post => (
+                          <div key={post.id} style={{ padding: '14px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+                              <h5 style={{ margin: 0, fontSize: '0.88rem', color: '#fff', fontWeight: 700 }}>{post.title}</h5>
+                              <span style={{ fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(236, 72, 153, 0.15)', color: '#f472b6', textTransform: 'uppercase', fontWeight: 700 }}>
+                                {post.category || 'General'}
+                              </span>
+                            </div>
+                            <p style={{ margin: '0 0 10px 0', fontSize: '0.76rem', color: '#cbd5e1', lineHeight: 1.5, maxHeight: '80px', overflowY: 'auto' }}>
+                              {post.content}
+                            </p>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.7rem', color: '#64748b', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '8px' }}>
+                              <span>By: <strong style={{ color: '#94a3b8' }}>{post.author_name}</strong></span>
+                              <span>{new Date(post.created_at).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 2. COUNSELING DEPARTMENT VIEW */}
+                {selectedDeptDrill === 'counseling' && (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.96rem', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Video size={16} color="#34d399" />
+                        Scheduled Advisory & Counseling Sessions ({counselingSessions.length})
+                      </h4>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                        Live student meetings and counseling video conferences.
+                      </span>
+                    </div>
+
+                    {counselingSessions.length === 0 ? (
+                      <div style={{ padding: '30px', textAlign: 'center', color: '#64748b', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px dashed rgba(255,255,255,0.05)' }}>
+                        No counseling sessions currently scheduled.
+                      </div>
+                    ) : (
+                      <div className="custom-table-container">
+                        <table className="custom-table">
+                          <thead>
+                            <tr>
+                              <th>Student Candidate</th>
+                              <th>Scheduled Time</th>
+                              <th>Meeting Link</th>
+                              <th>Session Notes</th>
+                              <th>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {counselingSessions.map(s => (
+                              <tr key={s.id}>
+                                <td style={{ fontWeight: 600, color: '#fff' }}>
+                                  {s.student_name || 'Student Candidate'}
+                                  <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                                    Counselor: {s.counselor_name || 'Assigned Staff'}
+                                  </div>
+                                </td>
+                                <td style={{ fontSize: '0.76rem', color: '#cbd5e1' }}>
+                                  {new Date(s.scheduled_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </td>
+                                <td>
+                                  {s.google_meet_link ? (
+                                    <a
+                                      href={s.google_meet_link.startsWith('http') ? s.google_meet_link : `https://${s.google_meet_link}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      style={{ color: '#38bdf8', fontSize: '0.74rem', textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                                    >
+                                      Join Video Call <ExternalLink size={11} />
+                                    </a>
+                                  ) : (
+                                    <span style={{ color: '#64748b', fontSize: '0.74rem' }}>In-Person</span>
+                                  )}
+                                </td>
+                                <td style={{ fontSize: '0.74rem', color: '#94a3b8', maxWidth: '240px' }}>
+                                  {s.session_notes || 'Routine academic counseling'}
+                                </td>
+                                <td>
+                                  <span className={`badge ${s.status === 'completed' ? 'badge-documents_verified' : 'badge-under_review'}`}>
+                                    {s.status.toUpperCase()}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 3. ADMISSIONS DEPARTMENT VIEW */}
+                {selectedDeptDrill === 'admissions' && (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.96rem', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <GraduationCap size={16} color="#60a5fa" />
+                        Admissions Applications & Dossier Queue ({admissionsApps.length})
+                      </h4>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                        Active student candidate applications undergoing admissions review.
+                      </span>
+                    </div>
+
+                    <div className="custom-table-container">
+                      <table className="custom-table">
+                        <thead>
+                          <tr>
+                            <th>Student & App #</th>
+                            <th>Target Course</th>
+                            <th>Missing Docs</th>
+                            <th>Status</th>
+                            <th>Admissions Notes</th>
+                            <th style={{ textAlign: 'right' }}>Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {admissionsApps.slice(0, 10).map(app => (
+                            <tr key={app.id}>
+                              <td>
+                                <strong style={{ color: '#fff', display: 'block', fontSize: '0.84rem' }}>{app.student_name}</strong>
+                                <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>{app.application_number} • {app.student_country || 'Global'}</span>
+                              </td>
+                              <td style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>
+                                {app.degree_program || 'Degree Program'}
+                                <div style={{ fontSize: '0.7rem', color: '#06b6d4' }}>{app.target_university || 'Partner University'}</div>
+                              </td>
+                              <td>
+                                {app.missing_documents_count > 0 ? (
+                                  <span className="badge badge-documents_missing">{app.missing_documents_count} missing</span>
+                                ) : (
+                                  <span className="badge badge-documents_verified">Complete</span>
+                                )}
+                              </td>
+                              <td>
+                                <span className={`badge badge-${app.status}`}>
+                                  {app.status.replace(/_/g, ' ').toUpperCase()}
+                                </span>
+                              </td>
+                              <td style={{ fontSize: '0.74rem', color: '#94a3b8', maxWidth: '200px' }}>
+                                {app.admissions_notes || 'Pending review note'}
+                              </td>
+                              <td style={{ textAlign: 'right' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedApplication(app)}
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ fontSize: '0.72rem', padding: '4px 8px' }}
+                                >
+                                  <Eye size={12} /> Dossier
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. FINANCE DEPARTMENT VIEW */}
+                {selectedDeptDrill === 'finance' && (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.96rem', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <CreditCard size={16} color="#fbbf24" />
+                        Financial Disbursements & Fee Collections Register ({financialRecords.length})
+                      </h4>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                        Registration fees, tuition collections, and commission records.
+                      </span>
+                    </div>
+
+                    <div className="custom-table-container">
+                      <table className="custom-table">
+                        <thead>
+                          <tr>
+                            <th>Student & App #</th>
+                            <th>Payment Type</th>
+                            <th>Amount (USD)</th>
+                            <th>Payment Ref</th>
+                            <th>Approval Status</th>
+                            <th>Date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {financialRecords.map(f => (
+                            <tr key={f.id}>
+                              <td style={{ fontWeight: 600, color: '#fff' }}>
+                                {f.student_name}
+                                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{f.application_number}</div>
+                              </td>
+                              <td style={{ fontSize: '0.74rem', color: '#cbd5e1', textTransform: 'capitalize' }}>
+                                {(f.record_type || 'registration_fee').replace(/_/g, ' ')}
+                              </td>
+                              <td style={{ fontWeight: 700, color: '#10b981', fontSize: '0.86rem' }}>
+                                ${Number(f.amount).toFixed(2)}
+                              </td>
+                              <td style={{ fontFamily: 'monospace', fontSize: '0.74rem', color: '#94a3b8' }}>
+                                {f.payment_reference || 'REF-N/A'}
+                              </td>
+                              <td>
+                                <span className={`badge ${f.status === 'approved' ? 'badge-documents_verified' : 'badge-under_review'}`}>
+                                  {f.status.toUpperCase()}
+                                </span>
+                              </td>
+                              <td style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                                {new Date(f.created_at).toLocaleDateString()}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* 5. DATA APPLICATIONS VIEW */}
+                {selectedDeptDrill === 'data_applications' && (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.96rem', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <FileCheck size={16} color="#a78bfa" />
+                        Data & Ingestion Verification Pipeline ({applications.length})
+                      </h4>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                        Document upload verification and missing document audits.
+                      </span>
+                    </div>
+
+                    <div className="custom-table-container">
+                      <table className="custom-table">
+                        <thead>
+                          <tr>
+                            <th>Student & App #</th>
+                            <th>Territory Country</th>
+                            <th>Documents Ingested</th>
+                            <th>Missing Docs Alert</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {applications.slice(0, 10).map(app => (
+                            <tr key={app.id}>
+                              <td style={{ fontWeight: 600, color: '#fff' }}>
+                                {app.student_name}
+                                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{app.application_number}</div>
+                              </td>
+                              <td style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>
+                                🌍 {app.student_country || 'Global'}
+                              </td>
+                              <td style={{ fontSize: '0.78rem', color: '#38bdf8' }}>
+                                {documents.filter(d => d.application_id === app.id).length} Files Attached
+                              </td>
+                              <td>
+                                {app.missing_documents_count > 0 ? (
+                                  <span className="badge badge-documents_missing">{app.missing_documents_count} Missing</span>
+                                ) : (
+                                  <span className="badge badge-documents_verified">All Verified</span>
+                                )}
+                              </td>
+                              <td>
+                                <span className={`badge badge-${app.status}`}>
+                                  {app.status.replace(/_/g, ' ').toUpperCase()}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* 6. COUNTRY DIRECTORS VIEW */}
+                {selectedDeptDrill === 'country_directors' && (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.96rem', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Globe size={16} color="#38bdf8" />
+                        Regional Country Directors & Territories ({countryDirectorStaff.length})
+                      </h4>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                        Regional representatives and local territory reporting hubs.
+                      </span>
+                    </div>
+
+                    <div className="custom-table-container">
+                      <table className="custom-table">
+                        <thead>
+                          <tr>
+                            <th>Director Representative</th>
+                            <th>Assigned Country</th>
+                            <th>Email Contact</th>
+                            <th>Territory Applications</th>
+                            <th>Employment Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {countryDirectorStaff.map(dir => {
+                            const territoryApps = applications.filter(a => a.student_country?.toLowerCase() === dir.working_country?.toLowerCase());
+
+                            return (
+                              <tr key={dir.id}>
+                                <td style={{ fontWeight: 600, color: '#fff' }}>
+                                  {dir.full_name}
+                                  <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{dir.job_title}</div>
+                                </td>
+                                <td>
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.76rem', color: '#38bdf8', padding: '3px 8px', borderRadius: '6px', background: 'rgba(14, 165, 233, 0.15)', border: '1px solid rgba(14, 165, 233, 0.3)', fontWeight: 700 }}>
+                                    🌍 {dir.working_country || 'Global'}
+                                  </span>
+                                </td>
+                                <td style={{ fontSize: '0.76rem', color: '#94a3b8' }}>{dir.email}</td>
+                                <td style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 600 }}>
+                                  {territoryApps.length} Candidates
+                                </td>
+                                <td>
+                                  <span className={`badge ${dir.employment_status === 'active' ? 'badge-documents_verified' : 'badge-rejected'}`}>
+                                    {dir.employment_status.toUpperCase()}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* 7. HUMAN RESOURCES VIEW */}
+                {selectedDeptDrill === 'human_resources' && (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.96rem', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Users2 size={16} color="#ec4899" />
+                        HR Leave Requests & Staff Oversight ({hrLeaveRequests.length})
+                      </h4>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                        Employee time-off requests and human resources operations.
+                      </span>
+                    </div>
+
+                    {hrLeaveRequests.length === 0 ? (
+                      <div style={{ padding: '30px', textAlign: 'center', color: '#64748b', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px dashed rgba(255,255,255,0.05)' }}>
+                        No pending staff leave requests.
+                      </div>
+                    ) : (
+                      <div className="custom-table-container">
+                        <table className="custom-table">
+                          <thead>
+                            <tr>
+                              <th>Staff Member</th>
+                              <th>Leave Type</th>
+                              <th>Duration</th>
+                              <th>Reason / Notes</th>
+                              <th>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {hrLeaveRequests.map(l => (
+                              <tr key={l.id}>
+                                <td style={{ fontWeight: 600, color: '#fff' }}>{l.employee_name}</td>
+                                <td style={{ fontSize: '0.76rem', color: '#cbd5e1', textTransform: 'capitalize' }}>{l.leave_type}</td>
+                                <td style={{ fontSize: '0.76rem', color: '#94a3b8' }}>{l.start_date} to {l.end_date}</td>
+                                <td style={{ fontSize: '0.74rem', color: '#94a3b8', maxWidth: '200px' }}>{l.reason}</td>
+                                <td>
+                                  <span className={`badge ${l.status === 'approved' ? 'badge-documents_verified' : l.status === 'denied' ? 'badge-rejected' : 'badge-under_review'}`}>
+                                    {l.status.toUpperCase()}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 8. INSTITUTIONAL RELATIONS & OTHER DEPARTMENTS */}
+                {['institutional_relations', 'operations', 'management', 'admin'].includes(selectedDeptDrill) && (
+                  <div>
+                    <h4 style={{ margin: '0 0 14px 0', fontSize: '0.96rem', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Building2 size={16} color="#2dd4bf" />
+                      Partner Universities & Institutional Catalog ({partnerUniversities.length})
+                    </h4>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+                      {partnerUniversities.map(p => (
+                        <div key={p.id} style={{ padding: '14px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                          <h5 style={{ margin: 0, fontSize: '0.9rem', color: '#fff', fontWeight: 700 }}>{p.name}</h5>
+                          <span style={{ fontSize: '0.72rem', color: '#06b6d4', display: 'block', margin: '2px 0 8px 0' }}>{p.country} • {p.contact_email}</span>
+                          <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                            Courses Offered: <strong style={{ color: '#fff' }}>{universityCourses.filter(c => c.university_id === p.id).length}</strong>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            )}
+
+            {/* Sub-Tab 2: Dispatched Work Assignments */}
+            {deptDrillSubTab === 'tasks' && (
+              <div className="glass-panel" style={{ padding: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.96rem', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <ClipboardList size={16} color="#3b82f6" />
+                    Work Directives Dispatched to {departmentLabel(selectedDeptDrill)} ({deptTasks.length})
+                  </h4>
+                  <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                    Tasks assigned by Operations or Admin to this department team.
+                  </span>
+                </div>
+
+                {deptTasks.length === 0 ? (
+                  <div style={{ padding: '30px', textAlign: 'center', color: '#64748b', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px dashed rgba(255,255,255,0.05)' }}>
+                    No work assignments currently dispatched to this department.
+                  </div>
+                ) : (
+                  <div className="custom-table-container">
+                    <table className="custom-table">
+                      <thead>
+                        <tr>
+                          <th>Task Title & Scope</th>
+                          <th>Priority</th>
+                          <th>Due Date</th>
+                          <th>Dispatched By</th>
+                          <th>Status</th>
+                          <th style={{ textAlign: 'right' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {deptTasks.map(t => (
+                          <tr key={t.id}>
+                            <td>
+                              <strong style={{ color: '#fff', display: 'block', fontSize: '0.84rem' }}>{t.title}</strong>
+                              <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>{t.description}</span>
+                            </td>
+                            <td>
+                              <span style={{
+                                fontSize: '0.66rem',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                background: t.priority === 'urgent' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                                color: t.priority === 'urgent' ? '#f87171' : '#60a5fa',
+                                fontWeight: 700,
+                                textTransform: 'uppercase'
+                              }}>
+                                {t.priority}
+                              </span>
+                            </td>
+                            <td style={{ fontSize: '0.76rem', color: '#cbd5e1' }}>
+                              {t.due_date || 'Ongoing'}
+                            </td>
+                            <td style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
+                              {t.creator_name || 'Operations'}
+                            </td>
+                            <td>
+                              <span className={`badge ${t.status === 'completed' ? 'badge-documents_verified' : t.status === 'in_progress' ? 'badge-under_review' : 'badge-documents_missing'}`}>
+                                {t.status.replace(/_/g, ' ').toUpperCase()}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <select
+                                value={t.status}
+                                onChange={async (e) => {
+                                  try {
+                                    await updateWorkAssignmentStatus(t.id, e.target.value as any);
+                                  } catch (err) {
+                                    alert('Failed to update task status.');
+                                  }
+                                }}
+                                style={{
+                                  padding: '4px 8px',
+                                  borderRadius: '6px',
+                                  background: 'rgba(255,255,255,0.05)',
+                                  color: '#fff',
+                                  border: '1px solid var(--border-color)',
+                                  fontSize: '0.72rem'
+                                }}
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                              </select>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Sub-Tab 3: Assigned Staff Directory */}
+            {deptDrillSubTab === 'staff' && (
+              <div className="glass-panel" style={{ padding: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.96rem', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Users2 size={16} color="#a855f7" />
+                    Team Members Deployed in {departmentLabel(selectedDeptDrill)} ({currentDeptStaff.length})
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={openAddDepartmentMember}
+                    className="btn btn-primary btn-sm"
+                    style={{ fontSize: '0.74rem' }}
+                  >
+                    <UserPlus size={13} /> Add Team Member
+                  </button>
+                </div>
+
+                {currentDeptStaff.length === 0 ? (
+                  <div style={{ padding: '30px', textAlign: 'center', color: '#64748b', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px dashed rgba(255,255,255,0.05)' }}>
+                    No staff members currently assigned to this department.
+                  </div>
+                ) : (
+                  <div className="custom-table-container">
+                    <table className="custom-table">
+                      <thead>
+                        <tr>
+                          <th>Staff Member</th>
+                          <th>Role Title</th>
+                          <th>Assigned Country</th>
+                          <th>Responsibility</th>
+                          <th>Status</th>
+                          <th style={{ textAlign: 'right' }}>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {currentDeptStaff.map(member => (
+                          <tr key={member.id}>
+                            <td>
+                              <strong style={{ color: '#fff', display: 'block', fontSize: '0.84rem' }}>{member.full_name}</strong>
+                              <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>{member.email}</span>
+                            </td>
+                            <td style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>{member.job_title}</td>
+                            <td>
+                              {member.working_country ? (
+                                <span style={{ fontSize: '0.74rem', color: '#38bdf8' }}>🌍 {member.working_country}</span>
+                              ) : (
+                                <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Global</span>
+                              )}
+                            </td>
+                            <td>
+                              <span className={`badge ${member.is_assistant ? 'badge-submitted' : 'badge-draft'}`}>
+                                {member.is_assistant ? 'Assistant' : 'Senior Lead'}
+                              </span>
+                            </td>
+                            <td>
+                              <span className={`badge ${member.employment_status === 'active' ? 'badge-documents_verified' : 'badge-rejected'}`}>
+                                {member.employment_status.toUpperCase()}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedStaffDossier(member)}
+                                className="btn btn-secondary btn-sm"
+                                style={{ fontSize: '0.72rem', padding: '4px 8px' }}
+                              >
+                                <Eye size={12} /> Dossier
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Sub-Tab 4: Formal Executive Reports */}
+            {deptDrillSubTab === 'formal_reports' && (
+              <div className="glass-panel" style={{ padding: '20px' }}>
+                <AdminDepartmentReports
+                  department={selectedDeptDrill}
+                  reports={deptReports}
+                  staffCount={currentDeptStaff.length}
+                  onOpenFile={getDepartmentReportDownloadUrl}
+                  onReview={reviewDepartmentReport}
+                />
+              </div>
+            )}
+
           </div>
-
-          <AdminDepartmentReports
-            department={selectedDeptDrill}
-            reports={selectedDepartmentReports}
-            staffCount={selectedDepartmentStaff.length}
-            onOpenFile={getDepartmentReportDownloadUrl}
-            onReview={reviewDepartmentReport}
-          />
-
-        </div>
-      )}
+        );
+      })()}
 
       {/* Open Application Detail */}
       {selectedApplication && (
@@ -1863,6 +2713,19 @@ export const AdminWorkspace: React.FC = () => {
                                 <button
                                   type="button"
                                   className="btn btn-secondary btn-sm"
+                                  style={{ fontSize: '0.72rem', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}
+                                  onClick={() => {
+                                    setSelectedDeptDrill(member.primary_department);
+                                    setActiveTab('drilldown');
+                                    setDeptDrillSubTab('live_work');
+                                  }}
+                                  title={`Zoom into ${departmentLabel(member.primary_department)} department live work`}
+                                >
+                                  <Layers size={13} /> Zoom Dept
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-sm"
                                   style={{ fontSize: '0.72rem', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                                   onClick={() => setSelectedStaffDossier(member)}
                                   title="Inspect full RBAC dossier"
@@ -2075,13 +2938,28 @@ export const AdminWorkspace: React.FC = () => {
               </div>
 
               {/* Action Buttons inside Dossier */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '14px', flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   onClick={() => setSelectedStaffDossier(null)}
                   className="btn btn-secondary btn-sm"
                 >
                   Close Dossier
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!selectedStaffDossier) return;
+                    const targetDept = selectedStaffDossier.primary_department;
+                    setSelectedStaffDossier(null);
+                    setSelectedDeptDrill(targetDept);
+                    setActiveTab('drilldown');
+                    setDeptDrillSubTab('live_work');
+                  }}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}
+                >
+                  <Layers size={14} /> Zoom into {departmentLabel(selectedStaffDossier.primary_department)} Work
                 </button>
                 <button
                   type="button"
