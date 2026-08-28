@@ -51,6 +51,7 @@ interface AuthContextType {
   setStudentMode: (enabled: boolean) => void;
 
   updateProfileAvatar: (avatarUrl: string | null) => Promise<void>;
+  updateStaffMemberAvatar: (identifier: string, avatarUrl: string | null) => Promise<void>;
 
   logout: () => Promise<void>;
 
@@ -475,6 +476,43 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   /**
+   * Admin-only: Update profile picture for any staff member in any department.
+   */
+  const updateStaffMemberAvatar = async (identifier: string, avatarUrl: string | null) => {
+    if (!identifier) return;
+
+    try {
+      const targetProfile = availableProfiles.find(
+        (p) => p.id === identifier || p.email?.toLowerCase() === identifier.toLowerCase()
+      );
+      const targetId = targetProfile?.id || identifier;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', targetId);
+
+      if (error) {
+        console.warn('Could not update member avatar in Supabase database:', error.message);
+      }
+    } catch (err) {
+      console.warn('Database member avatar update caught error:', err);
+    }
+
+    setAvailableProfiles((prev) =>
+      prev.map((p) =>
+        p.id === identifier || p.email?.toLowerCase() === identifier.toLowerCase()
+          ? { ...p, avatar_url: avatarUrl || undefined }
+          : p
+      )
+    );
+
+    if (currentProfile?.id === identifier || currentProfile?.email?.toLowerCase() === identifier.toLowerCase()) {
+      setCurrentProfile((prev) => (prev ? { ...prev, avatar_url: avatarUrl || undefined } : null));
+    }
+  };
+
+  /**
    * Sign out from Supabase.
    */
   const logout = async () => {
@@ -527,6 +565,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           setStudentMode:
             setIsStudentMode,
           updateProfileAvatar,
+          updateStaffMemberAvatar,
           logout,
           loading,
         }}
@@ -563,6 +602,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           setStudentMode:
             setIsStudentMode,
           updateProfileAvatar,
+          updateStaffMemberAvatar,
           logout,
           loading,
         } as AuthContextType

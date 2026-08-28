@@ -159,6 +159,7 @@ export const AdminWorkspace: React.FC = () => {
     deleteDepartmentMember,
     availableProfiles,
     deleteUserProfileAccount,
+    updateStaffMemberAvatar,
   } = useAuth();
   const {
   applications,
@@ -290,6 +291,7 @@ export const AdminWorkspace: React.FC = () => {
     useState(false);
   const [showDepartmentMemberPasswordConfirm, setShowDepartmentMemberPasswordConfirm] =
     useState(false);
+  const [departmentMemberAvatarUrl, setDepartmentMemberAvatarUrl] = useState<string | null>(null);
   const [savingDepartmentMember, setSavingDepartmentMember] = useState(false);
   const [departmentMemberError, setDepartmentMemberError] = useState('');
   const [departmentMemberNotice, setDepartmentMemberNotice] = useState('');
@@ -560,6 +562,7 @@ export const AdminWorkspace: React.FC = () => {
       primary_department: targetDept,
       departments: [targetDept],
     });
+    setDepartmentMemberAvatarUrl(null);
     setDepartmentMemberPasswordConfirm('');
     setShowDepartmentMemberPassword(false);
     setShowDepartmentMemberPasswordConfirm(false);
@@ -581,6 +584,10 @@ export const AdminWorkspace: React.FC = () => {
       working_country: member.working_country || '',
       temporary_password: '',
     });
+    const foundProfile = (availableProfiles || []).find(
+      (p) => p.email?.toLowerCase() === member.email?.toLowerCase()
+    );
+    setDepartmentMemberAvatarUrl(foundProfile?.avatar_url || null);
     setDepartmentMemberPasswordConfirm('');
     setShowDepartmentMemberPassword(false);
     setShowDepartmentMemberPasswordConfirm(false);
@@ -657,12 +664,19 @@ export const AdminWorkspace: React.FC = () => {
       setSavingDepartmentMember(true);
       if (editingDepartmentMember) {
         await updateDepartmentMember(editingDepartmentMember.id, departmentMemberForm);
-        setDepartmentMemberNotice(`${departmentMemberForm.full_name.trim()} has been updated.`);
+        if (departmentMemberAvatarUrl !== undefined) {
+          await updateStaffMemberAvatar(departmentMemberForm.email, departmentMemberAvatarUrl);
+        }
+        setDepartmentMemberNotice(`${departmentMemberForm.full_name.trim()} and profile details have been updated.`);
       } else {
         const result = await createDepartmentMember({
           ...departmentMemberForm,
           temporary_password: temporaryPassword,
         });
+
+        if (departmentMemberAvatarUrl) {
+          await updateStaffMemberAvatar(departmentMemberForm.email, departmentMemberAvatarUrl);
+        }
 
         setDepartmentMemberNotice(
           result.loginStatus === 'created'
@@ -674,6 +688,7 @@ export const AdminWorkspace: React.FC = () => {
       }
       setShowDepartmentMemberModal(false);
       setEditingDepartmentMember(null);
+      setDepartmentMemberAvatarUrl(null);
       setDepartmentMemberForm(emptyDepartmentMember);
       setDepartmentMemberPasswordConfirm('');
     } catch (error) {
@@ -3203,9 +3218,17 @@ export const AdminWorkspace: React.FC = () => {
                         <tr key={p?.id}>
                           <td>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: p?.is_admin ? '#dc2626' : p?.account_type === 'staff' ? '#2563eb' : '#10b981', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 700 }}>
-                                {userInitial}
-                              </div>
+                              <ProfileAvatar
+                                avatarUrl={p?.avatar_url}
+                                name={p?.full_name || 'User'}
+                                size={32}
+                                editable={true}
+                                onAvatarChange={async (newUrl) => {
+                                  await updateStaffMemberAvatar(p.id, newUrl);
+                                  setDepartmentMemberNotice(`Profile photo updated for ${p.full_name || 'user'}.`);
+                                  setTimeout(() => setDepartmentMemberNotice(''), 3000);
+                                }}
+                              />
                               <div>
                                 <strong style={{ display: 'block', color: '#fff', fontSize: '0.84rem' }}>{p?.full_name || 'Unnamed User'}</strong>
                                 <span style={{ color: '#94a3b8', fontSize: '0.72rem' }}>{p?.email || '—'}</span>
@@ -3278,12 +3301,21 @@ export const AdminWorkspace: React.FC = () => {
                     p => p.email?.toLowerCase() === selectedStaffDossier.email?.toLowerCase()
                   );
                   return (
-                    <ProfileAvatar
-                      avatarUrl={dossierProfile?.avatar_url}
-                      name={selectedStaffDossier.full_name}
-                      size={48}
-                      editable={false}
-                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                      <ProfileAvatar
+                        avatarUrl={dossierProfile?.avatar_url}
+                        name={selectedStaffDossier.full_name}
+                        size={56}
+                        editable={true}
+                        showDetails={true}
+                        onAvatarChange={async (newUrl) => {
+                          await updateStaffMemberAvatar(dossierProfile?.id || selectedStaffDossier.email, newUrl);
+                          setDepartmentMemberNotice(`Profile photo updated for ${selectedStaffDossier.full_name}.`);
+                          setTimeout(() => setDepartmentMemberNotice(''), 3500);
+                        }}
+                      />
+                      <span style={{ fontSize: '0.66rem', color: '#38bdf8', fontWeight: 600 }}>📸 Admin Photo Control</span>
+                    </div>
                   );
                 })()}
                 <div>
@@ -4475,6 +4507,25 @@ export const AdminWorkspace: React.FC = () => {
 
             <form onSubmit={handleSaveDepartmentMember}>
               <div className="department-member-modal-body">
+                
+                {/* Admin Profile Picture Uploader (Max 50KB) */}
+                <div style={{ padding: '14px 16px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
+                  <ProfileAvatar
+                    avatarUrl={departmentMemberAvatarUrl}
+                    name={departmentMemberForm.full_name || 'Staff Member'}
+                    size={64}
+                    editable={true}
+                    showDetails={true}
+                    onAvatarChange={(newUrl) => setDepartmentMemberAvatarUrl(newUrl)}
+                  />
+                  <div>
+                    <strong style={{ fontSize: '0.86rem', color: '#0f172a', display: 'block' }}>Official Profile Picture (Admin Managed)</strong>
+                    <span style={{ fontSize: '0.74rem', color: '#64748b', display: 'block', marginTop: '2px' }}>
+                      Upload official profile picture for this department member (Max 50KB with auto-compression).
+                    </span>
+                  </div>
+                </div>
+
                 <div className="dashboard-responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                   <div>
                     <label className="form-label" htmlFor="member-full-name">Full name</label>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, KeyRound, Eye, EyeOff, Lock, User } from 'lucide-react';
+import { X, KeyRound, Eye, EyeOff, Lock, User, ShieldCheck } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { ProfileAvatar } from '../common/ProfileAvatar';
@@ -20,6 +20,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
 }) => {
   const { updateProfileAvatar, currentProfile } = useAuth();
   const activeUser = currentProfile || user;
+  const canEditAvatar = activeUser.is_admin || activeUser.department === 'admin' || activeUser.account_type === 'student';
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -496,10 +497,34 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                   avatarUrl={activeUser.avatar_url}
                   name={activeUser.full_name}
                   size={96}
-                  editable={true}
-                  showDetails={true}
+                  editable={canEditAvatar}
+                  showDetails={canEditAvatar}
                   onAvatarChange={updateProfileAvatar}
                 />
+
+                {!canEditAvatar && (
+                  <div
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      background: 'rgba(59, 130, 246, 0.08)',
+                      border: '1px solid rgba(59, 130, 246, 0.25)',
+                      color: '#1e40af',
+                      fontSize: '12px',
+                      lineHeight: '1.4',
+                      textAlign: 'center',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      maxWidth: '420px',
+                    }}
+                  >
+                    <ShieldCheck size={18} style={{ flexShrink: 0, color: '#2563eb' }} />
+                    <span>
+                      <strong>Department Profile Policy:</strong> Staff profile pictures are managed and uploaded exclusively by System Administration.
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div
