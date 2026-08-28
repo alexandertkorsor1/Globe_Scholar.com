@@ -36,6 +36,8 @@ import {
 } from '../../lib/document-requirements';
 import { ApplicationJourney } from './ApplicationJourney';
 import { ProfileAvatar } from '../common/ProfileAvatar';
+import { PasswordStrengthMeter } from '../common/PasswordStrengthMeter';
+import { checkPasswordStrength } from '../../lib/password-utils';
 import {
   isPassportPhotoType,
   compressPassportPhotoFile,
@@ -510,6 +512,15 @@ export const StudentPortal: React.FC = () => {
 
     if (newPassword.length < 8) {
       setPasswordMessage('Use at least 8 characters for your new password.');
+      return;
+    }
+
+    const strength = checkPasswordStrength(newPassword);
+    if (strength.isWeak) {
+      setPasswordMessage(
+        strength.warning ||
+          'Password is weak. Please choose a stronger password with a mix of uppercase letters, numbers, and symbols.'
+      );
       return;
     }
 
@@ -1666,6 +1677,10 @@ export const StudentPortal: React.FC = () => {
                 placeholder="At least 8 characters"
                 autoComplete="new-password"
               />
+
+              {newPassword.length > 0 && (
+                <PasswordStrengthMeter password={newPassword} />
+              )}
 
               <label className="form-label" htmlFor="student-confirm-password">
                 Confirm new password

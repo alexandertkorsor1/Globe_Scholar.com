@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, KeyRound } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { PasswordStrengthMeter } from '../common/PasswordStrengthMeter';
+import { checkPasswordStrength } from '../../lib/password-utils';
 
 interface PasswordRecoveryProps {
   onComplete: () => void;
@@ -24,6 +26,16 @@ export const PasswordRecovery: React.FC<PasswordRecoveryProps> = ({ onComplete }
       setError('Use at least 8 characters for your new password.');
       return;
     }
+
+    const strength = checkPasswordStrength(password);
+    if (strength.isWeak) {
+      setError(
+        strength.warning ||
+          'Password is weak. Please choose a stronger password with a mix of uppercase letters, numbers, and symbols.'
+      );
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError('Your passwords do not match.');
       return;
@@ -60,6 +72,9 @@ export const PasswordRecovery: React.FC<PasswordRecoveryProps> = ({ onComplete }
               <button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Hide password' : 'Show password'} style={{ position: 'absolute', top: '10px', right: '9px', display: 'inline-flex', gap: '4px', alignItems: 'center', border: 0, background: 'transparent', color: '#315cc8', fontWeight: 700, cursor: 'pointer' }}>{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}{showPassword ? 'Hide' : 'Show'}</button>
             </span>
           </label>
+          {password.length > 0 && (
+            <PasswordStrengthMeter password={password} />
+          )}
           <label style={{ display: 'grid', gap: '6px', color: '#374151', fontWeight: 650, fontSize: '13px' }}>Confirm new password
             <span style={{ position: 'relative' }}><input type={showConfirmation ? 'text' : 'password'} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" required style={inputStyle} />
               <button type="button" onClick={() => setShowConfirmation((visible) => !visible)} aria-label={showConfirmation ? 'Hide confirmation password' : 'Show confirmation password'} style={{ position: 'absolute', top: '10px', right: '9px', display: 'inline-flex', gap: '4px', alignItems: 'center', border: 0, background: 'transparent', color: '#315cc8', fontWeight: 700, cursor: 'pointer' }}>{showConfirmation ? <EyeOff size={16} /> : <Eye size={16} />}{showConfirmation ? 'Hide' : 'Show'}</button>

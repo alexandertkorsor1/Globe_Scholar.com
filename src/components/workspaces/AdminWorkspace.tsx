@@ -18,6 +18,8 @@ import { KpiPerformanceTracker } from '../shared/KpiPerformanceTracker';
 import { DepartmentTaskInbox } from '../shared/DepartmentTaskInbox';
 import { TrashBin } from '../shared/TrashBin';
 import { ProfileAvatar } from '../common/ProfileAvatar';
+import { PasswordStrengthMeter } from '../common/PasswordStrengthMeter';
+import { checkPasswordStrength } from '../../lib/password-utils';
 import {
   Building2,
   LayoutDashboard,
@@ -608,6 +610,15 @@ export const AdminWorkspace: React.FC = () => {
 
       if (temporaryPassword.length < 8) {
         setDepartmentMemberError('Temporary password must be at least 8 characters.');
+        return;
+      }
+
+      const strength = checkPasswordStrength(temporaryPassword);
+      if (strength.isWeak) {
+        setDepartmentMemberError(
+          strength.warning ||
+            'Temporary password is weak. Please choose a stronger password with a mix of uppercase letters, numbers, and symbols.'
+        );
         return;
       }
 
@@ -3451,6 +3462,10 @@ export const AdminWorkspace: React.FC = () => {
                         </div>
                       </div>
                     </div>
+
+                    {(departmentMemberForm.temporary_password || '').length > 0 && (
+                      <PasswordStrengthMeter password={departmentMemberForm.temporary_password || ''} />
+                    )}
                   </section>
                 )}
 

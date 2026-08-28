@@ -3,6 +3,8 @@ import { X, KeyRound, Eye, EyeOff, Lock, User } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { ProfileAvatar } from '../common/ProfileAvatar';
+import { PasswordStrengthMeter } from '../common/PasswordStrengthMeter';
+import { checkPasswordStrength } from '../../lib/password-utils';
 import type { Profile } from '../../types/database';
 
 interface UserSettingsModalProps {
@@ -43,6 +45,15 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
 
     if (newPassword.length < 8) {
       setError('New password must be at least 8 characters.');
+      return;
+    }
+
+    const strength = checkPasswordStrength(newPassword);
+    if (strength.isWeak) {
+      setError(
+        strength.warning ||
+          'Your password is weak. Please choose a stronger password with a mix of uppercase letters, numbers, and special characters.'
+      );
       return;
     }
 
@@ -343,6 +354,9 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                       )}
                     </button>
                   </div>
+                  {newPassword.length > 0 && (
+                    <PasswordStrengthMeter password={newPassword} />
+                  )}
                 </div>
 
                 {/* Confirm Password */}

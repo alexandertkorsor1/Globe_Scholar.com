@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import brandLogo from '../../brand-logo.jpg';
+import { PasswordStrengthMeter } from '../common/PasswordStrengthMeter';
+import { checkPasswordStrength } from '../../lib/password-utils';
 
 export type AuthMode = 'login' | 'student-signup' | 'forgot-password';
 
@@ -103,9 +105,19 @@ export const Login: React.FC<LoginProps> = ({
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       setError(
-        'Password must be at least 6 characters long.'
+        'Password must be at least 8 characters long.'
+      );
+      setLoading(false);
+      return;
+    }
+
+    const strength = checkPasswordStrength(password);
+    if (strength.isWeak) {
+      setError(
+        strength.warning ||
+          'Password is weak. Please choose a stronger password with uppercase letters, numbers, and special characters.'
       );
       setLoading(false);
       return;
@@ -661,6 +673,10 @@ export const Login: React.FC<LoginProps> = ({
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}{showPassword ? 'Hide' : 'Show'}
               </button>
             </div>
+
+            {password.length > 0 && (
+              <PasswordStrengthMeter password={password} />
+            )}
 
             <label
               htmlFor="confirm-password"
