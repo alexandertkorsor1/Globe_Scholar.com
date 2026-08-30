@@ -2707,30 +2707,31 @@ export const AdminWorkspace: React.FC = () => {
                   return (
                     <div
                       key={dept.value}
-                      className="glass-panel"
+                      className="glass-panel glass-panel-interactive"
                       style={{
-                        padding: '18px',
+                        padding: '20px',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
-                        border: `1px solid ${deptTheme.border}`,
-                        background: 'rgba(15, 23, 42, 0.65)',
-                        borderRadius: '14px',
+                        border: `1px solid #e2e8f0`,
+                        background: '#ffffff',
+                        borderRadius: '16px',
+                        boxShadow: 'var(--shadow-card)',
                         transition: 'transform 0.2s, box-shadow 0.2s'
                       }}
                     >
                       <div>
                         {/* Department Card Header */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: deptTheme.bg, border: `1px solid ${deptTheme.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: deptTheme.bg, border: `1px solid ${deptTheme.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               {deptTheme.icon}
                             </div>
                             <div>
-                              <h4 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700, color: '#fff' }}>
+                              <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 750, color: '#0f172a' }}>
                                 {dept.label}
                               </h4>
-                              <span style={{ fontSize: '0.72rem', color: deptTheme.color, fontWeight: 600 }}>
+                              <span style={{ fontSize: '0.74rem', color: deptTheme.color, fontWeight: 700 }}>
                                 {deptStaff.length} Deployed Member{deptStaff.length === 1 ? '' : 's'}
                               </span>
                             </div>
@@ -2740,7 +2741,7 @@ export const AdminWorkspace: React.FC = () => {
                             type="button"
                             onClick={() => openAddDepartmentMember(dept.value)}
                             className="btn btn-primary btn-sm"
-                            style={{ fontSize: '0.68rem', padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px', background: deptTheme.color, border: 'none' }}
+                            style={{ fontSize: '0.7rem', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px', background: deptTheme.color, border: 'none', borderRadius: '6px' }}
                             title={`Add member to ${dept.label}`}
                           >
                             <UserPlus size={11} /> + Add
@@ -2749,14 +2750,14 @@ export const AdminWorkspace: React.FC = () => {
 
                         {/* Department Members List */}
                         {deptStaff.length === 0 ? (
-                          <div style={{ padding: '20px 14px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px dashed rgba(255,255,255,0.08)', marginBottom: '14px' }}>
-                            <UserRoundCheck size={24} color="#64748b" style={{ marginBottom: '6px' }} />
-                            <p style={{ margin: 0, fontSize: '0.78rem', color: '#94a3b8' }}>No staff members deployed yet in {dept.label}.</p>
+                          <div style={{ padding: '22px 14px', textAlign: 'center', background: '#f8fafc', borderRadius: '10px', border: '1px dashed #cbd5e1', marginBottom: '14px' }}>
+                            <UserRoundCheck size={24} color="#94a3b8" style={{ marginBottom: '6px' }} />
+                            <p style={{ margin: 0, fontSize: '0.76rem', color: '#64748b' }}>No staff members deployed yet in {dept.label}.</p>
                             <button
                               type="button"
                               onClick={() => openAddDepartmentMember(dept.value)}
                               className="btn btn-secondary btn-sm"
-                              style={{ marginTop: '8px', fontSize: '0.72rem', padding: '3px 10px' }}
+                              style={{ marginTop: '8px', fontSize: '0.72rem', padding: '4px 10px', color: deptTheme.color, borderColor: deptTheme.color }}
                             >
                               <UserPlus size={11} /> Onboard First Member
                             </button>
@@ -2775,8 +2776,8 @@ export const AdminWorkspace: React.FC = () => {
                                   style={{
                                     padding: '10px 12px',
                                     borderRadius: '10px',
-                                    background: 'rgba(255,255,255,0.03)',
-                                    border: '1px solid rgba(255,255,255,0.06)',
+                                    background: '#f8fafc',
+                                    border: '1px solid #e2e8f0',
                                     display: 'flex',
                                     justifyContent: 'space-between',
                                     alignItems: 'center',
@@ -2792,20 +2793,20 @@ export const AdminWorkspace: React.FC = () => {
                                     />
                                     <div style={{ minWidth: 0 }}>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                        <strong style={{ color: '#fff', fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        <strong style={{ color: '#0f172a', fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                           {member.full_name || 'Unnamed Staff'}
                                         </strong>
                                         {isPrimary && (
-                                          <span style={{ fontSize: '0.62rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(59, 130, 246, 0.2)', color: '#93c5fd', fontWeight: 600 }}>
+                                          <span style={{ fontSize: '0.62rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(59, 130, 246, 0.08)', color: '#1e40af', fontWeight: 650 }}>
                                             Primary
                                           </span>
                                         )}
                                       </div>
-                                      <span style={{ color: '#94a3b8', fontSize: '0.72rem', display: 'block' }}>
+                                      <span style={{ color: '#64748b', fontSize: '0.72rem', display: 'block' }}>
                                         {member.job_title || 'Assigned Officer'}
                                       </span>
                                       {(member.working_country || isCountryDirectors) && (
-                                        <span style={{ color: '#38bdf8', fontSize: '0.68rem', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                        <span style={{ color: '#0284c7', fontSize: '0.68rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                                           🌍 {member.working_country || 'Global'}
                                         </span>
                                       )}
@@ -2818,19 +2819,19 @@ export const AdminWorkspace: React.FC = () => {
                                       type="button"
                                       onClick={() => setSelectedStaffDossier(member)}
                                       className="btn btn-secondary btn-sm"
-                                      style={{ fontSize: '0.68rem', padding: '3px 6px' }}
+                                      style={{ fontSize: '0.68rem', padding: '4px 6px', background: '#ffffff', borderColor: '#cbd5e1' }}
                                       title="Inspect Dossier"
                                     >
-                                      <Eye size={12} />
+                                      <Eye size={12} style={{ color: '#475569' }} />
                                     </button>
                                     <button
                                       type="button"
                                       onClick={() => openEditDepartmentMember(member)}
                                       className="btn btn-secondary btn-sm"
-                                      style={{ fontSize: '0.68rem', padding: '3px 6px', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}
+                                      style={{ fontSize: '0.68rem', padding: '4px 6px', background: '#ffffff', borderColor: '#cbd5e1' }}
                                       title="Edit Member"
                                     >
-                                      <Pencil size={12} />
+                                      <Pencil size={12} style={{ color: '#475569' }} />
                                     </button>
                                   </div>
                                 </div>
@@ -2841,9 +2842,9 @@ export const AdminWorkspace: React.FC = () => {
                       </div>
 
                       {/* Card Footer: Zoom into Department */}
-                      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                          Status: <span style={{ color: '#34d399', fontWeight: 600 }}>Active</span>
+                      <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                          Status: <span style={{ color: '#16a34a', fontWeight: 700 }}>Active</span>
                         </span>
                         <button
                           type="button"
@@ -2852,8 +2853,8 @@ export const AdminWorkspace: React.FC = () => {
                             setActiveTab('drilldown');
                             setDeptDrillSubTab('live_work');
                           }}
-                          className="btn btn-secondary btn-sm"
-                          style={{ fontSize: '0.72rem', padding: '3px 10px', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}
+                          className="btn btn-primary btn-sm"
+                          style={{ fontSize: '0.72rem', padding: '5px 12px', background: deptTheme.color, border: 'none', borderRadius: '6px', color: '#ffffff' }}
                         >
                           Open {dept.label} Queue →
                         </button>
