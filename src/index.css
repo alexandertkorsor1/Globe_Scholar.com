@@ -138,17 +138,17 @@ h1, h2, h3, h4, h5, h6 {
 .badge-rejected { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
 
 /* ─── Department Color Coding ─── */
-.dept-badge-admin { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-.dept-badge-marketing { background: #fdf2f8; color: #db2777; border: 1px solid #fbcfe8; }
-.dept-badge-admissions { background: #faf5ff; color: #7c3aed; border: 1px solid #ddd6fe; }
-.dept-badge-counseling { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
-.dept-badge-data_applications { background: #ecfeff; color: #0891b2; border: 1px solid #a5f3fc; }
-.dept-badge-operations { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
-.dept-badge-country_directors { background: #f0fdf4; color: #0d9488; border: 1px solid #99f6e4; }
+.dept-badge-admin { background: #fef2f2; color: #e11d48; border: 1px solid #fecaca; }
+.dept-badge-management { background: #fef3c7; color: #d97706; border: 1px solid #fde68a; }
+.dept-badge-marketing { background: #fff7ed; color: #ea580c; border: 1px solid #ffedd5; }
+.dept-badge-admissions { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+.dept-badge-counseling { background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; }
+.dept-badge-data_applications { background: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe; }
+.dept-badge-operations { background: #fdf2f8; color: #d946ef; border: 1px solid #fbcfe8; }
+.dept-badge-country_directors { background: #f0f9ff; color: #0284c7; border: 1px solid #e0f2fe; }
 .dept-badge-finance { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
-.dept-badge-management { background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4; }
-.dept-badge-institutional_relations { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; }
-.dept-badge-human_resources { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
+.dept-badge-institutional_relations { background: #f0fdfa; color: #0d9488; border: 1px solid #ccfbf1; }
+.dept-badge-human_resources { background: #fff1f2; color: #db2777; border: 1px solid #fecdd3; }
 
 
 /* ─── Button Styles ─── */

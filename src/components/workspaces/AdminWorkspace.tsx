@@ -2690,17 +2690,17 @@ export const AdminWorkspace: React.FC = () => {
 
                   // Department color accents
                   const deptThemeMap: Record<string, { color: string; bg: string; border: string; icon: React.ReactNode }> = {
-                    admissions: { color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.12)', border: 'rgba(59, 130, 246, 0.25)', icon: <GraduationCap size={18} color="#3b82f6" /> },
-                    marketing: { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.12)', border: 'rgba(245, 158, 11, 0.25)', icon: <TrendingUp size={18} color="#f59e0b" /> },
-                    counseling: { color: '#10b981', bg: 'rgba(16, 185, 129, 0.12)', border: 'rgba(16, 185, 129, 0.25)', icon: <Briefcase size={18} color="#10b981" /> },
-                    finance: { color: '#10b981', bg: 'rgba(16, 185, 129, 0.12)', border: 'rgba(16, 185, 129, 0.25)', icon: <DollarSign size={18} color="#10b981" /> },
-                    operations: { color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.12)', border: 'rgba(139, 92, 246, 0.25)', icon: <Layers size={18} color="#8b5cf6" /> },
-                    country_directors: { color: '#0ea5e9', bg: 'rgba(14, 165, 233, 0.12)', border: 'rgba(14, 165, 233, 0.25)', icon: <Globe size={18} color="#0ea5e9" /> },
-                    human_resources: { color: '#ec4899', bg: 'rgba(236, 72, 153, 0.12)', border: 'rgba(236, 72, 153, 0.25)', icon: <Users size={18} color="#ec4899" /> },
-                    data_applications: { color: '#6366f1', bg: 'rgba(99, 102, 241, 0.12)', border: 'rgba(99, 102, 241, 0.25)', icon: <FileCheck size={18} color="#6366f1" /> },
-                    management: { color: '#f97316', bg: 'rgba(249, 115, 22, 0.12)', border: 'rgba(249, 115, 22, 0.25)', icon: <BriefcaseBusiness size={18} color="#f97316" /> },
-                    institutional_relations: { color: '#14b8a6', bg: 'rgba(20, 184, 166, 0.12)', border: 'rgba(20, 184, 166, 0.25)', icon: <Building2 size={18} color="#14b8a6" /> },
-                    admin: { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.12)', border: 'rgba(239, 68, 68, 0.25)', icon: <ShieldCheck size={18} color="#ef4444" /> },
+                    admissions: { color: '#2563eb', bg: 'rgba(37, 99, 235, 0.1)', border: 'rgba(37, 99, 235, 0.2)', icon: <GraduationCap size={18} color="#2563eb" /> },
+                    marketing: { color: '#ea580c', bg: 'rgba(234, 88, 12, 0.1)', border: 'rgba(234, 88, 12, 0.2)', icon: <TrendingUp size={18} color="#ea580c" /> },
+                    counseling: { color: '#4f46e5', bg: 'rgba(79, 70, 229, 0.1)', border: 'rgba(79, 70, 229, 0.2)', icon: <Briefcase size={18} color="#4f46e5" /> },
+                    finance: { color: '#059669', bg: 'rgba(5, 150, 105, 0.1)', border: 'rgba(5, 150, 105, 0.2)', icon: <DollarSign size={18} color="#059669" /> },
+                    operations: { color: '#d946ef', bg: 'rgba(217, 70, 239, 0.1)', border: 'rgba(217, 70, 239, 0.2)', icon: <Layers size={18} color="#d946ef" /> },
+                    country_directors: { color: '#0284c7', bg: 'rgba(2, 132, 199, 0.1)', border: 'rgba(2, 132, 199, 0.2)', icon: <Globe size={18} color="#0284c7" /> },
+                    human_resources: { color: '#db2777', bg: 'rgba(219, 39, 119, 0.1)', border: 'rgba(219, 39, 119, 0.2)', icon: <Users size={18} color="#db2777" /> },
+                    data_applications: { color: '#7c3aed', bg: 'rgba(124, 58, 237, 0.1)', border: 'rgba(124, 58, 237, 0.2)', icon: <FileCheck size={18} color="#7c3aed" /> },
+                    management: { color: '#d97706', bg: 'rgba(217, 119, 6, 0.1)', border: 'rgba(217, 119, 6, 0.2)', icon: <BriefcaseBusiness size={18} color="#d97706" /> },
+                    institutional_relations: { color: '#0d9488', bg: 'rgba(13, 148, 136, 0.1)', border: 'rgba(13, 148, 136, 0.2)', icon: <Building2 size={18} color="#0d9488" /> },
+                    admin: { color: '#e11d48', bg: 'rgba(225, 29, 72, 0.1)', border: 'rgba(225, 29, 72, 0.2)', icon: <ShieldCheck size={18} color="#e11d48" /> },
                   };
                   const deptTheme = deptThemeMap[dept.value] || { color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.12)', border: 'rgba(59, 130, 246, 0.25)', icon: <Building2 size={18} color="#3b82f6" /> };
 
