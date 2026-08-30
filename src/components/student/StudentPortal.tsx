@@ -648,12 +648,12 @@ export const StudentPortal: React.FC = () => {
       <form onSubmit={handlePayFee} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '14px' }}>
           <div>
-            <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Payment type</label>
+            <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 600 }}>Payment type</label>
             <select
               value={isStep3 ? 'registration_fee' : paymentType}
               disabled={isStep3}
               onChange={e => setPaymentType(e.target.value as any)}
-              style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', outline: 'none' }}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: '#ffffff', color: '#0f172a', border: '1px solid #cbd5e1', outline: 'none' }}
             >
               <option value="registration_fee">Registration Fee</option>
               <option value="admission_fee">Admission Fee</option>
@@ -662,7 +662,7 @@ export const StudentPortal: React.FC = () => {
           </div>
 
           <div>
-            <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Amount paid (USD)</label>
+            <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 600 }}>Amount paid (USD)</label>
             <input
               type="number"
               min="0.01"
@@ -672,13 +672,13 @@ export const StudentPortal: React.FC = () => {
               value={isStep3 ? '150.00' : paymentAmount}
               onChange={e => setPaymentAmount(e.target.value)}
               placeholder="Enter amount paid"
-              style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: '#ffffff', color: '#0f172a', border: '1px solid #cbd5e1' }}
             />
           </div>
 
           <div>
-            <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Payment provider</label>
-            <select value={paymentProvider} onChange={e => setPaymentProvider(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)', outline: 'none' }}>
+            <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 600 }}>Payment provider</label>
+            <select value={paymentProvider} onChange={e => setPaymentProvider(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: '#ffffff', color: '#0f172a', border: '1px solid #cbd5e1', outline: 'none' }}>
               <option value="Bank transfer">Bank transfer</option>
               <option value="Card payment">Card payment</option>
               <option value="Online payment provider">Online payment provider</option>
@@ -687,13 +687,13 @@ export const StudentPortal: React.FC = () => {
         </div>
 
         {isCardPayment && (
-          <div style={{ border: '1px solid rgba(59, 130, 246, 0.35)', borderRadius: '14px', overflow: 'hidden', background: 'rgba(15, 23, 42, 0.45)' }}>
-            <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(148, 163, 184, 0.22)', display: 'flex', alignItems: 'center', gap: '8px', color: '#fff', fontWeight: 800 }}>
-              <CreditCard style={{ width: '18px', height: '18px', color: '#60a5fa' }} />
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: '14px', overflow: 'hidden', background: '#ffffff', boxShadow: 'var(--shadow-card)' }}>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a', fontWeight: 800, background: '#f8fafc' }}>
+              <CreditCard style={{ width: '18px', height: '18px', color: '#2563eb' }} />
               Card Payment Details
             </div>
             <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ padding: '12px 14px', border: '1px solid rgba(96, 165, 250, 0.45)', borderRadius: '10px', color: '#bfdbfe', fontSize: '0.82rem', background: 'rgba(37, 99, 235, 0.08)' }}>
+              <div style={{ padding: '12px 14px', border: '1px solid rgba(37, 99, 235, 0.25)', borderRadius: '10px', color: '#1e40af', fontSize: '0.82rem', background: 'rgba(37, 99, 235, 0.06)', fontWeight: 500 }}>
                 Your transaction will require card OTP verification simulation. Globe Scholars Pathways, LLC. does not store CVV or passwords.
               </div>
 
@@ -702,11 +702,12 @@ export const StudentPortal: React.FC = () => {
                   { value: 'debit', label: 'Debit Card' },
                   { value: 'credit', label: 'Credit Card' },
                 ].map((option) => (
-                  <label key={option.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
+                  <label key={option.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#0f172a', fontWeight: 650, cursor: 'pointer', fontSize: '0.86rem' }}>
                     <input
                       type="radio"
                       checked={cardType === option.value}
                       onChange={() => setCardType(option.value as 'debit' | 'credit')}
+                      style={{ accentColor: '#2563eb' }}
                     />
                     {option.label}
                   </label>
@@ -714,7 +715,7 @@ export const StudentPortal: React.FC = () => {
               </div>
 
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#cbd5e1', display: 'block', marginBottom: '4px', fontWeight: 700 }}>Card number</label>
+                <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 700 }}>Card number</label>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -722,25 +723,25 @@ export const StudentPortal: React.FC = () => {
                   onChange={(event) => setCardNumber(event.target.value.replace(/[^\d\s-]/g, '').slice(0, 23))}
                   placeholder="Enter card number"
                   autoComplete="cc-number"
-                  style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}
+                  style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', background: '#ffffff', color: '#0f172a', border: '1px solid #cbd5e1' }}
                 />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#cbd5e1', display: 'block', marginBottom: '4px', fontWeight: 700 }}>Expiry date</label>
+                  <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 700 }}>Expiry date</label>
                   <input
                     type="text"
                     value={cardExpiry}
                     onChange={(event) => setCardExpiry(event.target.value.replace(/[^\d/ ]/g, '').slice(0, 7))}
                     placeholder="MM / YY"
                     autoComplete="cc-exp"
-                    style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}
+                    style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', background: '#ffffff', color: '#0f172a', border: '1px solid #cbd5e1' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#cbd5e1', display: 'block', marginBottom: '4px', fontWeight: 700 }}>CVV</label>
+                  <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 700 }}>CVV</label>
                   <input
                     type="password"
                     inputMode="numeric"
@@ -748,17 +749,17 @@ export const StudentPortal: React.FC = () => {
                     onChange={(event) => setCardCvv(event.target.value.replace(/\D/g, '').slice(0, 4))}
                     placeholder="Enter CVV"
                     autoComplete="cc-csc"
-                    style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }}
+                    style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', background: '#ffffff', color: '#0f172a', border: '1px solid #cbd5e1' }}
                   />
                 </div>
               </div>
 
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#cbd5e1', fontSize: '0.8rem', lineHeight: 1.5, cursor: 'pointer' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#475569', fontSize: '0.8rem', lineHeight: 1.5, cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   checked={cardTermsAccepted}
                   onChange={(event) => setCardTermsAccepted(event.target.checked)}
-                  style={{ width: '18px', height: '18px' }}
+                  style={{ width: '18px', height: '18px', accentColor: '#2563eb' }}
                 />
                 I agree to authorize this transaction. The receipt will be available in the system after verification.
               </label>
@@ -768,8 +769,8 @@ export const StudentPortal: React.FC = () => {
 
         {!isCardPayment && (
           <div>
-            <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Payment reference</label>
-            <input type="text" required value={paymentReference} onChange={e => setPaymentReference(e.target.value)} placeholder="Enter the receipt or transfer reference" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border-color)' }} />
+            <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 600 }}>Payment reference</label>
+            <input type="text" required value={paymentReference} onChange={e => setPaymentReference(e.target.value)} placeholder="Enter the receipt or transfer reference" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: '#ffffff', color: '#0f172a', border: '1px solid #cbd5e1' }} />
           </div>
         )}
 
