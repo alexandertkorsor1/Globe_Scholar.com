@@ -115,10 +115,6 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
             <span className="public-eyebrow"><Globe2 size={14} /> International education guidance</span>
             <h1>Your next chapter deserves a <span>clearer path.</span></h1>
             <p className="public-lead">Globe Scholars Pathways, LLC. brings students, counselors, admissions, and finance together in one transparent journey—from your first question to your final enrolment step.</p>
-            <div className="public-actions">
-              <button className="public-primary" type="button" onClick={onApply}>Start your application <ArrowRight size={17} /></button>
-              <button className="public-secondary" type="button" onClick={onSignIn}>Access your portal</button>
-            </div>
             <div className="public-trust">
               <span><CheckCircle2 size={15} color="#268458" /> Clear requirements</span>
               <span><CheckCircle2 size={15} color="#268458" /> Progress you can follow</span>
@@ -191,13 +187,6 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
             </article>
           ))}
         </div>
-      </div>
-    </section>
-
-    <section className="public-cta">
-      <div className="public-shell public-cta-grid">
-        <div><h2>Ready to explore your study options?</h2><p>Create your student account to begin a guided application journey.</p></div>
-        <button className="public-primary" type="button" onClick={onApply}>Create student account <ArrowRight size={17} /></button>
       </div>
     </section>
 
