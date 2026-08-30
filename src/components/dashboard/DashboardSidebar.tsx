@@ -123,7 +123,7 @@ export const DashboardSidebar: React.FC<
       </div>
 
       {/* Navigation Items */}
-      <nav className="dashboard-sidebar-nav" style={{ flex: 1 }}>
+      <nav className="dashboard-sidebar-nav" style={{ flex: 1, overflowY: 'auto', paddingRight: collapsed ? '0' : '4px' }}>
         {items.map((item) => {
           const hasChildren =
             item.children && item.children.length > 0;
