@@ -277,6 +277,7 @@ export interface FinancialRecord {
   approved_by_name?: string;
   notes?: string;
   verified_at?: string;
+  proof_file_path?: string | null;
   created_at: string;
 }
 

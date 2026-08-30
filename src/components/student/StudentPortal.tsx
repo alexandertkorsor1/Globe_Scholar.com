@@ -107,6 +107,7 @@ export const StudentPortal: React.FC = () => {
   >('registration_fee');
   const [paymentAmount, setPaymentAmount] = useState('150.00');
   const [paymentReference, setPaymentReference] = useState('');
+  const [proofFile, setProofFile] = useState<File | null>(null);
   const [feePaidSuccess, setFeePaidSuccess] = useState(false);
   const [feePaymentMessage, setFeePaymentMessage] = useState('');
   const [isSubmittingFee, setIsSubmittingFee] = useState(false);
@@ -617,11 +618,13 @@ export const StudentPortal: React.FC = () => {
         myApp.id,
         amount,
         `${isCardPayment ? `Card payment (${cardType})` : paymentProvider}: ${reference}`,
-        type
+        type,
+        proofFile || undefined
       );
 
       setFeePaidSuccess(true);
       setPaymentReference('');
+      setProofFile(null);
       setCardNumber('');
       setCardExpiry('');
       setCardCvv('');
@@ -808,9 +811,63 @@ export const StudentPortal: React.FC = () => {
         )}
 
         {!isCardPayment && (
-          <div>
-            <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 600 }}>Payment reference</label>
-            <input type="text" required value={paymentReference} onChange={e => setPaymentReference(e.target.value)} placeholder="Enter the receipt or transfer reference" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: '#ffffff', color: '#0f172a', border: '1px solid #cbd5e1' }} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+            <div>
+              <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 600 }}>Payment reference</label>
+              <input type="text" required value={paymentReference} onChange={e => setPaymentReference(e.target.value)} placeholder="Enter transfer reference" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: '#ffffff', color: '#0f172a', border: '1px solid #cbd5e1' }} />
+            </div>
+            <div>
+              <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 600 }}>
+                Upload Proof of Payment (Receipt PDF / Image)
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <label
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    background: '#f8fafc',
+                    color: '#475569',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    flexGrow: 1,
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Upload size={14} style={{ color: '#2563eb' }} />
+                  {proofFile ? proofFile.name.slice(0, 20) + (proofFile.name.length > 20 ? '...' : '') : 'Select payment receipt'}
+                  <input
+                    type="file"
+                    accept=".pdf,image/*"
+                    onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+                {proofFile && (
+                  <button
+                    type="button"
+                    onClick={() => setProofFile(null)}
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      background: 'none',
+                      border: '1px solid #ef4444',
+                      color: '#ef4444',
+                      cursor: 'pointer',
+                      fontSize: '0.78rem',
+                      fontWeight: 650
+                    }}
+                    title="Remove selected file"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         )}
 

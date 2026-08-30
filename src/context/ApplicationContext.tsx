@@ -101,8 +101,10 @@ interface ApplicationContextType {
     appId: string,
     amount: number,
     paymentRef: string,
-    paymentType?: 'registration_fee' | 'tuition_fee' | 'admission_fee'
+    paymentType?: 'registration_fee' | 'tuition_fee' | 'admission_fee',
+    proofFile?: File
   ) => Promise<FinancialRecord>;
+  getProofFileUrl: (filePath: string) => Promise<string>;
   createFinancialRecord: (
     record: Omit<FinancialRecord, 'id' | 'created_at' | 'approved_by_name'>
   ) => Promise<FinancialRecord>;
@@ -1641,11 +1643,32 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     appId: string,
     amount: number,
     paymentRef: string,
-    paymentType: 'registration_fee' | 'tuition_fee' | 'admission_fee' = 'registration_fee'
+    paymentType: 'registration_fee' | 'tuition_fee' | 'admission_fee' = 'registration_fee',
+    proofFile?: File
   ) => {
     const app = applications.find(a => a.id === appId);
     if (!app || !currentProfile || currentProfile.account_type !== 'student') {
       throw new Error('Only the student who owns this application can submit a payment confirmation.');
+    }
+
+    let proofFilePath: string | null = null;
+    if (proofFile) {
+      const timestamp = Date.now();
+      const safeFileName = proofFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      proofFilePath = `proof_payments/${appId}-${timestamp}-${safeFileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('application-documents')
+        .upload(proofFilePath, proofFile, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: proofFile.type || 'application/octet-stream'
+        });
+
+      if (uploadError) {
+        console.error('Proof of payment upload failed:', uploadError);
+        throw new Error('Failed to upload proof of payment file.');
+      }
     }
 
     const { data, error } = await supabase
@@ -1661,11 +1684,15 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
         status: 'pending',
         payment_reference: paymentRef,
         notes: 'Payment confirmation submitted by the student. Finance verification is required.',
+        proof_file_path: proofFilePath,
       })
       .select('*')
       .single();
 
     if (error || !data) {
+      if (proofFilePath) {
+        await supabase.storage.from('application-documents').remove([proofFilePath]);
+      }
       console.error('Unable to submit payment confirmation:', error);
       throw new Error(error?.message || 'The payment confirmation could not be saved.');
     }
@@ -1695,6 +1722,17 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
     );
     logAudit('SUBMIT_REGISTRATION_FEE_CONFIRMATION', 'financial_records', newRecord.id, null, { amount, ref: paymentRef });
     return newRecord;
+  };
+
+  const getProofFileUrl = async (filePath: string): Promise<string> => {
+    const { data, error } = await supabase.storage
+      .from('application-documents')
+      .createSignedUrl(filePath, 60 * 60);
+    if (error || !data?.signedUrl) {
+      console.error('Failed to create signed URL:', error);
+      throw new Error(error?.message || 'Failed to download receipt proof document.');
+    }
+    return data.signedUrl;
   };
 
   const normalizeReceipt = (receipt: PaymentReceipt): PaymentReceipt => ({
@@ -3936,6 +3974,7 @@ const createApplication = async (
         deleteMarketingPost,
         systemBankDetails,
         updateSystemBankDetails,
+        getProofFileUrl,
       }}
     >
       {children}

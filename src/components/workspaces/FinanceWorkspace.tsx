@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApplication } from '../../context/ApplicationContext';
 import { useAuth } from '../../context/AuthContext';
 import { DashboardLayout } from '../dashboard/DashboardLayout';
-import { DollarSign, ShieldAlert, CheckCircle2, Lock, FileSpreadsheet, Plus, Receipt, ClipboardList, Settings, Building } from 'lucide-react';
+import { DollarSign, ShieldAlert, CheckCircle2, Lock, FileSpreadsheet, Plus, Receipt, ClipboardList, Settings, Building, Download } from 'lucide-react';
 import { formatUsd, getApplicationIntake, getRegistrationFeeSummary, REGISTRATION_FEE_TARGET_USD } from '../../lib/department-registers';
 import type { FinancialRecord } from '../../types/database';
 import { DepartmentTaskInbox } from '../shared/DepartmentTaskInbox';
@@ -22,6 +22,7 @@ export const FinanceWorkspace: React.FC = () => {
     generatePaymentReceipt,
     systemBankDetails,
     updateSystemBankDetails,
+    getProofFileUrl,
   } = useApplication();
   const { currentProfile, logout } = useAuth();
 
@@ -311,6 +312,7 @@ export const FinanceWorkspace: React.FC = () => {
                 <th>Balance</th>
                 <th>Status</th>
                 <th>Reference</th>
+                <th>Proof File</th>
                 <th>Receipt</th>
                 <th>Action</th>
               </tr>
@@ -340,6 +342,27 @@ export const FinanceWorkspace: React.FC = () => {
                       </span>
                     </td>
                     <td>{latestRecord?.payment_reference || 'Awaiting reference'}</td>
+                    <td>
+                      {latestRecord?.proof_file_path ? (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              const url = await getProofFileUrl(latestRecord.proof_file_path!);
+                              window.open(url, '_blank');
+                            } catch (err) {
+                              alert('Failed to retrieve proof document URL.');
+                            }
+                          }}
+                          className="btn btn-secondary btn-sm"
+                          style={{ color: '#2563eb', borderColor: '#2563eb', display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fff', fontSize: '0.7rem', padding: '3px 6px' }}
+                        >
+                          <Download size={11} /> View Proof
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>No proof</span>
+                      )}
+                    </td>
                     <td>
                       {receipt ? (
                         <span style={{ color: '#2563eb', fontWeight: 800 }}>{receipt.receipt_number}</span>
@@ -401,6 +424,7 @@ export const FinanceWorkspace: React.FC = () => {
                 <th>App Number & Student</th>
                 <th>Category Type</th>
                 <th>Amount (USD)</th>
+                <th>Proof File</th>
                 <th>Approved By</th>
                 <th>Status</th>
                 <th>Verification</th>
@@ -421,6 +445,27 @@ export const FinanceWorkspace: React.FC = () => {
                   </td>
                   <td style={{ fontWeight: 800, color: f.record_type === 'registration_fee' ? '#34d399' : '#38bdf8' }}>
                     ${f.amount.toFixed(2)}
+                  </td>
+                  <td>
+                    {f.proof_file_path ? (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const url = await getProofFileUrl(f.proof_file_path!);
+                            window.open(url, '_blank');
+                          } catch (err) {
+                            alert('Failed to retrieve proof document URL.');
+                          }
+                        }}
+                        className="btn btn-secondary btn-sm"
+                        style={{ color: '#2563eb', borderColor: '#2563eb', display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fff', fontSize: '0.7rem', padding: '3px 6px' }}
+                      >
+                        <Download size={11} /> View Proof
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>—</span>
+                    )}
                   </td>
                   <td style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{f.approved_by_name || 'Finance Lead'}</td>
                   <td><span className={`badge badge-${f.status === 'paid' || f.status === 'approved' ? 'approved' : f.status === 'rejected' ? 'rejected' : 'under_review'}`}>{f.status.toUpperCase()}</span></td>
