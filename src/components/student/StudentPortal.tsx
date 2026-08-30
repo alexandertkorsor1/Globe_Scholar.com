@@ -11,6 +11,7 @@ import {
   Send,
   Upload,
   CreditCard,
+  Building,
   CheckCircle2,
   AlertCircle,
   FileText,
@@ -67,6 +68,7 @@ export const StudentPortal: React.FC = () => {
     scholarships,
     universityBrochures,
     studentEmails,
+    systemBankDetails,
   } = useApplication();
 
   const { currentProfile, logout, updateProfileAvatar } = useAuth();
@@ -763,6 +765,44 @@ export const StudentPortal: React.FC = () => {
                 />
                 I agree to authorize this transaction. The receipt will be available in the system after verification.
               </label>
+            </div>
+          </div>
+        )}
+
+        {paymentProvider === 'Bank transfer' && (
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: '14px', overflow: 'hidden', background: '#ffffff', boxShadow: 'var(--shadow-card)' }}>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a', fontWeight: 800, background: '#f8fafc' }}>
+              <Building style={{ width: '18px', height: '18px', color: '#2563eb' }} />
+              Organization Bank Account Details
+            </div>
+            <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ padding: '10px 12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px 20px' }}>
+                <div>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>Bank Name</span>
+                  <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{systemBankDetails?.bank_name || 'Global Executive Bank'}</strong>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>Account Name</span>
+                  <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{systemBankDetails?.account_name || 'Globe Scholars Pathways, LLC'}</strong>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>Account Number</span>
+                  <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{systemBankDetails?.account_number || '987654321098'}</strong>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>SWIFT / BIC</span>
+                  <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{systemBankDetails?.swift_code || 'GEBXXUS33XXX'}</strong>
+                </div>
+                {systemBankDetails?.iban && (
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>IBAN</span>
+                    <strong style={{ fontSize: '0.85rem', color: '#0f172a', fontFamily: 'monospace' }}>{systemBankDetails.iban}</strong>
+                  </div>
+                )}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#d97706', background: 'rgba(217, 119, 6, 0.06)', padding: '10px 12px', borderRadius: '8px', border: '1px solid rgba(217, 119, 6, 0.25)', fontWeight: 500 }}>
+                ⚠️ <strong>Important Reference Note:</strong> Please use the following reference format when making your bank transfer: <code style={{ background: '#fef3c7', padding: '2px 6px', borderRadius: '4px', color: '#b45309', fontWeight: 'bold' }}>{systemBankDetails?.reference_format || 'GSP-STUDENT-EMAIL (e.g. GSP-john@example.com)'}</code>
+              </div>
             </div>
           </div>
         )}

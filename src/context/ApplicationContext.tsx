@@ -44,7 +44,8 @@ import {
   Scholarship,
   UniversityBrochure,
   StudentEmail,
-  MarketingPost
+  MarketingPost,
+  SystemBankDetails
 } from '../types/database';
 import {
   INITIAL_APPLICATIONS,
@@ -219,6 +220,8 @@ getDepartmentReportDownloadUrl: (
   marketingPosts: MarketingPost[];
   addMarketingPost: (post: Omit<MarketingPost, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>) => Promise<MarketingPost>;
   deleteMarketingPost: (id: string) => Promise<void>;
+  systemBankDetails: SystemBankDetails | null;
+  updateSystemBankDetails: (input: Omit<SystemBankDetails, 'id' | 'updated_at' | 'updated_by_name'>) => Promise<SystemBankDetails>;
 }
 
 const ApplicationContext = createContext<ApplicationContextType | undefined>(undefined);
@@ -387,6 +390,7 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [universityBrochures, setUniversityBrochures] = useState<UniversityBrochure[]>([]);
   const [studentEmails, setStudentEmails] = useState<StudentEmail[]>([]);
   const [marketingPosts, setMarketingPosts] = useState<MarketingPost[]>([]);
+  const [systemBankDetails, setSystemBankDetails] = useState<SystemBankDetails | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -561,10 +565,27 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
       }
     };
 
+    const loadSystemBankDetails = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('system_bank_details')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .limit(1);
+        if (error) throw error;
+        if (data && data.length > 0) {
+          setSystemBankDetails(data[0] as SystemBankDetails);
+        }
+      } catch (err) {
+        console.warn('Failed to load system bank details:', err);
+      }
+    };
+
     loadApplications();
     loadFinancialRecords();
     loadPaymentReceipts();
     loadMonthlyMeetings();
+    loadSystemBankDetails();
 
     const loadPartnerUniversities = async () => {
       const { data: universities, error: universitiesError } = await supabase
@@ -3798,6 +3819,32 @@ const createApplication = async (
     logAudit('DELETE_MARKETING_POST', 'marketing_posts', id, null, null);
   };
 
+  const updateSystemBankDetails = async (input: Omit<SystemBankDetails, 'id' | 'updated_at' | 'updated_by_name'>): Promise<SystemBankDetails> => {
+    if (!currentProfile?.id) throw new Error('Not authenticated.');
+
+    const id = systemBankDetails?.id;
+    const payload = {
+      ...input,
+      updated_by_name: currentProfile.full_name || 'Finance Staff',
+      updated_at: new Date().toISOString()
+    };
+
+    const query = id
+      ? supabase.from('system_bank_details').update(payload).eq('id', id)
+      : supabase.from('system_bank_details').insert([payload]);
+
+    const { data, error } = await query.select('*').single();
+    if (error || !data) {
+      console.error('Failed to update system bank details:', error);
+      throw new Error(error?.message || 'Failed to save bank details.');
+    }
+
+    const updated = data as SystemBankDetails;
+    setSystemBankDetails(updated);
+    logAudit('UPDATE_BANK_DETAILS', 'system_bank_details', updated.id, null, { bank_name: updated.bank_name });
+    return updated;
+  };
+
   return (
     <ApplicationContext.Provider
       value={{
@@ -3887,6 +3934,8 @@ const createApplication = async (
         marketingPosts,
         addMarketingPost,
         deleteMarketingPost,
+        systemBankDetails,
+        updateSystemBankDetails,
       }}
     >
       {children}

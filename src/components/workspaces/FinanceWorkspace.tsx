@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { useApplication } from '../../context/ApplicationContext';
 import { useAuth } from '../../context/AuthContext';
 import { DashboardLayout } from '../dashboard/DashboardLayout';
-import { DollarSign, ShieldAlert, CheckCircle2, Lock, FileSpreadsheet, Plus, Receipt, ClipboardList } from 'lucide-react';
+import { DollarSign, ShieldAlert, CheckCircle2, Lock, FileSpreadsheet, Plus, Receipt, ClipboardList, Settings, Building } from 'lucide-react';
 import { formatUsd, getApplicationIntake, getRegistrationFeeSummary, REGISTRATION_FEE_TARGET_USD } from '../../lib/department-registers';
 import type { FinancialRecord } from '../../types/database';
 import { DepartmentTaskInbox } from '../shared/DepartmentTaskInbox';
 import { TrashBin } from '../shared/TrashBin';
+import * as XLSX from 'xlsx';
 
 export const FinanceWorkspace: React.FC = () => {
   const {
@@ -19,6 +20,8 @@ export const FinanceWorkspace: React.FC = () => {
     createFinancialRecord,
     reviewRegistrationPayment,
     generatePaymentReceipt,
+    systemBankDetails,
+    updateSystemBankDetails,
   } = useApplication();
   const { currentProfile, logout } = useAuth();
 
@@ -27,6 +30,16 @@ export const FinanceWorkspace: React.FC = () => {
   const [dAmount, setDAmount] = useState(5000);
   const [dCategory, setDCategory] = useState<'scholarship_disbursement' | 'refund' | 'operational_spend'>('scholarship_disbursement');
   const [financeMessage, setFinanceMessage] = useState('');
+
+  // Bank Account Settings Modal State
+  const [showBankModal, setShowBankModal] = useState(false);
+  const [bankName, setBankName] = useState('');
+  const [accountName, setAccountName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [swiftCode, setSwiftCode] = useState('');
+  const [iban, setIban] = useState('');
+  const [refFormat, setRefFormat] = useState('');
+
   const goTo = (sectionId: string) =>
     document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -52,6 +65,60 @@ export const FinanceWorkspace: React.FC = () => {
     recordId
       ? paymentReceipts.find((receipt) => receipt.financial_record_id === recordId && receipt.status === 'issued')
       : undefined;
+
+  const openBankModal = () => {
+    setBankName(systemBankDetails?.bank_name || '');
+    setAccountName(systemBankDetails?.account_name || '');
+    setAccountNumber(systemBankDetails?.account_number || '');
+    setSwiftCode(systemBankDetails?.swift_code || '');
+    setIban(systemBankDetails?.iban || '');
+    setRefFormat(systemBankDetails?.reference_format || '');
+    setShowBankModal(true);
+  };
+
+  const handleSaveBankDetails = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await updateSystemBankDetails({
+        bank_name: bankName,
+        account_name: accountName,
+        account_number: accountNumber,
+        swift_code: swiftCode,
+        iban: iban || null,
+        reference_format: refFormat,
+      });
+      setFinanceMessage('Organization bank details updated successfully!');
+      setShowBankModal(false);
+    } catch (error) {
+      setFinanceMessage(error instanceof Error ? error.message : 'Failed to update bank details.');
+    }
+  };
+
+  const handleExportPaymentRegister = () => {
+    const dataToExport = financeEligibleApplications.map((application) => {
+      const intake = getApplicationIntake(application, students);
+      const feeSummary = getRegistrationFeeSummary(application.id, financialRecords);
+      const latestRecord = feeSummary.latestRecord;
+
+      return {
+        'Application #': application.application_number,
+        'Student Name': intake.name,
+        'Student Email': intake.email,
+        'Age': intake.age || '—',
+        'Gender': intake.gender || '—',
+        'Address': intake.currentAddress || '—',
+        'Amount Paid (USD)': feeSummary.verifiedAmount,
+        'Balance (USD)': feeSummary.balance,
+        'Status': feeSummary.isCleared ? 'CLEARED' : latestRecord?.status === 'pending' ? 'PENDING VERIFY' : feeSummary.status.toUpperCase(),
+        'Payment Reference': latestRecord?.payment_reference || 'Awaiting reference',
+      };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Payment Register');
+    XLSX.writeFile(wb, `GSP_Payment_Register_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
 
   const handleCreateDisbursement = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,6 +157,20 @@ export const FinanceWorkspace: React.FC = () => {
     }
   };
 
+  const handleApproveAndGenerateReceipt = async (recordId: string) => {
+    try {
+      setFinanceMessage('Approving payment...');
+      await reviewRegistrationPayment(recordId, true);
+      
+      setFinanceMessage('Generating and issuing PDF receipt...');
+      const receipt = await generatePaymentReceipt(recordId);
+      
+      setFinanceMessage(`Payment approved & Receipt #${receipt.receipt_number} generated successfully!`);
+    } catch (error) {
+      setFinanceMessage(error instanceof Error ? error.message : 'Action failed.');
+    }
+  };
+
   const handleGenerateReceipt = async (recordId: string) => {
     try {
       const receipt = await generatePaymentReceipt(recordId);
@@ -103,6 +184,7 @@ export const FinanceWorkspace: React.FC = () => {
     { label: 'Payment Register', icon: <FileSpreadsheet style={{ width: 18, height: 18 }} />, active: true, onClick: () => goTo('finance-register') },
     { label: 'Ledger', icon: <DollarSign style={{ width: 18, height: 18 }} />, onClick: () => goTo('finance-ledger') },
     { label: 'Disbursements', icon: <Receipt style={{ width: 18, height: 18 }} />, onClick: () => setShowDisburseModal(true) },
+    { label: 'Bank Details', icon: <Settings style={{ width: 18, height: 18 }} />, onClick: openBankModal },
     { label: 'Assigned Tasks', icon: <ClipboardList style={{ width: 18, height: 18 }} />, onClick: () => goTo('finance-assigned-tasks') },
   ];
 
@@ -200,7 +282,19 @@ export const FinanceWorkspace: React.FC = () => {
               Finance sees students only after a registration-fee record exists. Balance is calculated against the {formatUsd(REGISTRATION_FEE_TARGET_USD)} registration fee.
             </p>
           </div>
-          <span className="badge badge-submitted">{financeEligibleApplications.length} Payment Records</span>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            {financeEligibleApplications.length > 0 && (
+              <button
+                onClick={handleExportPaymentRegister}
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#ffffff', color: '#0d9488', borderColor: '#0d9488' }}
+              >
+                <FileSpreadsheet style={{ width: 14, height: 14 }} />
+                Export to Excel
+              </button>
+            )}
+            <span className="badge badge-submitted">{financeEligibleApplications.length} Payment Records</span>
+          </div>
         </div>
 
         <div className="custom-table-container">
@@ -261,8 +355,20 @@ export const FinanceWorkspace: React.FC = () => {
                     <td>
                       {latestRecord && studentFeeTypes.includes(latestRecord.record_type) && latestRecord.status === 'pending' ? (
                         <div style={{ display: 'flex', gap: '6px' }}>
-                          <button onClick={() => void handlePaymentReview(latestRecord.id, true)} className="btn btn-primary btn-sm">Verify</button>
-                          <button onClick={() => void handlePaymentReview(latestRecord.id, false)} className="btn btn-secondary btn-sm">Reject</button>
+                          <button
+                            onClick={() => void handleApproveAndGenerateReceipt(latestRecord.id)}
+                            className="btn btn-primary btn-sm"
+                            style={{ background: '#059669', borderColor: '#059669', fontSize: '0.72rem', padding: '4px 8px' }}
+                          >
+                            Approve & Receipt
+                          </button>
+                          <button
+                            onClick={() => void handlePaymentReview(latestRecord.id, false)}
+                            className="btn btn-secondary btn-sm"
+                            style={{ borderColor: '#ef4444', color: '#ef4444', fontSize: '0.72rem', padding: '4px 8px' }}
+                          >
+                            Reject
+                          </button>
                         </div>
                       ) : (
                         <span style={{ fontSize: '0.75rem', color: '#64748b' }}>No action</span>
@@ -418,6 +524,56 @@ export const FinanceWorkspace: React.FC = () => {
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
                 <button type="button" onClick={() => setShowDisburseModal(false)} className="btn btn-secondary btn-sm">Cancel</button>
                 <button type="submit" className="btn btn-primary btn-sm">Sign & Authorize</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Modal: Configure Bank Account Details */}
+      {showBankModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="glass-panel animate-fade-in" style={{ width: '480px', padding: '24px', background: '#ffffff', border: '1px solid #cbd5e1', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', borderRadius: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+              <Building style={{ color: '#2563eb', width: '22px', height: '22px' }} />
+              <h3 style={{ fontSize: '1.08rem', color: '#0f172a', margin: 0, fontWeight: 750 }}>
+                Configure Organization Bank Details
+              </h3>
+            </div>
+            
+            <form onSubmit={handleSaveBankDetails} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 650 }}>Bank Name</label>
+                <input type="text" required value={bankName} onChange={e => setBankName(e.target.value)} placeholder="e.g. Global Executive Bank" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: '#ffffff', color: '#0f172a', border: '1px solid #cbd5e1' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 650 }}>Account Name</label>
+                <input type="text" required value={accountName} onChange={e => setAccountName(e.target.value)} placeholder="e.g. Globe Scholars Pathways, LLC" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: '#ffffff', color: '#0f172a', border: '1px solid #cbd5e1' }} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 650 }}>Account Number</label>
+                  <input type="text" required value={accountNumber} onChange={e => setAccountNumber(e.target.value)} placeholder="e.g. 987654321098" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: '#ffffff', color: '#0f172a', border: '1px solid #cbd5e1' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 650 }}>SWIFT / BIC Code</label>
+                  <input type="text" required value={swiftCode} onChange={e => setSwiftCode(e.target.value)} placeholder="e.g. GEBXXUS33XXX" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: '#ffffff', color: '#0f172a', border: '1px solid #cbd5e1' }} />
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 650 }}>IBAN (Optional)</label>
+                <input type="text" value={iban} onChange={e => setIban(e.target.value)} placeholder="e.g. US89GEBX987654321098" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: '#ffffff', color: '#0f172a', border: '1px solid #cbd5e1' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 650 }}>Reference Code Format Instructions</label>
+                <input type="text" required value={refFormat} onChange={e => setRefFormat(e.target.value)} placeholder="e.g. GSP-STUDENT-EMAIL" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', background: '#ffffff', color: '#0f172a', border: '1px solid #cbd5e1' }} />
+                <span style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                  This format tells the student how to construct their bank transfer payment reference.
+                </span>
+              </div>
+              
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '14px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
+                <button type="button" onClick={() => setShowBankModal(false)} className="btn btn-secondary btn-sm" style={{ borderColor: '#cbd5e1', color: '#475569' }}>Cancel</button>
+                <button type="submit" className="btn btn-primary btn-sm" style={{ background: '#2563eb', border: 'none', color: '#ffffff' }}>Save Bank Details</button>
               </div>
             </form>
           </div>

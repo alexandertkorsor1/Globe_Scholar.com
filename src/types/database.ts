@@ -683,3 +683,15 @@ export interface MarketingPost {
   updated_at: string;
   deleted_at?: string | null;
 }
+
+export interface SystemBankDetails {
+  id: string;
+  bank_name: string;
+  account_name: string;
+  account_number: string;
+  swift_code: string;
+  iban?: string | null;
+  reference_format: string;
+  updated_at: string;
+  updated_by_name: string;
+}
