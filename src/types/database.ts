@@ -281,6 +281,30 @@ export interface FinancialRecord {
   created_at: string;
 }
 
+export interface LandingPageSettings {
+  id: string;
+  hero_eyebrow: string;
+  hero_title: string;
+  hero_span: string;
+  hero_description: string;
+  trust_point_1: string;
+  trust_point_2: string;
+  trust_point_3: string;
+  card_label: string;
+  card_title: string;
+  step_1_title: string;
+  step_1_description: string;
+  step_2_title: string;
+  step_2_description: string;
+  step_3_title: string;
+  step_3_description: string;
+  story_title: string;
+  story_description: string;
+  updated_at: string;
+  updated_by_name: string;
+}
+
+
 export type KpiRating =
   | 'Excellent'
   | 'Very Good'

@@ -52,12 +52,37 @@ const leadership = [
   },
 ];
 
+import { useApplication } from '../../context/ApplicationContext';
+
 export const PublicLanding: React.FC<PublicLandingProps> = ({
   onSignIn,
   onApply,
-}) => (
-  <main className="public-site">
-    <style>{`
+}) => {
+  const { landingPageSettings } = useApplication();
+
+  const content = {
+    hero_eyebrow: landingPageSettings?.hero_eyebrow || 'International education guidance',
+    hero_title: landingPageSettings?.hero_title || 'Your next chapter deserves a ',
+    hero_span: landingPageSettings?.hero_span || 'clearer path.',
+    hero_description: landingPageSettings?.hero_description || 'Globe Scholars Pathways, LLC. brings students, counselors, admissions, and finance together in one transparent journey—from your first question to your final enrolment step.',
+    trust_point_1: landingPageSettings?.trust_point_1 || 'Clear requirements',
+    trust_point_2: landingPageSettings?.trust_point_2 || 'Progress you can follow',
+    trust_point_3: landingPageSettings?.trust_point_3 || 'Department-led support',
+    card_label: landingPageSettings?.card_label || 'One accountable journey',
+    card_title: landingPageSettings?.card_title || 'See exactly where your application stands.',
+    step_1_title: landingPageSettings?.step_1_title || 'Apply with confidence',
+    step_1_description: landingPageSettings?.step_1_description || 'Guided documents and eligibility',
+    step_2_title: landingPageSettings?.step_2_title || 'Receive expert review',
+    step_2_description: landingPageSettings?.step_2_description || 'Counseling and admissions support',
+    step_3_title: landingPageSettings?.step_3_title || 'Move forward prepared',
+    step_3_description: landingPageSettings?.step_3_description || 'Clear decisions and next steps',
+    story_title: landingPageSettings?.story_title || 'Built around a simple belief: students deserve clarity.',
+    story_description: landingPageSettings?.story_description || 'Globe Scholars Pathways, LLC. was created to make international education guidance more personal, accountable, and easy to follow. Our team combines local understanding with a structured process, so each student receives the right support at the right time.'
+  };
+
+  return (
+    <main className="public-site">
+      <style>{`
       .public-site { min-height: 100vh; background: #f7f9fc; color: #15213a; font-family: var(--font-body, Inter, Arial, sans-serif); }
       .public-shell { width: min(1160px, calc(100% - 40px)); margin: 0 auto; }
       .public-nav { height: 82px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
@@ -112,22 +137,22 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
       <section className="public-hero">
         <div className="public-hero-grid">
           <div>
-            <span className="public-eyebrow"><Globe2 size={14} /> International education guidance</span>
-            <h1>Your next chapter deserves a <span>clearer path.</span></h1>
-            <p className="public-lead">Globe Scholars Pathways, LLC. brings students, counselors, admissions, and finance together in one transparent journey—from your first question to your final enrolment step.</p>
+            <span className="public-eyebrow"><Globe2 size={14} /> {content.hero_eyebrow}</span>
+            <h1>{content.hero_title}<span>{content.hero_span}</span></h1>
+            <p className="public-lead">{content.hero_description}</p>
             <div className="public-trust">
-              <span><CheckCircle2 size={15} color="#268458" /> Clear requirements</span>
-              <span><CheckCircle2 size={15} color="#268458" /> Progress you can follow</span>
-              <span><CheckCircle2 size={15} color="#268458" /> Department-led support</span>
+              <span><CheckCircle2 size={15} color="#268458" /> {content.trust_point_1}</span>
+              <span><CheckCircle2 size={15} color="#268458" /> {content.trust_point_2}</span>
+              <span><CheckCircle2 size={15} color="#268458" /> {content.trust_point_3}</span>
             </div>
           </div>
           <aside className="public-hero-card" aria-label="Application journey overview">
-            <p className="public-card-label">One accountable journey</p>
-            <h2 className="public-card-title">See exactly where your application stands.</h2>
+            <p className="public-card-label">{content.card_label}</p>
+            <h2 className="public-card-title">{content.card_title}</h2>
             <div className="public-route">
-              <div className="public-route-row"><span className="public-route-number">1</span><span><strong>Apply with confidence</strong><small>Guided documents and eligibility</small></span><CheckCircle2 size={17} /></div>
-              <div className="public-route-row"><span className="public-route-number">2</span><span><strong>Receive expert review</strong><small>Counseling and admissions support</small></span><CheckCircle2 size={17} /></div>
-              <div className="public-route-row"><span className="public-route-number">3</span><span><strong>Move forward prepared</strong><small>Clear decisions and next steps</small></span><CheckCircle2 size={17} /></div>
+              <div className="public-route-row"><span className="public-route-number">1</span><span><strong>{content.step_1_title}</strong><small>{content.step_1_description}</small></span><CheckCircle2 size={17} /></div>
+              <div className="public-route-row"><span className="public-route-number">2</span><span><strong>{content.step_2_title}</strong><small>{content.step_2_description}</small></span><CheckCircle2 size={17} /></div>
+              <div className="public-route-row"><span className="public-route-number">3</span><span><strong>{content.step_3_title}</strong><small>{content.step_3_description}</small></span><CheckCircle2 size={17} /></div>
             </div>
           </aside>
         </div>
@@ -138,8 +163,8 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
       <div className="public-shell public-story-grid">
         <div className="public-section-header">
           <span className="public-eyebrow">Our story</span>
-          <h2>Built around a simple belief: students deserve clarity.</h2>
-          <p>Globe Scholars Pathways, LLC. was created to make international education guidance more personal, accountable, and easy to follow. Our team combines local understanding with a structured process, so each student receives the right support at the right time.</p>
+          <h2>{content.story_title}</h2>
+          <p>{content.story_description}</p>
         </div>
         <div className="public-story-panel">
           <h3>What guides our work</h3>
@@ -192,4 +217,5 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
 
     <footer className="public-footer"><div className="public-shell public-footer-row"><strong>Globe Scholars Pathways, LLC.</strong><span>© 2026 Globe Scholars Pathways, LLC. Student guidance with purpose.</span></div></footer>
   </main>
-);
+  );
+};

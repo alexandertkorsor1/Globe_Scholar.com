@@ -45,7 +45,8 @@ import {
   UniversityBrochure,
   StudentEmail,
   MarketingPost,
-  SystemBankDetails
+  SystemBankDetails,
+  LandingPageSettings
 } from '../types/database';
 import {
   INITIAL_APPLICATIONS,
@@ -224,6 +225,8 @@ getDepartmentReportDownloadUrl: (
   deleteMarketingPost: (id: string) => Promise<void>;
   systemBankDetails: SystemBankDetails | null;
   updateSystemBankDetails: (input: Omit<SystemBankDetails, 'id' | 'updated_at' | 'updated_by_name'>) => Promise<SystemBankDetails>;
+  landingPageSettings: LandingPageSettings | null;
+  updateLandingPageSettings: (input: Omit<LandingPageSettings, 'id' | 'updated_at' | 'updated_by_name'>) => Promise<LandingPageSettings>;
 }
 
 const ApplicationContext = createContext<ApplicationContextType | undefined>(undefined);
@@ -393,6 +396,26 @@ export const ApplicationProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [studentEmails, setStudentEmails] = useState<StudentEmail[]>([]);
   const [marketingPosts, setMarketingPosts] = useState<MarketingPost[]>([]);
   const [systemBankDetails, setSystemBankDetails] = useState<SystemBankDetails | null>(null);
+  const [landingPageSettings, setLandingPageSettings] = useState<LandingPageSettings | null>(null);
+
+  useEffect(() => {
+    const loadLandingPageSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('landing_page_settings')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .limit(1);
+        if (error) throw error;
+        if (data && data.length > 0) {
+          setLandingPageSettings(data[0] as LandingPageSettings);
+        }
+      } catch (err) {
+        console.warn('Failed to load landing page settings:', err);
+      }
+    };
+    loadLandingPageSettings();
+  }, []);
 
   useEffect(() => {
     if (loading) return;
@@ -3883,6 +3906,34 @@ const createApplication = async (
     return updated;
   };
 
+  const updateLandingPageSettings = async (
+    input: Omit<LandingPageSettings, 'id' | 'updated_at' | 'updated_by_name'>
+  ): Promise<LandingPageSettings> => {
+    if (!currentProfile?.id) throw new Error('Not authenticated.');
+
+    const id = landingPageSettings?.id;
+    const payload = {
+      ...input,
+      updated_by_name: currentProfile.full_name || 'Admin',
+      updated_at: new Date().toISOString()
+    };
+
+    const query = id
+      ? supabase.from('landing_page_settings').update(payload).eq('id', id)
+      : supabase.from('landing_page_settings').insert([payload]);
+
+    const { data, error } = await query.select('*').single();
+    if (error || !data) {
+      console.error('Failed to update landing page settings:', error);
+      throw new Error(error?.message || 'Failed to save landing page settings.');
+    }
+
+    const updated = data as LandingPageSettings;
+    setLandingPageSettings(updated);
+    logAudit('UPDATE_LANDING_PAGE_SETTINGS', 'landing_page_settings', updated.id, null, { title: updated.hero_title });
+    return updated;
+  };
+
   return (
     <ApplicationContext.Provider
       value={{
@@ -3975,6 +4026,8 @@ const createApplication = async (
         systemBankDetails,
         updateSystemBankDetails,
         getProofFileUrl,
+        landingPageSettings,
+        updateLandingPageSettings,
       }}
     >
       {children}

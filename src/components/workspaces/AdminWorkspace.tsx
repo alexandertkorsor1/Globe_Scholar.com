@@ -20,6 +20,7 @@ import { CrmRegister } from '../shared/CrmRegister';
 import { KpiPerformanceTracker } from '../shared/KpiPerformanceTracker';
 import { DepartmentTaskInbox } from '../shared/DepartmentTaskInbox';
 import { TrashBin } from '../shared/TrashBin';
+import { LandingPageCms } from '../admin/LandingPageCms';
 import { ProfileAvatar } from '../common/ProfileAvatar';
 import { PasswordStrengthMeter } from '../common/PasswordStrengthMeter';
 import { checkPasswordStrength } from '../../lib/password-utils';
@@ -44,6 +45,7 @@ import {
   Upload,
   Eye,
   Trash2,
+  Settings,
   UserPlus,
   Pencil,
   BriefcaseBusiness,
@@ -105,7 +107,7 @@ const RESPONSIBILITY_OPTIONS = [
   },
 ];
 
-type AdminTab = 'kpis' | 'crm' | 'performance' | 'drilldown' | 'partnerships' | 'staff' | 'leave_approvals' | 'work_assignments' | 'visa_applications' | 'student_documents' | 'trash';
+type AdminTab = 'kpis' | 'crm' | 'performance' | 'drilldown' | 'partnerships' | 'staff' | 'leave_approvals' | 'work_assignments' | 'visa_applications' | 'student_documents' | 'trash' | 'landing_cms';
 
 const ADMIN_TABS: Array<{ id: AdminTab; label: string }> = [
   { id: 'kpis', label: 'Executive Dashboard' },
@@ -117,6 +119,7 @@ const ADMIN_TABS: Array<{ id: AdminTab; label: string }> = [
   { id: 'staff', label: 'Staff Accounts & Department Members' },
   { id: 'leave_approvals', label: 'Leave Requests & Approvals' },
   { id: 'student_documents', label: 'Student Documents' },
+  { id: 'landing_cms', label: 'Landing Page CMS' },
 ];
 
 const emptyDepartmentMember: DepartmentMemberInput = {
@@ -754,6 +757,7 @@ export const AdminWorkspace: React.FC = () => {
     { label: 'Staff & Members', icon: <Users2 style={{ width: 18, height: 18 }} />, active: activeTab === 'staff', onClick: () => setActiveTab('staff') },
     { label: 'Leave Approvals', icon: <CalendarOff style={{ width: 18, height: 18 }} />, active: activeTab === 'leave_approvals', onClick: () => setActiveTab('leave_approvals') },
     { label: 'Visa Applications', icon: <ShieldCheck style={{ width: 18, height: 18 }} />, active: activeTab === 'visa_applications', onClick: () => setActiveTab('visa_applications') },
+    { label: 'Landing Page CMS', icon: <Settings style={{ width: 18, height: 18 }} />, active: activeTab === 'landing_cms', onClick: () => setActiveTab('landing_cms') },
     { label: 'Recycle Bin', icon: <Trash2 style={{ width: 18, height: 18 }} />, active: activeTab === 'trash', onClick: () => setActiveTab('trash') },
   ];
 
@@ -4492,6 +4496,10 @@ export const AdminWorkspace: React.FC = () => {
 
       {activeTab === 'trash' && (
         <TrashBin departmentKey="admin" />
+      )}
+
+      {activeTab === 'landing_cms' && (
+        <LandingPageCms />
       )}
 
       {showDepartmentMemberModal && (
