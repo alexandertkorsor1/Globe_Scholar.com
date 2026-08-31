@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApplication } from '../../context/ApplicationContext';
-import { Settings, Save, Eye, Globe2, CheckCircle2, ShieldCheck, UsersRound, GraduationCap, Quote } from 'lucide-react';
+import { compressImageToAvatar } from '../../lib/image-utils';
+import { Settings, Save, Eye, Globe2, CheckCircle2, ShieldCheck, UsersRound, GraduationCap, Quote, Upload, Trash2, User } from 'lucide-react';
 
 export const LandingPageCms: React.FC = () => {
   const { landingPageSettings, updateLandingPageSettings } = useApplication();
@@ -43,24 +44,36 @@ export const LandingPageCms: React.FC = () => {
   const [story1Quote, setStory1Quote] = useState('');
   const [story1Name, setStory1Name] = useState('');
   const [story1Pathway, setStory1Pathway] = useState('');
+  const [story1ImageUrl, setStory1ImageUrl] = useState<string>('');
+
   const [story2Quote, setStory2Quote] = useState('');
   const [story2Name, setStory2Name] = useState('');
   const [story2Pathway, setStory2Pathway] = useState('');
+  const [story2ImageUrl, setStory2ImageUrl] = useState<string>('');
+
   const [story3Quote, setStory3Quote] = useState('');
   const [story3Name, setStory3Name] = useState('');
   const [story3Pathway, setStory3Pathway] = useState('');
+  const [story3ImageUrl, setStory3ImageUrl] = useState<string>('');
 
   // Leadership
   const [leadershipTitle, setLeadershipTitle] = useState('');
   const [leadershipDescription, setLeadershipDescription] = useState('');
   const [leader1Role, setLeader1Role] = useState('');
   const [leader1Focus, setLeader1Focus] = useState('');
+  const [leader1ImageUrl, setLeader1ImageUrl] = useState<string>('');
+
   const [leader2Role, setLeader2Role] = useState('');
   const [leader2Focus, setLeader2Focus] = useState('');
+  const [leader2ImageUrl, setLeader2ImageUrl] = useState<string>('');
+
   const [leader3Role, setLeader3Role] = useState('');
   const [leader3Focus, setLeader3Focus] = useState('');
+  const [leader3ImageUrl, setLeader3ImageUrl] = useState<string>('');
+
   const [leader4Role, setLeader4Role] = useState('');
   const [leader4Focus, setLeader4Focus] = useState('');
+  const [leader4ImageUrl, setLeader4ImageUrl] = useState<string>('');
 
   // Footer copy
   const [footerCopy, setFooterCopy] = useState('');
@@ -69,6 +82,26 @@ export const LandingPageCms: React.FC = () => {
   const [message, setMessage] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [activeSubTab, setActiveSubTab] = useState<'hero' | 'values' | 'steps' | 'story' | 'stories' | 'leadership'>('hero');
+
+  // Helper for image uploads with client-side compression
+  const handleImageFileChange = async (
+    file: File,
+    setter: (url: string) => void
+  ) => {
+    try {
+      const { dataUrl } = await compressImageToAvatar(file, 80 * 1024);
+      setter(dataUrl);
+    } catch (err) {
+      console.warn('Compression failed, falling back to direct reader:', err);
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setter(reader.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Initialize fields when landingPageSettings is loaded
   useEffect(() => {
@@ -110,24 +143,36 @@ export const LandingPageCms: React.FC = () => {
       setStory1Quote(landingPageSettings.story_1_quote || 'Every requirement was clear, and I always knew which step came next. That confidence made a difficult process feel manageable.');
       setStory1Name(landingPageSettings.story_1_name || 'Postgraduate applicant');
       setStory1Pathway(landingPageSettings.story_1_pathway || 'United Kingdom pathway');
+      setStory1ImageUrl(landingPageSettings.story_1_image_url || '');
+
       setStory2Quote(landingPageSettings.story_2_quote || 'My counselor listened to my goals before recommending options. I felt supported from the first conversation through submission.');
       setStory2Name(landingPageSettings.story_2_name || 'Undergraduate applicant');
       setStory2Pathway(landingPageSettings.story_2_pathway || 'International study pathway');
+      setStory2ImageUrl(landingPageSettings.story_2_image_url || '');
+
       setStory3Quote(landingPageSettings.story_3_quote || 'The updates were practical and timely. I could see my progress without having to chase several different people for answers.');
       setStory3Name(landingPageSettings.story_3_name || 'Graduate applicant');
       setStory3Pathway(landingPageSettings.story_3_pathway || 'North America pathway');
+      setStory3ImageUrl(landingPageSettings.story_3_image_url || '');
 
       // Leadership
       setLeadershipTitle(landingPageSettings.leadership_title || 'Experienced leadership. Shared accountability.');
       setLeadershipDescription(landingPageSettings.leadership_description || 'Our leadership team sets the standards for student care, operational quality, and responsible international education guidance.');
       setLeader1Role(landingPageSettings.leader_1_role || 'Founder & Chief Executive Officer');
       setLeader1Focus(landingPageSettings.leader_1_focus || 'Sets the organisation’s strategy and long-term commitment to ethical, student-first guidance.');
+      setLeader1ImageUrl(landingPageSettings.leader_1_image_url || '');
+
       setLeader2Role(landingPageSettings.leader_2_role || 'Co-founder & Chief Operating Officer');
       setLeader2Focus(landingPageSettings.leader_2_focus || 'Leads service quality, operational accountability, and the experience students receive at every stage.');
+      setLeader2ImageUrl(landingPageSettings.leader_2_image_url || '');
+
       setLeader3Role(landingPageSettings.leader_3_role || 'Director of Admissions');
       setLeader3Focus(landingPageSettings.leader_3_focus || 'Oversees application quality, eligibility review, and clear communication with partner institutions.');
+      setLeader3ImageUrl(landingPageSettings.leader_3_image_url || '');
+
       setLeader4Role(landingPageSettings.leader_4_role || 'Director of Student Success');
       setLeader4Focus(landingPageSettings.leader_4_focus || 'Builds the support model that helps students move confidently from planning to enrolment.');
+      setLeader4ImageUrl(landingPageSettings.leader_4_image_url || '');
 
       // Footer
       setFooterCopy(landingPageSettings.footer_copy || '© 2026 Globe Scholars Pathways, LLC. Student guidance with purpose.');
@@ -173,27 +218,34 @@ export const LandingPageCms: React.FC = () => {
         story_1_quote: story1Quote.trim(),
         story_1_name: story1Name.trim(),
         story_1_pathway: story1Pathway.trim(),
+        story_1_image_url: story1ImageUrl || null,
         story_2_quote: story2Quote.trim(),
         story_2_name: story2Name.trim(),
         story_2_pathway: story2Pathway.trim(),
+        story_2_image_url: story2ImageUrl || null,
         story_3_quote: story3Quote.trim(),
         story_3_name: story3Name.trim(),
         story_3_pathway: story3Pathway.trim(),
+        story_3_image_url: story3ImageUrl || null,
 
         leadership_title: leadershipTitle.trim(),
         leadership_description: leadershipDescription.trim(),
         leader_1_role: leader1Role.trim(),
         leader_1_focus: leader1Focus.trim(),
+        leader_1_image_url: leader1ImageUrl || null,
         leader_2_role: leader2Role.trim(),
         leader_2_focus: leader2Focus.trim(),
+        leader_2_image_url: leader2ImageUrl || null,
         leader_3_role: leader3Role.trim(),
         leader_3_focus: leader3Focus.trim(),
+        leader_3_image_url: leader3ImageUrl || null,
         leader_4_role: leader4Role.trim(),
         leader_4_focus: leader4Focus.trim(),
+        leader_4_image_url: leader4ImageUrl || null,
 
         footer_copy: footerCopy.trim()
       });
-      setMessage('Landing page settings updated successfully! Changes are live.');
+      setMessage('Landing page settings and photos updated successfully! Changes are live.');
       setTimeout(() => setMessage(''), 5000);
     } catch (err) {
       console.error(err);
@@ -216,7 +268,7 @@ export const LandingPageCms: React.FC = () => {
         </div>
 
         <p style={{ fontSize: '0.8rem', color: '#475569', marginBottom: '20px' }}>
-          Modify headers, values, timlines, student stories, leadership, and footer copy on the public landing page. Use the real-time preview on the right.
+          Modify copy, student testimonial photos, leadership headshots, and values on the public landing page. Use the real-time preview on the right.
         </p>
 
         {message && (
@@ -238,8 +290,8 @@ export const LandingPageCms: React.FC = () => {
             { id: 'steps', label: 'Timeline Card' },
             { id: 'story', label: 'Our Story' },
             { id: 'values', label: 'Trust Values' },
-            { id: 'stories', label: 'Student Stories' },
-            { id: 'leadership', label: 'Leaders & Footer' }
+            { id: 'stories', label: 'Student Stories & Photos' },
+            { id: 'leadership', label: 'Leaders & Headshots' }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -296,7 +348,7 @@ export const LandingPageCms: React.FC = () => {
             </div>
           )}
 
-          {/* Group 2: timeline Steps */}
+          {/* Group 2: Timeline Steps */}
           {activeSubTab === 'steps' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '12px' }}>
@@ -384,7 +436,7 @@ export const LandingPageCms: React.FC = () => {
             </div>
           )}
 
-          {/* Group 5: Student Stories Testimonials */}
+          {/* Group 5: Student Stories & Photos */}
           {activeSubTab === 'stories' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -398,8 +450,32 @@ export const LandingPageCms: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ border: '1px solid #cbd5e1', padding: '12px', borderRadius: '8px', background: '#f8fafc', marginTop: '4px' }}>
-                <strong style={{ fontSize: '0.78rem', color: '#2563eb', display: 'block', marginBottom: '8px' }}>Testimonial #1</strong>
+              {/* Student 1 Card */}
+              <div style={{ border: '1px solid #cbd5e1', padding: '14px', borderRadius: '10px', background: '#f8fafc', marginTop: '4px' }}>
+                <strong style={{ fontSize: '0.8rem', color: '#2563eb', display: 'block', marginBottom: '10px' }}>Testimonial #1 Profile & Quote</strong>
+                
+                {/* Photo selector */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px', paddingBottom: '10px', borderBottom: '1px dashed #cbd5e1' }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#e2e8f0', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #cbd5e1', flexShrink: 0 }}>
+                    {story1ImageUrl ? (
+                      <img src={story1ImageUrl} alt="Student 1" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <User size={22} color="#94a3b8" />
+                    )}
+                  </div>
+                  <div>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', padding: '5px 10px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, color: '#1e293b' }}>
+                      <Upload size={12} /> Upload Student Photo
+                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFileChange(f, setStory1ImageUrl); }} />
+                    </label>
+                    {story1ImageUrl && (
+                      <button type="button" onClick={() => setStory1ImageUrl('')} style={{ marginLeft: '8px', fontSize: '0.72rem', padding: '5px 8px', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '6px', color: '#dc2626', cursor: 'pointer', fontWeight: 600 }}>
+                        <Trash2 size={12} /> Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <textarea required rows={2} value={story1Quote} onChange={e => setStory1Quote(e.target.value)} placeholder="Quote text" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem' }} />
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -409,8 +485,32 @@ export const LandingPageCms: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ border: '1px solid #cbd5e1', padding: '12px', borderRadius: '8px', background: '#f8fafc' }}>
-                <strong style={{ fontSize: '0.78rem', color: '#2563eb', display: 'block', marginBottom: '8px' }}>Testimonial #2</strong>
+              {/* Student 2 Card */}
+              <div style={{ border: '1px solid #cbd5e1', padding: '14px', borderRadius: '10px', background: '#f8fafc' }}>
+                <strong style={{ fontSize: '0.8rem', color: '#2563eb', display: 'block', marginBottom: '10px' }}>Testimonial #2 Profile & Quote</strong>
+                
+                {/* Photo selector */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px', paddingBottom: '10px', borderBottom: '1px dashed #cbd5e1' }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#e2e8f0', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #cbd5e1', flexShrink: 0 }}>
+                    {story2ImageUrl ? (
+                      <img src={story2ImageUrl} alt="Student 2" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <User size={22} color="#94a3b8" />
+                    )}
+                  </div>
+                  <div>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', padding: '5px 10px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, color: '#1e293b' }}>
+                      <Upload size={12} /> Upload Student Photo
+                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFileChange(f, setStory2ImageUrl); }} />
+                    </label>
+                    {story2ImageUrl && (
+                      <button type="button" onClick={() => setStory2ImageUrl('')} style={{ marginLeft: '8px', fontSize: '0.72rem', padding: '5px 8px', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '6px', color: '#dc2626', cursor: 'pointer', fontWeight: 600 }}>
+                        <Trash2 size={12} /> Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <textarea required rows={2} value={story2Quote} onChange={e => setStory2Quote(e.target.value)} placeholder="Quote text" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem' }} />
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -420,8 +520,32 @@ export const LandingPageCms: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ border: '1px solid #cbd5e1', padding: '12px', borderRadius: '8px', background: '#f8fafc' }}>
-                <strong style={{ fontSize: '0.78rem', color: '#2563eb', display: 'block', marginBottom: '8px' }}>Testimonial #3</strong>
+              {/* Student 3 Card */}
+              <div style={{ border: '1px solid #cbd5e1', padding: '14px', borderRadius: '10px', background: '#f8fafc' }}>
+                <strong style={{ fontSize: '0.8rem', color: '#2563eb', display: 'block', marginBottom: '10px' }}>Testimonial #3 Profile & Quote</strong>
+                
+                {/* Photo selector */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px', paddingBottom: '10px', borderBottom: '1px dashed #cbd5e1' }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#e2e8f0', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #cbd5e1', flexShrink: 0 }}>
+                    {story3ImageUrl ? (
+                      <img src={story3ImageUrl} alt="Student 3" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <User size={22} color="#94a3b8" />
+                    )}
+                  </div>
+                  <div>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.72rem', padding: '5px 10px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, color: '#1e293b' }}>
+                      <Upload size={12} /> Upload Student Photo
+                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFileChange(f, setStory3ImageUrl); }} />
+                    </label>
+                    {story3ImageUrl && (
+                      <button type="button" onClick={() => setStory3ImageUrl('')} style={{ marginLeft: '8px', fontSize: '0.72rem', padding: '5px 8px', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '6px', color: '#dc2626', cursor: 'pointer', fontWeight: 600 }}>
+                        <Trash2 size={12} /> Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <textarea required rows={2} value={story3Quote} onChange={e => setStory3Quote(e.target.value)} placeholder="Quote text" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem' }} />
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -446,26 +570,115 @@ export const LandingPageCms: React.FC = () => {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '6px' }}>
+                
+                {/* Leader 1 */}
                 <div style={{ border: '1px solid #cbd5e1', padding: '12px', borderRadius: '8px', background: '#f8fafc' }}>
                   <strong style={{ fontSize: '0.78rem', color: '#2563eb', display: 'block', marginBottom: '6px' }}>Leader 1</strong>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', paddingBottom: '6px', borderBottom: '1px dashed #cbd5e1' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#e2e8f0', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #cbd5e1', flexShrink: 0 }}>
+                      {leader1ImageUrl ? (
+                        <img src={leader1ImageUrl} alt="Leader 1" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <UsersRound size={18} color="#94a3b8" />
+                      )}
+                    </div>
+                    <div>
+                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', padding: '3px 7px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '5px', cursor: 'pointer', fontWeight: 600 }}>
+                        <Upload size={10} /> Photo
+                        <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFileChange(f, setLeader1ImageUrl); }} />
+                      </label>
+                      {leader1ImageUrl && (
+                        <button type="button" onClick={() => setLeader1ImageUrl('')} style={{ marginLeft: '4px', fontSize: '0.68rem', padding: '3px 5px', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '5px', color: '#dc2626', cursor: 'pointer' }}>
+                          <Trash2 size={10} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   <input type="text" required value={leader1Role} onChange={e => setLeader1Role(e.target.value)} placeholder="Role Name" style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', marginBottom: '6px' }} />
                   <textarea required rows={3} value={leader1Focus} onChange={e => setLeader1Focus(e.target.value)} placeholder="Focus context description" style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', resize: 'vertical' }} />
                 </div>
+
+                {/* Leader 2 */}
                 <div style={{ border: '1px solid #cbd5e1', padding: '12px', borderRadius: '8px', background: '#f8fafc' }}>
                   <strong style={{ fontSize: '0.78rem', color: '#2563eb', display: 'block', marginBottom: '6px' }}>Leader 2</strong>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', paddingBottom: '6px', borderBottom: '1px dashed #cbd5e1' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#e2e8f0', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #cbd5e1', flexShrink: 0 }}>
+                      {leader2ImageUrl ? (
+                        <img src={leader2ImageUrl} alt="Leader 2" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <UsersRound size={18} color="#94a3b8" />
+                      )}
+                    </div>
+                    <div>
+                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', padding: '3px 7px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '5px', cursor: 'pointer', fontWeight: 600 }}>
+                        <Upload size={10} /> Photo
+                        <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFileChange(f, setLeader2ImageUrl); }} />
+                      </label>
+                      {leader2ImageUrl && (
+                        <button type="button" onClick={() => setLeader2ImageUrl('')} style={{ marginLeft: '4px', fontSize: '0.68rem', padding: '3px 5px', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '5px', color: '#dc2626', cursor: 'pointer' }}>
+                          <Trash2 size={10} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   <input type="text" required value={leader2Role} onChange={e => setLeader2Role(e.target.value)} placeholder="Role Name" style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', marginBottom: '6px' }} />
                   <textarea required rows={3} value={leader2Focus} onChange={e => setLeader2Focus(e.target.value)} placeholder="Focus context description" style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', resize: 'vertical' }} />
                 </div>
+
+                {/* Leader 3 */}
                 <div style={{ border: '1px solid #cbd5e1', padding: '12px', borderRadius: '8px', background: '#f8fafc' }}>
                   <strong style={{ fontSize: '0.78rem', color: '#2563eb', display: 'block', marginBottom: '6px' }}>Leader 3</strong>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', paddingBottom: '6px', borderBottom: '1px dashed #cbd5e1' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#e2e8f0', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #cbd5e1', flexShrink: 0 }}>
+                      {leader3ImageUrl ? (
+                        <img src={leader3ImageUrl} alt="Leader 3" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <UsersRound size={18} color="#94a3b8" />
+                      )}
+                    </div>
+                    <div>
+                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', padding: '3px 7px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '5px', cursor: 'pointer', fontWeight: 600 }}>
+                        <Upload size={10} /> Photo
+                        <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFileChange(f, setLeader3ImageUrl); }} />
+                      </label>
+                      {leader3ImageUrl && (
+                        <button type="button" onClick={() => setLeader3ImageUrl('')} style={{ marginLeft: '4px', fontSize: '0.68rem', padding: '3px 5px', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '5px', color: '#dc2626', cursor: 'pointer' }}>
+                          <Trash2 size={10} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   <input type="text" required value={leader3Role} onChange={e => setLeader3Role(e.target.value)} placeholder="Role Name" style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', marginBottom: '6px' }} />
                   <textarea required rows={3} value={leader3Focus} onChange={e => setLeader3Focus(e.target.value)} placeholder="Focus context description" style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', resize: 'vertical' }} />
                 </div>
+
+                {/* Leader 4 */}
                 <div style={{ border: '1px solid #cbd5e1', padding: '12px', borderRadius: '8px', background: '#f8fafc' }}>
                   <strong style={{ fontSize: '0.78rem', color: '#2563eb', display: 'block', marginBottom: '6px' }}>Leader 4</strong>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', paddingBottom: '6px', borderBottom: '1px dashed #cbd5e1' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#e2e8f0', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #cbd5e1', flexShrink: 0 }}>
+                      {leader4ImageUrl ? (
+                        <img src={leader4ImageUrl} alt="Leader 4" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <UsersRound size={18} color="#94a3b8" />
+                      )}
+                    </div>
+                    <div>
+                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', padding: '3px 7px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '5px', cursor: 'pointer', fontWeight: 600 }}>
+                        <Upload size={10} /> Photo
+                        <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFileChange(f, setLeader4ImageUrl); }} />
+                      </label>
+                      {leader4ImageUrl && (
+                        <button type="button" onClick={() => setLeader4ImageUrl('')} style={{ marginLeft: '4px', fontSize: '0.68rem', padding: '3px 5px', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '5px', color: '#dc2626', cursor: 'pointer' }}>
+                          <Trash2 size={10} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   <input type="text" required value={leader4Role} onChange={e => setLeader4Role(e.target.value)} placeholder="Role Name" style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', marginBottom: '6px' }} />
                   <textarea required rows={3} value={leader4Focus} onChange={e => setLeader4Focus(e.target.value)} placeholder="Focus context description" style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', resize: 'vertical' }} />
                 </div>
+
               </div>
 
               <div style={{ borderTop: '1px solid #cbd5e1', paddingTop: '12px', marginTop: '6px' }}>
@@ -586,38 +799,63 @@ export const LandingPageCms: React.FC = () => {
               </div>
             </div>
 
-            {/* Simulated Testimonials Stories */}
+            {/* Simulated Testimonials Stories with Photos */}
             <div style={{ marginTop: '16px', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
               <span style={{ fontSize: '0.52rem', color: '#475569', fontWeight: 750 }}>TESTIMONIALS</span>
               <h4 style={{ fontSize: '0.7rem', fontWeight: 800, color: '#0f172a', margin: '3px 0' }}>{storiesTitle}</h4>
               <p style={{ fontSize: '0.55rem', color: '#64748b', marginBottom: '8px' }}>{storiesDescription}</p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ border: '1px solid #e2e8f0', padding: '6px', borderRadius: '4px', background: '#fff' }}>
+                <div style={{ border: '1px solid #e2e8f0', padding: '8px', borderRadius: '6px', background: '#fff' }}>
                   <Quote size={8} style={{ color: '#2563eb', marginBottom: '2px' }} />
-                  <p style={{ margin: '0 0 4px', fontSize: '0.52rem', fontStyle: 'italic', color: '#334155' }}>“{story1Quote}”</p>
-                  <span style={{ fontSize: '0.48rem', color: '#64748b' }}><strong>{story1Name}</strong> - {story1Pathway}</span>
+                  <p style={{ margin: '0 0 6px', fontSize: '0.52rem', fontStyle: 'italic', color: '#334155' }}>“{story1Quote}”</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {story1ImageUrl ? (
+                      <img src={story1ImageUrl} alt={story1Name} style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.4rem', color: '#2563eb', fontWeight: 700 }}>
+                        {story1Name?.charAt(0) || 'S'}
+                      </div>
+                    )}
+                    <span style={{ fontSize: '0.48rem', color: '#64748b' }}><strong>{story1Name}</strong> - {story1Pathway}</span>
+                  </div>
                 </div>
-                <div style={{ border: '1px solid #e2e8f0', padding: '6px', borderRadius: '4px', background: '#fff' }}>
+
+                <div style={{ border: '1px solid #e2e8f0', padding: '8px', borderRadius: '6px', background: '#fff' }}>
                   <Quote size={8} style={{ color: '#2563eb', marginBottom: '2px' }} />
-                  <p style={{ margin: '0 0 4px', fontSize: '0.52rem', fontStyle: 'italic', color: '#334155' }}>“{story2Quote}”</p>
-                  <span style={{ fontSize: '0.48rem', color: '#64748b' }}><strong>{story2Name}</strong> - {story2Pathway}</span>
+                  <p style={{ margin: '0 0 6px', fontSize: '0.52rem', fontStyle: 'italic', color: '#334155' }}>“{story2Quote}”</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {story2ImageUrl ? (
+                      <img src={story2ImageUrl} alt={story2Name} style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.4rem', color: '#2563eb', fontWeight: 700 }}>
+                        {story2Name?.charAt(0) || 'S'}
+                      </div>
+                    )}
+                    <span style={{ fontSize: '0.48rem', color: '#64748b' }}><strong>{story2Name}</strong> - {story2Pathway}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Simulated Leadership */}
+            {/* Simulated Leadership with Headshots */}
             <div style={{ marginTop: '16px', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
               <span style={{ fontSize: '0.52rem', color: '#475569', fontWeight: 750 }}>LEADERSHIP</span>
               <h4 style={{ fontSize: '0.7rem', fontWeight: 800, color: '#0f172a', margin: '3px 0' }}>{leadershipTitle}</h4>
               <p style={{ fontSize: '0.55rem', color: '#64748b', marginBottom: '8px' }}>{leadershipDescription}</p>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '0.5rem' }}>
-                <div style={{ border: '1px solid #e2e8f0', padding: '4px', borderRadius: '4px', background: '#f8fafc' }}>
+                <div style={{ border: '1px solid #e2e8f0', padding: '6px', borderRadius: '6px', background: '#f8fafc' }}>
+                  {leader1ImageUrl ? (
+                    <img src={leader1ImageUrl} alt={leader1Role} style={{ width: '22px', height: '22px', borderRadius: '4px', objectFit: 'cover', marginBottom: '3px', display: 'block' }} />
+                  ) : null}
                   <strong>{leader1Role}</strong>
                   <p style={{ margin: '2px 0 0', fontSize: '0.45rem', color: '#64748b' }}>{leader1Focus}</p>
                 </div>
-                <div style={{ border: '1px solid #e2e8f0', padding: '4px', borderRadius: '4px', background: '#f8fafc' }}>
+                <div style={{ border: '1px solid #e2e8f0', padding: '6px', borderRadius: '6px', background: '#f8fafc' }}>
+                  {leader2ImageUrl ? (
+                    <img src={leader2ImageUrl} alt={leader2Role} style={{ width: '22px', height: '22px', borderRadius: '4px', objectFit: 'cover', marginBottom: '3px', display: 'block' }} />
+                  ) : null}
                   <strong>{leader2Role}</strong>
                   <p style={{ margin: '2px 0 0', fontSize: '0.45rem', color: '#64748b' }}>{leader2Focus}</p>
                 </div>

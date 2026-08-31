@@ -100,18 +100,25 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
     story_3_quote: landingPageSettings?.story_3_quote || 'The updates were practical and timely. I could see my progress without having to chase several different people for answers.',
     story_3_name: landingPageSettings?.story_3_name || 'Graduate applicant',
     story_3_pathway: landingPageSettings?.story_3_pathway || 'North America pathway',
+    story_1_image_url: landingPageSettings?.story_1_image_url || null,
+    story_2_image_url: landingPageSettings?.story_2_image_url || null,
+    story_3_image_url: landingPageSettings?.story_3_image_url || null,
 
     // Leadership
     leadership_title: landingPageSettings?.leadership_title || 'Experienced leadership. Shared accountability.',
     leadership_description: landingPageSettings?.leadership_description || 'Our leadership team sets the standards for student care, operational quality, and responsible international education guidance.',
     leader_1_role: landingPageSettings?.leader_1_role || 'Founder & Chief Executive Officer',
     leader_1_focus: landingPageSettings?.leader_1_focus || 'Sets the organisation’s strategy and long-term commitment to ethical, student-first guidance.',
+    leader_1_image_url: landingPageSettings?.leader_1_image_url || null,
     leader_2_role: landingPageSettings?.leader_2_role || 'Co-founder & Chief Operating Officer',
     leader_2_focus: landingPageSettings?.leader_2_focus || 'Leads service quality, operational accountability, and the experience students receive at every stage.',
+    leader_2_image_url: landingPageSettings?.leader_2_image_url || null,
     leader_3_role: landingPageSettings?.leader_3_role || 'Director of Admissions',
     leader_3_focus: landingPageSettings?.leader_3_focus || 'Oversees application quality, eligibility review, and clear communication with partner institutions.',
+    leader_3_image_url: landingPageSettings?.leader_3_image_url || null,
     leader_4_role: landingPageSettings?.leader_4_role || 'Director of Student Success',
     leader_4_focus: landingPageSettings?.leader_4_focus || 'Builds the support model that helps students move confidently from planning to enrolment.',
+    leader_4_image_url: landingPageSettings?.leader_4_image_url || null,
 
     // Footer
     footer_copy: landingPageSettings?.footer_copy || '© 2026 Globe Scholars Pathways, LLC. Student guidance with purpose.'
@@ -150,8 +157,21 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
       .public-section-header { max-width: 700px; margin-bottom: 34px; }.public-section-header h2 { margin: 10px 0; color:#14213d; font: 800 clamp(1.8rem, 3vw, 2.65rem)/1.15 var(--font-heading, Inter, Arial, sans-serif); letter-spacing: -.035em; }.public-section-header p { margin:0; color:#607089; line-height:1.65; }
       .public-story-grid { display:grid; grid-template-columns: .85fr 1.15fr; gap:54px; align-items:center; }.public-story-panel { background:#fff; border:1px solid #dce5f5; padding:30px; border-radius:18px; box-shadow: 0 12px 30px rgba(47,70,120,.06); }.public-story-panel h3 { margin:0 0 13px; font-size:1.2rem; }.public-story-panel p { color:#53627a; line-height:1.65; margin:0 0 14px; }
       .public-values { display:grid; gap:15px; }.public-value { display:flex; align-items:flex-start; gap:12px; }.public-value-icon { margin-top:1px; width:33px; height:33px; flex:0 0 auto; display:grid; place-items:center; color:#2860d5; background:#e9f0ff; border-radius:9px; }.public-value strong { display:block; font-size:.9rem; margin-bottom:3px; }.public-value span { font-size:.8rem; color:#64748b; line-height:1.45; }
-      .public-stories { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }.public-quote { padding:24px; background:#fff; border:1px solid #dce5f5; border-radius:16px; }.public-quote svg { color:#4c75e8; }.public-quote blockquote { margin:15px 0 20px; color:#34445e; font-size:.91rem; line-height:1.65; }.public-quote footer { color:#73829a; font-size:.75rem; }.public-quote footer strong { display:block; color:#243452; font-size:.8rem; margin-bottom:3px; }
-      .public-leadership { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }.public-leader { padding:22px; background:#fff; border:1px solid #dce5f5; border-radius:15px; }.public-leader-mark { width:38px; height:38px; border-radius:10px; display:grid; place-items:center; margin-bottom:20px; background:#e7edff; color:#315ed4; }.public-leader h3 { margin:0 0 9px; font-size:.94rem; line-height:1.35; }.public-leader p { color:#66758c; line-height:1.55; font-size:.79rem; margin:0; }
+      .public-stories { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+      .public-quote { padding:24px; background:#fff; border:1px solid #dce5f5; border-radius:16px; display:flex; flex-direction:column; justify-content:space-between; }
+      .public-quote svg { color:#4c75e8; }
+      .public-quote blockquote { margin:15px 0 18px; color:#34445e; font-size:.91rem; line-height:1.65; flex:1; }
+      .public-quote-footer { display:flex; align-items:center; gap:12px; border-top:1px solid #f1f5f9; padding-top:14px; margin-top:6px; }
+      .public-quote-avatar { width:42px; height:42px; border-radius:50%; object-fit:cover; border:2px solid #cbd5e1; flex-shrink:0; }
+      .public-quote-placeholder { width:42px; height:42px; border-radius:50%; background:#e8efff; color:#2856bd; display:grid; place-items:center; font-weight:750; font-size:.85rem; flex-shrink:0; }
+      .public-quote-info strong { display:block; color:#243452; font-size:.84rem; margin-bottom:2px; }
+      .public-quote-info span { display:block; color:#73829a; font-size:.76rem; }
+      .public-leadership { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+      .public-leader { padding:22px; background:#fff; border:1px solid #dce5f5; border-radius:15px; }
+      .public-leader-photo { width:52px; height:52px; border-radius:12px; object-fit:cover; margin-bottom:16px; border:2px solid #cbd5e1; display:block; box-shadow:0 4px 10px rgba(0,0,0,0.06); }
+      .public-leader-mark { width:42px; height:42px; border-radius:10px; display:grid; place-items:center; margin-bottom:16px; background:#e7edff; color:#315ed4; }
+      .public-leader h3 { margin:0 0 9px; font-size:.94rem; line-height:1.35; }
+      .public-leader p { color:#66758c; line-height:1.55; font-size:.79rem; margin:0; }
       .public-cta { padding:62px 0; background:#182d5c; color:#fff; }.public-cta-grid { display:flex; align-items:center; justify-content:space-between; gap:24px; }.public-cta h2 { margin:0 0 8px; font:800 clamp(1.7rem,3vw,2.45rem)/1.15 var(--font-heading, Inter, Arial, sans-serif); }.public-cta p { margin:0; color:#c6d3fa; line-height:1.55; }.public-cta .public-primary { background:#fff; color:#1f4fc3; box-shadow:none; }
       .public-footer { padding:30px 0; color:#73829a; font-size:.76rem; }.public-footer-row { display:flex; align-items:center; justify-content:space-between; gap:16px; }.public-footer-row strong { color:#43536d; }
       @media (max-width: 850px) { .public-nav-links { display:none; }.public-hero { padding:35px 0 55px; }.public-hero-grid,.public-story-grid { grid-template-columns:1fr; gap:32px; }.public-hero-card { max-width:600px; }.public-stories { grid-template-columns:1fr; }.public-leadership { grid-template-columns:repeat(2,1fr); }.public-cta-grid { align-items:flex-start; flex-direction:column; } }
@@ -222,21 +242,64 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
           <p>{content.stories_description}</p>
         </div>
         <div className="public-stories">
+          
+          {/* Story 1 */}
           <article className="public-quote">
-            <Quote size={22} />
-            <blockquote>“{content.story_1_quote}”</blockquote>
-            <footer><strong>{content.story_1_name}</strong>{content.story_1_pathway}</footer>
+            <div>
+              <Quote size={22} />
+              <blockquote>“{content.story_1_quote}”</blockquote>
+            </div>
+            <footer className="public-quote-footer">
+              {content.story_1_image_url ? (
+                <img src={content.story_1_image_url} alt={content.story_1_name} className="public-quote-avatar" />
+              ) : (
+                <div className="public-quote-placeholder">{content.story_1_name?.charAt(0) || 'S'}</div>
+              )}
+              <div className="public-quote-info">
+                <strong>{content.story_1_name}</strong>
+                <span>{content.story_1_pathway}</span>
+              </div>
+            </footer>
           </article>
+
+          {/* Story 2 */}
           <article className="public-quote">
-            <Quote size={22} />
-            <blockquote>“{content.story_2_quote}”</blockquote>
-            <footer><strong>{content.story_2_name}</strong>{content.story_2_pathway}</footer>
+            <div>
+              <Quote size={22} />
+              <blockquote>“{content.story_2_quote}”</blockquote>
+            </div>
+            <footer className="public-quote-footer">
+              {content.story_2_image_url ? (
+                <img src={content.story_2_image_url} alt={content.story_2_name} className="public-quote-avatar" />
+              ) : (
+                <div className="public-quote-placeholder">{content.story_2_name?.charAt(0) || 'S'}</div>
+              )}
+              <div className="public-quote-info">
+                <strong>{content.story_2_name}</strong>
+                <span>{content.story_2_pathway}</span>
+              </div>
+            </footer>
           </article>
+
+          {/* Story 3 */}
           <article className="public-quote">
-            <Quote size={22} />
-            <blockquote>“{content.story_3_quote}”</blockquote>
-            <footer><strong>{content.story_3_name}</strong>{content.story_3_pathway}</footer>
+            <div>
+              <Quote size={22} />
+              <blockquote>“{content.story_3_quote}”</blockquote>
+            </div>
+            <footer className="public-quote-footer">
+              {content.story_3_image_url ? (
+                <img src={content.story_3_image_url} alt={content.story_3_name} className="public-quote-avatar" />
+              ) : (
+                <div className="public-quote-placeholder">{content.story_3_name?.charAt(0) || 'S'}</div>
+              )}
+              <div className="public-quote-info">
+                <strong>{content.story_3_name}</strong>
+                <span>{content.story_3_pathway}</span>
+              </div>
+            </footer>
           </article>
+
         </div>
       </div>
     </section>
@@ -249,26 +312,51 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
           <p>{content.leadership_description}</p>
         </div>
         <div className="public-leadership">
+          
+          {/* Leader 1 */}
           <article className="public-leader">
-            <span className="public-leader-mark"><UsersRound size={19} /></span>
+            {content.leader_1_image_url ? (
+              <img src={content.leader_1_image_url} alt={content.leader_1_role} className="public-leader-photo" />
+            ) : (
+              <span className="public-leader-mark"><UsersRound size={19} /></span>
+            )}
             <h3>{content.leader_1_role}</h3>
             <p>{content.leader_1_focus}</p>
           </article>
+
+          {/* Leader 2 */}
           <article className="public-leader">
-            <span className="public-leader-mark"><UsersRound size={19} /></span>
+            {content.leader_2_image_url ? (
+              <img src={content.leader_2_image_url} alt={content.leader_2_role} className="public-leader-photo" />
+            ) : (
+              <span className="public-leader-mark"><UsersRound size={19} /></span>
+            )}
             <h3>{content.leader_2_role}</h3>
             <p>{content.leader_2_focus}</p>
           </article>
+
+          {/* Leader 3 */}
           <article className="public-leader">
-            <span className="public-leader-mark"><UsersRound size={19} /></span>
+            {content.leader_3_image_url ? (
+              <img src={content.leader_3_image_url} alt={content.leader_3_role} className="public-leader-photo" />
+            ) : (
+              <span className="public-leader-mark"><UsersRound size={19} /></span>
+            )}
             <h3>{content.leader_3_role}</h3>
             <p>{content.leader_3_focus}</p>
           </article>
+
+          {/* Leader 4 */}
           <article className="public-leader">
-            <span className="public-leader-mark"><UsersRound size={19} /></span>
+            {content.leader_4_image_url ? (
+              <img src={content.leader_4_image_url} alt={content.leader_4_role} className="public-leader-photo" />
+            ) : (
+              <span className="public-leader-mark"><UsersRound size={19} /></span>
+            )}
             <h3>{content.leader_4_role}</h3>
             <p>{content.leader_4_focus}</p>
           </article>
+
         </div>
       </div>
     </section>

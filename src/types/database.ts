@@ -316,24 +316,31 @@ export interface LandingPageSettings {
   story_1_quote: string;
   story_1_name: string;
   story_1_pathway: string;
+  story_1_image_url?: string | null;
   story_2_quote: string;
   story_2_name: string;
   story_2_pathway: string;
+  story_2_image_url?: string | null;
   story_3_quote: string;
   story_3_name: string;
   story_3_pathway: string;
+  story_3_image_url?: string | null;
 
   // Leadership cards
   leadership_title: string;
   leadership_description: string;
   leader_1_role: string;
   leader_1_focus: string;
+  leader_1_image_url?: string | null;
   leader_2_role: string;
   leader_2_focus: string;
+  leader_2_image_url?: string | null;
   leader_3_role: string;
   leader_3_focus: string;
+  leader_3_image_url?: string | null;
   leader_4_role: string;
   leader_4_focus: string;
+  leader_4_image_url?: string | null;
 
   // Footer copy
   footer_copy: string;
