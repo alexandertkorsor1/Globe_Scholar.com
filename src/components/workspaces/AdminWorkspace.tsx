@@ -2341,195 +2341,287 @@ export const AdminWorkspace: React.FC = () => {
 
       {/* Tab 3: Partner Universities & Agreements File */}
       {activeTab === 'partnerships' && (
-        <div className="glass-panel" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '1rem', color: '#fff' }}>Partner Universities & Agreement Files Directory</h3>
-            <button onClick={() => setShowAddPartnerModal(true)} className="btn btn-primary btn-sm">
+        <div className="glass-panel" style={{ padding: '24px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
+            <div>
+              <h3 style={{ fontSize: '1.1rem', color: '#0f172a', fontWeight: 800, margin: 0 }}>
+                Partner Universities & Agreement Files Directory
+              </h3>
+              <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
+                Manage institutional agreements, active contract files, degree courses, and scholarship allocations.
+              </p>
+            </div>
+            <button onClick={() => setShowAddPartnerModal(true)} className="btn btn-primary btn-sm" style={{ background: '#2563eb', border: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Plus style={{ width: '14px', height: '14px' }} />
               Add Partner
             </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '18px' }}>
             {partnerUniversities.map(p => (
-              <div key={p.id} className="glass-panel" style={{ padding: '16px', background: 'rgba(18, 26, 43, 0.8)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                  <div>
-                    <h4 style={{ fontSize: '0.95rem', color: '#fff' }}>{p.name}</h4>
-                    <span style={{ fontSize: '0.75rem', color: '#06b6d4' }}>{p.country} • {p.contact_email}</span>
+              <div
+                key={p.id}
+                style={{
+                  padding: '20px',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '14px',
+                  boxShadow: '0 4px 14px rgba(15, 23, 42, 0.04)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                    <div>
+                      <h4 style={{ fontSize: '1.05rem', color: '#0f172a', fontWeight: 800, margin: 0, textTransform: 'capitalize' }}>
+                        {p.name}
+                      </h4>
+                      <span style={{ fontSize: '0.78rem', color: '#2563eb', fontWeight: 600, display: 'block', marginTop: '2px' }}>
+                        {p.country} • {p.contact_email}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{
+                        padding: '4px 10px',
+                        borderRadius: '999px',
+                        background: '#ecfdf5',
+                        color: '#059669',
+                        border: '1px solid #a7f3d0',
+                        fontSize: '0.74rem',
+                        fontWeight: 750,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.4px'
+                      }}>
+                        {p.scholarships_offered} Scholarships
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setPartnerPendingDelete(p)}
+                        className="btn btn-secondary btn-sm"
+                        title={`Remove ${p.name}`}
+                        style={{
+                          color: '#dc2626',
+                          background: '#fef2f2',
+                          borderColor: '#fecaca',
+                          fontWeight: 650,
+                          padding: '4px 8px',
+                          fontSize: '0.74rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        <Trash2 style={{ width: '13px', height: '13px' }} />
+                        Remove
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className="badge badge-documents_verified">{p.scholarships_offered} Scholarships</span>
-                    <button
-                      type="button"
-                      onClick={() => setPartnerPendingDelete(p)}
-                      className="btn btn-secondary btn-sm"
-                      title={`Remove ${p.name}`}
-                      style={{ color: '#fecaca', borderColor: 'rgba(248, 113, 113, 0.45)' }}
-                    >
-                      <Trash2 style={{ width: '13px', height: '13px' }} />
-                      Remove
-                    </button>
+
+                  <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
+                    <span style={{ fontSize: '0.74rem', color: '#475569', fontWeight: 700, display: 'block', marginBottom: '8px' }}>
+                      Agreement Files:
+                    </span>
+
+                    {p.agreements.length === 0 ? (
+                      <div style={{
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        color: '#64748b',
+                        fontSize: '0.75rem',
+                        marginBottom: '10px'
+                      }}>
+                        No agreement files uploaded yet.
+                      </div>
+                    ) : (
+                      p.agreements.map(a => (
+                        <div
+                          key={a.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            fontSize: '0.75rem',
+                            background: '#f8fafc',
+                            border: '1px solid #e2e8f0',
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            marginBottom: '6px'
+                          }}
+                        >
+                          <span style={{
+                            color: '#1e293b',
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}>
+                            <FileText style={{
+                              width: '14px',
+                              height: '14px',
+                              color: '#2563eb'
+                            }} />
+                            {a.document_name}
+                          </span>
+
+                          <span style={{
+                            color: '#059669',
+                            background: '#ecfdf5',
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            border: '1px solid #a7f3d0',
+                            fontWeight: 700,
+                            fontSize: '0.7rem'
+                          }}>
+                            Expires: {a.expiry_date}
+                          </span>
+                        </div>
+                      ))
+                    )}
+
+                    <div style={{
+                      display: 'flex',
+                      gap: '8px',
+                      alignItems: 'center',
+                      marginTop: '10px',
+                      flexWrap: 'wrap'
+                    }}>
+                      <input
+                        type="date"
+                        value={agreementExpiry[p.id] || ''}
+                        onChange={e =>
+                          setAgreementExpiry(prev => ({
+                            ...prev,
+                            [p.id]: e.target.value
+                          }))
+                        }
+                        style={{
+                          padding: '8px 10px',
+                          borderRadius: '8px',
+                          background: '#ffffff',
+                          color: '#0f172a',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.75rem',
+                          fontWeight: 500
+                        }}
+                      />
+
+                      <label
+                        className="btn btn-primary btn-sm"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '8px 12px',
+                          background: '#2563eb',
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontWeight: 650,
+                          fontSize: '0.75rem',
+                          cursor: uploadingPartnerId === p.id
+                            ? 'not-allowed'
+                            : 'pointer',
+                          opacity: uploadingPartnerId === p.id
+                            ? 0.6
+                            : 1
+                        }}
+                      >
+                        <FileText style={{
+                          width: '13px',
+                          height: '13px'
+                        }} />
+
+                        {uploadingPartnerId === p.id
+                          ? 'Uploading...'
+                          : 'Upload Agreement'}
+
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          disabled={uploadingPartnerId === p.id}
+                          style={{ display: 'none' }}
+                          onChange={e => {
+                            const file = e.target.files?.[0];
+
+                            if (file) {
+                              handleUploadAgreement(
+                                p.id,
+                                file
+                              );
+                            }
+
+                            e.currentTarget.value = '';
+                          }}
+                        />
+                      </label>
+                    </div>
                   </div>
                 </div>
 
-                <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                  <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginBottom: '8px' }}>
-                    Agreement Files:
-                  </span>
-
-                  {p.agreements.length === 0 ? (
-                    <div style={{
-                      padding: '10px',
-                      borderRadius: '6px',
-                      background: 'rgba(255,255,255,0.03)',
-                      color: '#64748b',
+                {/* Course & Scholarship Management Buttons */}
+                <div style={{ display: 'flex', gap: '8px', marginTop: '14px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedPartnerForCourses(p);
+                      setCourseName('');
+                      setAdmissionFee('150.00');
+                      setTuitionFee('3000.00');
+                      setCourseError('');
+                    }}
+                    className="btn btn-secondary btn-sm"
+                    style={{
+                      flex: 1,
                       fontSize: '0.75rem',
-                      marginBottom: '10px'
-                    }}>
-                      No agreement files uploaded yet.
-                    </div>
-                  ) : (
-                    p.agreements.map(a => (
-                      <div
-                        key={a.id}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          fontSize: '0.75rem',
-                          background: 'rgba(255,255,255,0.03)',
-                          padding: '8px 10px',
-                          borderRadius: '6px',
-                          marginBottom: '6px'
-                        }}
-                      >
-                        <span style={{
-                          color: '#cbd5e1',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px'
-                        }}>
-                          <FileText style={{
-                            width: '12px',
-                            height: '12px',
-                            color: '#6366f1'
-                          }} />
-                          {a.document_name}
-                        </span>
-
-                        <span style={{
-                          color: '#34d399',
-                          fontWeight: 600
-                        }}>
-                          Expires: {a.expiry_date}
-                        </span>
-                      </div>
-                    ))
-                  )}
-
-                  <div style={{
-                    display: 'flex',
-                    gap: '8px',
-                    alignItems: 'center',
-                    marginTop: '10px',
-                    flexWrap: 'wrap'
-                  }}>
-                    <input
-                      type="date"
-                      value={agreementExpiry[p.id] || ''}
-                      onChange={e =>
-                        setAgreementExpiry(prev => ({
-                          ...prev,
-                          [p.id]: e.target.value
-                        }))
-                      }
-                      style={{
-                        padding: '7px 9px',
-                        borderRadius: '6px',
-                        background: 'rgba(255,255,255,0.05)',
-                        color: '#fff',
-                        border: '1px solid var(--border-color)',
-                        fontSize: '0.75rem'
-                      }}
-                    />
-
-                    <label
-                      className="btn btn-primary btn-sm"
-                      style={{
-                        cursor: uploadingPartnerId === p.id
-                          ? 'not-allowed'
-                          : 'pointer',
-                        opacity: uploadingPartnerId === p.id
-                          ? 0.6
-                          : 1
-                      }}
-                    >
-                      <FileText style={{
-                        width: '14px',
-                        height: '14px'
-                      }} />
-
-                      {uploadingPartnerId === p.id
-                        ? 'Uploading...'
-                        : 'Upload Agreement'}
-
-                      <input
-                        type="file"
-                        accept=".pdf,.doc,.docx"
-                        disabled={uploadingPartnerId === p.id}
-                        style={{ display: 'none' }}
-                        onChange={e => {
-                          const file = e.target.files?.[0];
-
-                          if (file) {
-                            handleUploadAgreement(
-                              p.id,
-                              file
-                            );
-                          }
-
-                          e.currentTarget.value = '';
-                        }}
-                      />
-                    </label>
-                  </div>
-
-                  {/* Course & Scholarship Management Buttons */}
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px' }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedPartnerForCourses(p);
-                        setCourseName('');
-                        setAdmissionFee('150.00');
-                        setTuitionFee('3000.00');
-                        setCourseError('');
-                      }}
-                      className="btn btn-secondary btn-sm"
-                      style={{ flex: 1, fontSize: '0.74rem', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)' }}
-                    >
-                      <BookOpen style={{ width: '13px', height: '13px', marginRight: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
-                      Courses ({universityCourses.filter(c => c.university_id === p.id).length})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedPartnerForScholarships(p);
-                        setScholarshipName('');
-                        setScholarshipDesc('');
-                        setScholarshipCoverage('1000.00');
-                        setScholarshipPercent('50');
-                        setScholarshipCriteria('');
-                        setScholarshipError('');
-                      }}
-                      className="btn btn-secondary btn-sm"
-                      style={{ flex: 1, fontSize: '0.74rem', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)' }}
-                    >
-                      <Award style={{ width: '13px', height: '13px', marginRight: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
-                      Scholarships ({scholarships.filter(s => s.university_id === p.id).length})
-                    </button>
-                  </div>
+                      fontWeight: 650,
+                      background: '#f8fafc',
+                      color: '#1e293b',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      padding: '7px 10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    <BookOpen style={{ width: '14px', height: '14px', color: '#2563eb' }} />
+                    Courses ({universityCourses.filter(c => c.university_id === p.id).length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedPartnerForScholarships(p);
+                      setScholarshipName('');
+                      setScholarshipDesc('');
+                      setScholarshipCoverage('1000.00');
+                      setScholarshipPercent('50');
+                      setScholarshipCriteria('');
+                      setScholarshipError('');
+                    }}
+                    className="btn btn-secondary btn-sm"
+                    style={{
+                      flex: 1,
+                      fontSize: '0.75rem',
+                      fontWeight: 650,
+                      background: '#f8fafc',
+                      color: '#1e293b',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      padding: '7px 10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '5px'
+                    }}
+                  >
+                    <Award style={{ width: '14px', height: '14px', color: '#059669' }} />
+                    Scholarships ({scholarships.filter(s => s.university_id === p.id).length})
+                  </button>
                 </div>
               </div>
             ))}
