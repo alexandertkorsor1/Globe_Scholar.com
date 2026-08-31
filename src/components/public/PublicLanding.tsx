@@ -77,7 +77,44 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
     step_3_title: landingPageSettings?.step_3_title || 'Move forward prepared',
     step_3_description: landingPageSettings?.step_3_description || 'Clear decisions and next steps',
     story_title: landingPageSettings?.story_title || 'Built around a simple belief: students deserve clarity.',
-    story_description: landingPageSettings?.story_description || 'Globe Scholars Pathways, LLC. was created to make international education guidance more personal, accountable, and easy to follow. Our team combines local understanding with a structured process, so each student receives the right support at the right time.'
+    story_description: landingPageSettings?.story_description || 'Globe Scholars Pathways, LLC. was created to make international education guidance more personal, accountable, and easy to follow. Our team combines local understanding with a structured process, so each student receives the right support at the right time.',
+    
+    // Value guides
+    value_header: landingPageSettings?.value_header || 'What guides our work',
+    value_1_title: landingPageSettings?.value_1_title || 'Ethical guidance',
+    value_1_description: landingPageSettings?.value_1_description || 'Advice, requirements, and decisions are explained clearly and handled with care.',
+    value_2_title: landingPageSettings?.value_2_title || 'Human support',
+    value_2_description: landingPageSettings?.value_2_description || 'Students are supported by real people and accountable departments, not left to navigate alone.',
+    value_3_title: landingPageSettings?.value_3_title || 'Student-first outcomes',
+    value_3_description: landingPageSettings?.value_3_description || 'Every recommendation begins with the student’s academic goals, readiness, and long-term success.',
+
+    // Student stories
+    stories_title: landingPageSettings?.stories_title || 'Guidance that students can feel at every stage.',
+    stories_description: landingPageSettings?.stories_description || 'Our process is designed to replace uncertainty with clear action, trusted support, and timely updates.',
+    story_1_quote: landingPageSettings?.story_1_quote || 'Every requirement was clear, and I always knew which step came next. That confidence made a difficult process feel manageable.',
+    story_1_name: landingPageSettings?.story_1_name || 'Postgraduate applicant',
+    story_1_pathway: landingPageSettings?.story_1_pathway || 'United Kingdom pathway',
+    story_2_quote: landingPageSettings?.story_2_quote || 'My counselor listened to my goals before recommending options. I felt supported from the first conversation through submission.',
+    story_2_name: landingPageSettings?.story_2_name || 'Undergraduate applicant',
+    story_2_pathway: landingPageSettings?.story_2_pathway || 'International study pathway',
+    story_3_quote: landingPageSettings?.story_3_quote || 'The updates were practical and timely. I could see my progress without having to chase several different people for answers.',
+    story_3_name: landingPageSettings?.story_3_name || 'Graduate applicant',
+    story_3_pathway: landingPageSettings?.story_3_pathway || 'North America pathway',
+
+    // Leadership
+    leadership_title: landingPageSettings?.leadership_title || 'Experienced leadership. Shared accountability.',
+    leadership_description: landingPageSettings?.leadership_description || 'Our leadership team sets the standards for student care, operational quality, and responsible international education guidance.',
+    leader_1_role: landingPageSettings?.leader_1_role || 'Founder & Chief Executive Officer',
+    leader_1_focus: landingPageSettings?.leader_1_focus || 'Sets the organisation’s strategy and long-term commitment to ethical, student-first guidance.',
+    leader_2_role: landingPageSettings?.leader_2_role || 'Co-founder & Chief Operating Officer',
+    leader_2_focus: landingPageSettings?.leader_2_focus || 'Leads service quality, operational accountability, and the experience students receive at every stage.',
+    leader_3_role: landingPageSettings?.leader_3_role || 'Director of Admissions',
+    leader_3_focus: landingPageSettings?.leader_3_focus || 'Oversees application quality, eligibility review, and clear communication with partner institutions.',
+    leader_4_role: landingPageSettings?.leader_4_role || 'Director of Student Success',
+    leader_4_focus: landingPageSettings?.leader_4_focus || 'Builds the support model that helps students move confidently from planning to enrolment.',
+
+    // Footer
+    footer_copy: landingPageSettings?.footer_copy || '© 2026 Globe Scholars Pathways, LLC. Student guidance with purpose.'
   };
 
   return (
@@ -167,11 +204,11 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
           <p>{content.story_description}</p>
         </div>
         <div className="public-story-panel">
-          <h3>What guides our work</h3>
+          <h3>{content.value_header}</h3>
           <div className="public-values">
-            <div className="public-value"><span className="public-value-icon"><ShieldCheck size={18} /></span><span><strong>Ethical guidance</strong>Advice, requirements, and decisions are explained clearly and handled with care.</span></div>
-            <div className="public-value"><span className="public-value-icon"><UsersRound size={18} /></span><span><strong>Human support</strong>Students are supported by real people and accountable departments, not left to navigate alone.</span></div>
-            <div className="public-value"><span className="public-value-icon"><GraduationCap size={18} /></span><span><strong>Student-first outcomes</strong>Every recommendation begins with the student’s academic goals, readiness, and long-term success.</span></div>
+            <div className="public-value"><span className="public-value-icon"><ShieldCheck size={18} /></span><span><strong>{content.value_1_title}</strong>{content.value_1_description}</span></div>
+            <div className="public-value"><span className="public-value-icon"><UsersRound size={18} /></span><span><strong>{content.value_2_title}</strong>{content.value_2_description}</span></div>
+            <div className="public-value"><span className="public-value-icon"><GraduationCap size={18} /></span><span><strong>{content.value_3_title}</strong>{content.value_3_description}</span></div>
           </div>
         </div>
       </div>
@@ -181,17 +218,25 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
       <div className="public-shell">
         <div className="public-section-header">
           <span className="public-eyebrow">Student stories</span>
-          <h2>Guidance that students can feel at every stage.</h2>
-          <p>Our process is designed to replace uncertainty with clear action, trusted support, and timely updates.</p>
+          <h2>{content.stories_title}</h2>
+          <p>{content.stories_description}</p>
         </div>
         <div className="public-stories">
-          {studentStories.map((story) => (
-            <article className="public-quote" key={story.name + story.pathway}>
-              <Quote size={22} />
-              <blockquote>“{story.quote}”</blockquote>
-              <footer><strong>{story.name}</strong>{story.pathway}</footer>
-            </article>
-          ))}
+          <article className="public-quote">
+            <Quote size={22} />
+            <blockquote>“{content.story_1_quote}”</blockquote>
+            <footer><strong>{content.story_1_name}</strong>{content.story_1_pathway}</footer>
+          </article>
+          <article className="public-quote">
+            <Quote size={22} />
+            <blockquote>“{content.story_2_quote}”</blockquote>
+            <footer><strong>{content.story_2_name}</strong>{content.story_2_pathway}</footer>
+          </article>
+          <article className="public-quote">
+            <Quote size={22} />
+            <blockquote>“{content.story_3_quote}”</blockquote>
+            <footer><strong>{content.story_3_name}</strong>{content.story_3_pathway}</footer>
+          </article>
         </div>
       </div>
     </section>
@@ -200,22 +245,35 @@ export const PublicLanding: React.FC<PublicLandingProps> = ({
       <div className="public-shell">
         <div className="public-section-header">
           <span className="public-eyebrow">Leadership</span>
-          <h2>Experienced leadership. Shared accountability.</h2>
-          <p>Our leadership team sets the standards for student care, operational quality, and responsible international education guidance.</p>
+          <h2>{content.leadership_title}</h2>
+          <p>{content.leadership_description}</p>
         </div>
         <div className="public-leadership">
-          {leadership.map((member) => (
-            <article className="public-leader" key={member.role}>
-              <span className="public-leader-mark"><UsersRound size={19} /></span>
-              <h3>{member.role}</h3>
-              <p>{member.focus}</p>
-            </article>
-          ))}
+          <article className="public-leader">
+            <span className="public-leader-mark"><UsersRound size={19} /></span>
+            <h3>{content.leader_1_role}</h3>
+            <p>{content.leader_1_focus}</p>
+          </article>
+          <article className="public-leader">
+            <span className="public-leader-mark"><UsersRound size={19} /></span>
+            <h3>{content.leader_2_role}</h3>
+            <p>{content.leader_2_focus}</p>
+          </article>
+          <article className="public-leader">
+            <span className="public-leader-mark"><UsersRound size={19} /></span>
+            <h3>{content.leader_3_role}</h3>
+            <p>{content.leader_3_focus}</p>
+          </article>
+          <article className="public-leader">
+            <span className="public-leader-mark"><UsersRound size={19} /></span>
+            <h3>{content.leader_4_role}</h3>
+            <p>{content.leader_4_focus}</p>
+          </article>
         </div>
       </div>
     </section>
 
-    <footer className="public-footer"><div className="public-shell public-footer-row"><strong>Globe Scholars Pathways, LLC.</strong><span>© 2026 Globe Scholars Pathways, LLC. Student guidance with purpose.</span></div></footer>
+    <footer className="public-footer"><div className="public-shell public-footer-row"><strong>Globe Scholars Pathways, LLC.</strong><span>{content.footer_copy}</span></div></footer>
   </main>
   );
 };

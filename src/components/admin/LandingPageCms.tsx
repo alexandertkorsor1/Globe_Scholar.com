@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApplication } from '../../context/ApplicationContext';
-import { Layout, Eye, Save, Globe2, CheckCircle2, FileText, Settings, Award } from 'lucide-react';
+import { Settings, Save, Eye, Globe2, CheckCircle2, ShieldCheck, UsersRound, GraduationCap, Quote } from 'lucide-react';
 
 export const LandingPageCms: React.FC = () => {
   const { landingPageSettings, updateLandingPageSettings } = useApplication();
@@ -28,10 +28,47 @@ export const LandingPageCms: React.FC = () => {
   const [storyTitle, setStoryTitle] = useState('');
   const [storyDescription, setStoryDescription] = useState('');
 
+  // Value guides
+  const [valueHeader, setValueHeader] = useState('');
+  const [value1Title, setValue1Title] = useState('');
+  const [value1Description, setValue1Description] = useState('');
+  const [value2Title, setValue2Title] = useState('');
+  const [value2Description, setValue2Description] = useState('');
+  const [value3Title, setValue3Title] = useState('');
+  const [value3Description, setValue3Description] = useState('');
+
+  // Student stories
+  const [storiesTitle, setStoriesTitle] = useState('');
+  const [storiesDescription, setStoriesDescription] = useState('');
+  const [story1Quote, setStory1Quote] = useState('');
+  const [story1Name, setStory1Name] = useState('');
+  const [story1Pathway, setStory1Pathway] = useState('');
+  const [story2Quote, setStory2Quote] = useState('');
+  const [story2Name, setStory2Name] = useState('');
+  const [story2Pathway, setStory2Pathway] = useState('');
+  const [story3Quote, setStory3Quote] = useState('');
+  const [story3Name, setStory3Name] = useState('');
+  const [story3Pathway, setStory3Pathway] = useState('');
+
+  // Leadership
+  const [leadershipTitle, setLeadershipTitle] = useState('');
+  const [leadershipDescription, setLeadershipDescription] = useState('');
+  const [leader1Role, setLeader1Role] = useState('');
+  const [leader1Focus, setLeader1Focus] = useState('');
+  const [leader2Role, setLeader2Role] = useState('');
+  const [leader2Focus, setLeader2Focus] = useState('');
+  const [leader3Role, setLeader3Role] = useState('');
+  const [leader3Focus, setLeader3Focus] = useState('');
+  const [leader4Role, setLeader4Role] = useState('');
+  const [leader4Focus, setLeader4Focus] = useState('');
+
+  // Footer copy
+  const [footerCopy, setFooterCopy] = useState('');
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [activeSubTab, setActiveSubTab] = useState<'hero' | 'pillars' | 'steps' | 'story'>('hero');
+  const [activeSubTab, setActiveSubTab] = useState<'hero' | 'values' | 'steps' | 'story' | 'stories' | 'leadership'>('hero');
 
   // Initialize fields when landingPageSettings is loaded
   useEffect(() => {
@@ -57,6 +94,43 @@ export const LandingPageCms: React.FC = () => {
 
       setStoryTitle(landingPageSettings.story_title || '');
       setStoryDescription(landingPageSettings.story_description || '');
+
+      // Value guides
+      setValueHeader(landingPageSettings.value_header || 'What guides our work');
+      setValue1Title(landingPageSettings.value_1_title || 'Ethical guidance');
+      setValue1Description(landingPageSettings.value_1_description || 'Advice, requirements, and decisions are explained clearly and handled with care.');
+      setValue2Title(landingPageSettings.value_2_title || 'Human support');
+      setValue2Description(landingPageSettings.value_2_description || 'Students are supported by real people and accountable departments, not left to navigate alone.');
+      setValue3Title(landingPageSettings.value_3_title || 'Student-first outcomes');
+      setValue3Description(landingPageSettings.value_3_description || 'Every recommendation begins with the student’s academic goals, readiness, and long-term success.');
+
+      // Testimonials (Student Stories)
+      setStoriesTitle(landingPageSettings.stories_title || 'Guidance that students can feel at every stage.');
+      setStoriesDescription(landingPageSettings.stories_description || 'Our process is designed to replace uncertainty with clear action, trusted support, and timely updates.');
+      setStory1Quote(landingPageSettings.story_1_quote || 'Every requirement was clear, and I always knew which step came next. That confidence made a difficult process feel manageable.');
+      setStory1Name(landingPageSettings.story_1_name || 'Postgraduate applicant');
+      setStory1Pathway(landingPageSettings.story_1_pathway || 'United Kingdom pathway');
+      setStory2Quote(landingPageSettings.story_2_quote || 'My counselor listened to my goals before recommending options. I felt supported from the first conversation through submission.');
+      setStory2Name(landingPageSettings.story_2_name || 'Undergraduate applicant');
+      setStory2Pathway(landingPageSettings.story_2_pathway || 'International study pathway');
+      setStory3Quote(landingPageSettings.story_3_quote || 'The updates were practical and timely. I could see my progress without having to chase several different people for answers.');
+      setStory3Name(landingPageSettings.story_3_name || 'Graduate applicant');
+      setStory3Pathway(landingPageSettings.story_3_pathway || 'North America pathway');
+
+      // Leadership
+      setLeadershipTitle(landingPageSettings.leadership_title || 'Experienced leadership. Shared accountability.');
+      setLeadershipDescription(landingPageSettings.leadership_description || 'Our leadership team sets the standards for student care, operational quality, and responsible international education guidance.');
+      setLeader1Role(landingPageSettings.leader_1_role || 'Founder & Chief Executive Officer');
+      setLeader1Focus(landingPageSettings.leader_1_focus || 'Sets the organisation’s strategy and long-term commitment to ethical, student-first guidance.');
+      setLeader2Role(landingPageSettings.leader_2_role || 'Co-founder & Chief Operating Officer');
+      setLeader2Focus(landingPageSettings.leader_2_focus || 'Leads service quality, operational accountability, and the experience students receive at every stage.');
+      setLeader3Role(landingPageSettings.leader_3_role || 'Director of Admissions');
+      setLeader3Focus(landingPageSettings.leader_3_focus || 'Oversees application quality, eligibility review, and clear communication with partner institutions.');
+      setLeader4Role(landingPageSettings.leader_4_role || 'Director of Student Success');
+      setLeader4Focus(landingPageSettings.leader_4_focus || 'Builds the support model that helps students move confidently from planning to enrolment.');
+
+      // Footer
+      setFooterCopy(landingPageSettings.footer_copy || '© 2026 Globe Scholars Pathways, LLC. Student guidance with purpose.');
     }
   }, [landingPageSettings]);
 
@@ -84,7 +158,40 @@ export const LandingPageCms: React.FC = () => {
         step_3_title: step3Title.trim(),
         step_3_description: step3Description.trim(),
         story_title: storyTitle.trim(),
-        story_description: storyDescription.trim()
+        story_description: storyDescription.trim(),
+
+        value_header: valueHeader.trim(),
+        value_1_title: value1Title.trim(),
+        value_1_description: value1Description.trim(),
+        value_2_title: value2Title.trim(),
+        value_2_description: value2Description.trim(),
+        value_3_title: value3Title.trim(),
+        value_3_description: value3Description.trim(),
+
+        stories_title: storiesTitle.trim(),
+        stories_description: storiesDescription.trim(),
+        story_1_quote: story1Quote.trim(),
+        story_1_name: story1Name.trim(),
+        story_1_pathway: story1Pathway.trim(),
+        story_2_quote: story2Quote.trim(),
+        story_2_name: story2Name.trim(),
+        story_2_pathway: story2Pathway.trim(),
+        story_3_quote: story3Quote.trim(),
+        story_3_name: story3Name.trim(),
+        story_3_pathway: story3Pathway.trim(),
+
+        leadership_title: leadershipTitle.trim(),
+        leadership_description: leadershipDescription.trim(),
+        leader_1_role: leader1Role.trim(),
+        leader_1_focus: leader1Focus.trim(),
+        leader_2_role: leader2Role.trim(),
+        leader_2_focus: leader2Focus.trim(),
+        leader_3_role: leader3Role.trim(),
+        leader_3_focus: leader3Focus.trim(),
+        leader_4_role: leader4Role.trim(),
+        leader_4_focus: leader4Focus.trim(),
+
+        footer_copy: footerCopy.trim()
       });
       setMessage('Landing page settings updated successfully! Changes are live.');
       setTimeout(() => setMessage(''), 5000);
@@ -109,7 +216,7 @@ export const LandingPageCms: React.FC = () => {
         </div>
 
         <p style={{ fontSize: '0.8rem', color: '#475569', marginBottom: '20px' }}>
-          Modify headers, pillars, descriptions, and timelines on the public landing page. Use the preview on the right to see exactly how changes appear before saving.
+          Modify headers, values, timlines, student stories, leadership, and footer copy on the public landing page. Use the real-time preview on the right.
         </p>
 
         {message && (
@@ -125,75 +232,34 @@ export const LandingPageCms: React.FC = () => {
         )}
 
         {/* CMS Sub Tabs */}
-        <div style={{ display: 'flex', borderBottom: '2px solid #e2e8f0', gap: '16px', marginBottom: '20px' }}>
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('hero')}
-            style={{
-              padding: '8px 12px',
-              border: 'none',
-              background: 'none',
-              fontSize: '0.82rem',
-              fontWeight: 700,
-              color: activeSubTab === 'hero' ? '#2563eb' : '#64748b',
-              borderBottom: activeSubTab === 'hero' ? '2px solid #2563eb' : 'none',
-              cursor: 'pointer',
-              marginBottom: '-2px'
-            }}
-          >
-            Hero Section
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('pillars')}
-            style={{
-              padding: '8px 12px',
-              border: 'none',
-              background: 'none',
-              fontSize: '0.82rem',
-              fontWeight: 700,
-              color: activeSubTab === 'pillars' ? '#2563eb' : '#64748b',
-              borderBottom: activeSubTab === 'pillars' ? '2px solid #2563eb' : 'none',
-              cursor: 'pointer',
-              marginBottom: '-2px'
-            }}
-          >
-            Trust Pillars
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('steps')}
-            style={{
-              padding: '8px 12px',
-              border: 'none',
-              background: 'none',
-              fontSize: '0.82rem',
-              fontWeight: 700,
-              color: activeSubTab === 'steps' ? '#2563eb' : '#64748b',
-              borderBottom: activeSubTab === 'steps' ? '2px solid #2563eb' : 'none',
-              cursor: 'pointer',
-              marginBottom: '-2px'
-            }}
-          >
-            Journey Card
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('story')}
-            style={{
-              padding: '8px 12px',
-              border: 'none',
-              background: 'none',
-              fontSize: '0.82rem',
-              fontWeight: 700,
-              color: activeSubTab === 'story' ? '#2563eb' : '#64748b',
-              borderBottom: activeSubTab === 'story' ? '2px solid #2563eb' : 'none',
-              cursor: 'pointer',
-              marginBottom: '-2px'
-            }}
-          >
-            Our Story
-          </button>
+        <div style={{ display: 'flex', borderBottom: '2px solid #e2e8f0', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          {[
+            { id: 'hero', label: 'Hero Copy' },
+            { id: 'steps', label: 'Timeline Card' },
+            { id: 'story', label: 'Our Story' },
+            { id: 'values', label: 'Trust Values' },
+            { id: 'stories', label: 'Student Stories' },
+            { id: 'leadership', label: 'Leaders & Footer' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveSubTab(tab.id as any)}
+              style={{
+                padding: '8px 12px',
+                border: 'none',
+                background: 'none',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                color: activeSubTab === tab.id ? '#2563eb' : '#64748b',
+                borderBottom: activeSubTab === tab.id ? '2px solid #2563eb' : 'none',
+                cursor: 'pointer',
+                marginBottom: '-2px'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -219,28 +285,18 @@ export const LandingPageCms: React.FC = () => {
                 <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 650 }}>Hero Paragraph Description</label>
                 <textarea required rows={4} value={heroDescription} onChange={e => setHeroDescription(e.target.value)} placeholder="Enter the main intro description..." style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', color: '#0f172a', background: '#fff', fontSize: '0.8rem', resize: 'vertical' }} />
               </div>
-            </div>
-          )}
-
-          {/* Group 2: Trust Pillars */}
-          {activeSubTab === 'pillars' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div>
-                <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 650 }}>Trust Point #1 Title</label>
-                <input type="text" required value={trustPoint1} onChange={e => setTrustPoint1(e.target.value)} placeholder="e.g. Clear requirements" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', color: '#0f172a', background: '#fff' }} />
-              </div>
-              <div>
-                <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 650 }}>Trust Point #2 Title</label>
-                <input type="text" required value={trustPoint2} onChange={e => setTrustPoint2(e.target.value)} placeholder="e.g. Progress you can follow" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', color: '#0f172a', background: '#fff' }} />
-              </div>
-              <div>
-                <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 650 }}>Trust Point #3 Title</label>
-                <input type="text" required value={trustPoint3} onChange={e => setTrustPoint3(e.target.value)} placeholder="e.g. Department-led support" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', color: '#0f172a', background: '#fff' }} />
+              <div style={{ borderTop: '1px solid #cbd5e1', paddingTop: '12px', marginTop: '4px' }}>
+                <strong style={{ fontSize: '0.8rem', color: '#0f172a', display: 'block', marginBottom: '10px' }}>Core Trust Pillars (Below Hero)</strong>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <input type="text" required value={trustPoint1} onChange={e => setTrustPoint1(e.target.value)} placeholder="Trust point 1" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                  <input type="text" required value={trustPoint2} onChange={e => setTrustPoint2(e.target.value)} placeholder="Trust point 2" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                  <input type="text" required value={trustPoint3} onChange={e => setTrustPoint3(e.target.value)} placeholder="Trust point 3" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                </div>
               </div>
             </div>
           )}
 
-          {/* Group 3: Timeline Steps */}
+          {/* Group 2: timeline Steps */}
           {activeSubTab === 'steps' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '12px' }}>
@@ -280,7 +336,7 @@ export const LandingPageCms: React.FC = () => {
             </div>
           )}
 
-          {/* Group 4: Our Story Section */}
+          {/* Group 3: Our Story Section */}
           {activeSubTab === 'story' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
@@ -290,6 +346,131 @@ export const LandingPageCms: React.FC = () => {
               <div>
                 <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 650 }}>Story Description Copy</label>
                 <textarea required rows={5} value={storyDescription} onChange={e => setStoryDescription(e.target.value)} placeholder="Enter the main story section description..." style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', color: '#0f172a', background: '#fff', fontSize: '0.8rem', resize: 'vertical' }} />
+              </div>
+            </div>
+          )}
+
+          {/* Group 4: Trust Values guides */}
+          {activeSubTab === 'values' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 650 }}>Values Panel Header</label>
+                <input type="text" required value={valueHeader} onChange={e => setValueHeader(e.target.value)} placeholder="e.g. What guides our work" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+              </div>
+
+              <div style={{ border: '1px solid #cbd5e1', padding: '12px', borderRadius: '8px', background: '#f8fafc' }}>
+                <strong style={{ fontSize: '0.78rem', color: '#2563eb', display: 'block', marginBottom: '8px' }}>Value 1 (Ethical Guidance)</strong>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <input type="text" required value={value1Title} onChange={e => setValue1Title(e.target.value)} placeholder="Value 1 Title" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem' }} />
+                  <textarea required rows={2} value={value1Description} onChange={e => setValue1Description(e.target.value)} placeholder="Value 1 Description" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', resize: 'vertical' }} />
+                </div>
+              </div>
+
+              <div style={{ border: '1px solid #cbd5e1', padding: '12px', borderRadius: '8px', background: '#f8fafc' }}>
+                <strong style={{ fontSize: '0.78rem', color: '#2563eb', display: 'block', marginBottom: '8px' }}>Value 2 (Human Support)</strong>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <input type="text" required value={value2Title} onChange={e => setValue2Title(e.target.value)} placeholder="Value 2 Title" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem' }} />
+                  <textarea required rows={2} value={value2Description} onChange={e => setValue2Description(e.target.value)} placeholder="Value 2 Description" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', resize: 'vertical' }} />
+                </div>
+              </div>
+
+              <div style={{ border: '1px solid #cbd5e1', padding: '12px', borderRadius: '8px', background: '#f8fafc' }}>
+                <strong style={{ fontSize: '0.78rem', color: '#2563eb', display: 'block', marginBottom: '8px' }}>Value 3 (Student-first Outcomes)</strong>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <input type="text" required value={value3Title} onChange={e => setValue3Title(e.target.value)} placeholder="Value 3 Title" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem' }} />
+                  <textarea required rows={2} value={value3Description} onChange={e => setValue3Description(e.target.value)} placeholder="Value 3 Description" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', resize: 'vertical' }} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Group 5: Student Stories Testimonials */}
+          {activeSubTab === 'stories' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 650 }}>Stories Section Title</label>
+                  <input type="text" required value={storiesTitle} onChange={e => setStoriesTitle(e.target.value)} placeholder="Stories Section Title" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 650 }}>Stories Section Description</label>
+                  <input type="text" required value={storiesDescription} onChange={e => setStoriesDescription(e.target.value)} placeholder="Stories Section Description" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                </div>
+              </div>
+
+              <div style={{ border: '1px solid #cbd5e1', padding: '12px', borderRadius: '8px', background: '#f8fafc', marginTop: '4px' }}>
+                <strong style={{ fontSize: '0.78rem', color: '#2563eb', display: 'block', marginBottom: '8px' }}>Testimonial #1</strong>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <textarea required rows={2} value={story1Quote} onChange={e => setStory1Quote(e.target.value)} placeholder="Quote text" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem' }} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <input type="text" required value={story1Name} onChange={e => setStory1Name(e.target.value)} placeholder="Applicant label / Name" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem' }} />
+                    <input type="text" required value={story1Pathway} onChange={e => setStory1Pathway(e.target.value)} placeholder="Study pathway location" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem' }} />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ border: '1px solid #cbd5e1', padding: '12px', borderRadius: '8px', background: '#f8fafc' }}>
+                <strong style={{ fontSize: '0.78rem', color: '#2563eb', display: 'block', marginBottom: '8px' }}>Testimonial #2</strong>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <textarea required rows={2} value={story2Quote} onChange={e => setStory2Quote(e.target.value)} placeholder="Quote text" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem' }} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <input type="text" required value={story2Name} onChange={e => setStory2Name(e.target.value)} placeholder="Applicant label / Name" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem' }} />
+                    <input type="text" required value={story2Pathway} onChange={e => setStory2Pathway(e.target.value)} placeholder="Study pathway location" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem' }} />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ border: '1px solid #cbd5e1', padding: '12px', borderRadius: '8px', background: '#f8fafc' }}>
+                <strong style={{ fontSize: '0.78rem', color: '#2563eb', display: 'block', marginBottom: '8px' }}>Testimonial #3</strong>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <textarea required rows={2} value={story3Quote} onChange={e => setStory3Quote(e.target.value)} placeholder="Quote text" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem' }} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <input type="text" required value={story3Name} onChange={e => setStory3Name(e.target.value)} placeholder="Applicant label / Name" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem' }} />
+                    <input type="text" required value={story3Pathway} onChange={e => setStory3Pathway(e.target.value)} placeholder="Study pathway location" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem' }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Group 6: Leadership and Footer */}
+          {activeSubTab === 'leadership' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 650 }}>Leadership Title</label>
+                <input type="text" required value={leadershipTitle} onChange={e => setLeadershipTitle(e.target.value)} placeholder="Leadership section heading" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 650 }}>Leadership Description</label>
+                <textarea required rows={2} value={leadershipDescription} onChange={e => setLeadershipDescription(e.target.value)} placeholder="Leadership section subtext paragraph" style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.8rem', resize: 'vertical' }} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '6px' }}>
+                <div style={{ border: '1px solid #cbd5e1', padding: '12px', borderRadius: '8px', background: '#f8fafc' }}>
+                  <strong style={{ fontSize: '0.78rem', color: '#2563eb', display: 'block', marginBottom: '6px' }}>Leader 1</strong>
+                  <input type="text" required value={leader1Role} onChange={e => setLeader1Role(e.target.value)} placeholder="Role Name" style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', marginBottom: '6px' }} />
+                  <textarea required rows={3} value={leader1Focus} onChange={e => setLeader1Focus(e.target.value)} placeholder="Focus context description" style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', resize: 'vertical' }} />
+                </div>
+                <div style={{ border: '1px solid #cbd5e1', padding: '12px', borderRadius: '8px', background: '#f8fafc' }}>
+                  <strong style={{ fontSize: '0.78rem', color: '#2563eb', display: 'block', marginBottom: '6px' }}>Leader 2</strong>
+                  <input type="text" required value={leader2Role} onChange={e => setLeader2Role(e.target.value)} placeholder="Role Name" style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', marginBottom: '6px' }} />
+                  <textarea required rows={3} value={leader2Focus} onChange={e => setLeader2Focus(e.target.value)} placeholder="Focus context description" style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', resize: 'vertical' }} />
+                </div>
+                <div style={{ border: '1px solid #cbd5e1', padding: '12px', borderRadius: '8px', background: '#f8fafc' }}>
+                  <strong style={{ fontSize: '0.78rem', color: '#2563eb', display: 'block', marginBottom: '6px' }}>Leader 3</strong>
+                  <input type="text" required value={leader3Role} onChange={e => setLeader3Role(e.target.value)} placeholder="Role Name" style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', marginBottom: '6px' }} />
+                  <textarea required rows={3} value={leader3Focus} onChange={e => setLeader3Focus(e.target.value)} placeholder="Focus context description" style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', resize: 'vertical' }} />
+                </div>
+                <div style={{ border: '1px solid #cbd5e1', padding: '12px', borderRadius: '8px', background: '#f8fafc' }}>
+                  <strong style={{ fontSize: '0.78rem', color: '#2563eb', display: 'block', marginBottom: '6px' }}>Leader 4</strong>
+                  <input type="text" required value={leader4Role} onChange={e => setLeader4Role(e.target.value)} placeholder="Role Name" style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', marginBottom: '6px' }} />
+                  <textarea required rows={3} value={leader4Focus} onChange={e => setLeader4Focus(e.target.value)} placeholder="Focus context description" style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', resize: 'vertical' }} />
+                </div>
+              </div>
+
+              <div style={{ borderTop: '1px solid #cbd5e1', paddingTop: '12px', marginTop: '6px' }}>
+                <label style={{ fontSize: '0.75rem', color: '#475569', display: 'block', marginBottom: '4px', fontWeight: 650 }}>Copyright Info Footer Note</label>
+                <input type="text" required value={footerCopy} onChange={e => setFooterCopy(e.target.value)} placeholder="e.g. © 2026 Globe Scholars Pathways, LLC." style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
               </div>
             </div>
           )}
@@ -314,14 +495,14 @@ export const LandingPageCms: React.FC = () => {
           </div>
 
           {/* Landing Mockup Structure */}
-          <div style={{ background: '#ffffff', borderRadius: '12px', padding: '20px', color: '#1e293b', border: '1px solid #cbd5e1' }}>
+          <div style={{ background: '#ffffff', borderRadius: '12px', padding: '20px', color: '#1e293b', border: '1px solid #cbd5e1', maxHeight: '650px', overflowY: 'auto' }}>
             <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '8px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#0f172a' }}>GlobeScholars</span>
               <span style={{ fontSize: '0.6rem', color: '#64748b', border: '1px solid #cbd5e1', padding: '2px 6px', borderRadius: '4px' }}>Sign in</span>
             </div>
 
             {/* Simulated Hero Section */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minHeight: '120px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <span style={{ fontSize: '0.52rem', color: '#2563eb', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '3px' }}>
                 <Globe2 size={8} /> {heroEyebrow || 'Eyebrow Text'}
               </span>
@@ -376,13 +557,77 @@ export const LandingPageCms: React.FC = () => {
               </div>
             </div>
 
-            {/* Simulated Story Section */}
+            {/* Simulated Story & Values Section */}
+            <div style={{ marginTop: '16px', borderTop: '1px solid #f1f5f9', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div>
+                <span style={{ fontSize: '0.52rem', color: '#475569', fontWeight: 750 }}>OUR STORY</span>
+                <h4 style={{ fontSize: '0.7rem', fontWeight: 800, color: '#0f172a', margin: '3px 0' }}>{storyTitle || 'Story Heading'}</h4>
+                <p style={{ fontSize: '0.55rem', color: '#64748b', lineHeight: 1.3 }}>
+                  {storyDescription || 'Story text...'}
+                </p>
+              </div>
+
+              <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '0.52rem', color: '#2563eb', fontWeight: 750 }}>{valueHeader}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px', fontSize: '0.55rem' }}>
+                  <div>
+                    <strong style={{ display: 'block', fontSize: '0.58rem' }}><ShieldCheck size={8} style={{ color: '#2563eb', marginRight: '3px' }} /> {value1Title}</strong>
+                    <span style={{ color: '#64748b' }}>{value1Description}</span>
+                  </div>
+                  <div>
+                    <strong style={{ display: 'block', fontSize: '0.58rem' }}><UsersRound size={8} style={{ color: '#2563eb', marginRight: '3px' }} /> {value2Title}</strong>
+                    <span style={{ color: '#64748b' }}>{value2Description}</span>
+                  </div>
+                  <div>
+                    <strong style={{ display: 'block', fontSize: '0.58rem' }}><GraduationCap size={8} style={{ color: '#2563eb', marginRight: '3px' }} /> {value3Title}</strong>
+                    <span style={{ color: '#64748b' }}>{value3Description}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Simulated Testimonials Stories */}
             <div style={{ marginTop: '16px', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
-              <span style={{ fontSize: '0.52rem', color: '#475569', fontWeight: 750 }}>OUR STORY</span>
-              <h4 style={{ fontSize: '0.7rem', fontWeight: 800, color: '#0f172a', margin: '3px 0' }}>{storyTitle || 'Story Heading'}</h4>
-              <p style={{ fontSize: '0.55rem', color: '#64748b', lineHeight: 1.3 }}>
-                {storyDescription || 'Story text...'}
-              </p>
+              <span style={{ fontSize: '0.52rem', color: '#475569', fontWeight: 750 }}>TESTIMONIALS</span>
+              <h4 style={{ fontSize: '0.7rem', fontWeight: 800, color: '#0f172a', margin: '3px 0' }}>{storiesTitle}</h4>
+              <p style={{ fontSize: '0.55rem', color: '#64748b', marginBottom: '8px' }}>{storiesDescription}</p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ border: '1px solid #e2e8f0', padding: '6px', borderRadius: '4px', background: '#fff' }}>
+                  <Quote size={8} style={{ color: '#2563eb', marginBottom: '2px' }} />
+                  <p style={{ margin: '0 0 4px', fontSize: '0.52rem', fontStyle: 'italic', color: '#334155' }}>“{story1Quote}”</p>
+                  <span style={{ fontSize: '0.48rem', color: '#64748b' }}><strong>{story1Name}</strong> - {story1Pathway}</span>
+                </div>
+                <div style={{ border: '1px solid #e2e8f0', padding: '6px', borderRadius: '4px', background: '#fff' }}>
+                  <Quote size={8} style={{ color: '#2563eb', marginBottom: '2px' }} />
+                  <p style={{ margin: '0 0 4px', fontSize: '0.52rem', fontStyle: 'italic', color: '#334155' }}>“{story2Quote}”</p>
+                  <span style={{ fontSize: '0.48rem', color: '#64748b' }}><strong>{story2Name}</strong> - {story2Pathway}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Simulated Leadership */}
+            <div style={{ marginTop: '16px', borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
+              <span style={{ fontSize: '0.52rem', color: '#475569', fontWeight: 750 }}>LEADERSHIP</span>
+              <h4 style={{ fontSize: '0.7rem', fontWeight: 800, color: '#0f172a', margin: '3px 0' }}>{leadershipTitle}</h4>
+              <p style={{ fontSize: '0.55rem', color: '#64748b', marginBottom: '8px' }}>{leadershipDescription}</p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '0.5rem' }}>
+                <div style={{ border: '1px solid #e2e8f0', padding: '4px', borderRadius: '4px', background: '#f8fafc' }}>
+                  <strong>{leader1Role}</strong>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.45rem', color: '#64748b' }}>{leader1Focus}</p>
+                </div>
+                <div style={{ border: '1px solid #e2e8f0', padding: '4px', borderRadius: '4px', background: '#f8fafc' }}>
+                  <strong>{leader2Role}</strong>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.45rem', color: '#64748b' }}>{leader2Focus}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Simulated Footer */}
+            <div style={{ marginTop: '16px', borderTop: '1px solid #e2e8f0', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', fontSize: '0.48rem', color: '#94a3b8' }}>
+              <strong>Globe Scholars Pathways, LLC.</strong>
+              <span>{footerCopy}</span>
             </div>
 
           </div>

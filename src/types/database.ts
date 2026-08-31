@@ -300,6 +300,44 @@ export interface LandingPageSettings {
   step_3_description: string;
   story_title: string;
   story_description: string;
+  
+  // Value guides
+  value_header: string;
+  value_1_title: string;
+  value_1_description: string;
+  value_2_title: string;
+  value_2_description: string;
+  value_3_title: string;
+  value_3_description: string;
+
+  // Student stories
+  stories_title: string;
+  stories_description: string;
+  story_1_quote: string;
+  story_1_name: string;
+  story_1_pathway: string;
+  story_2_quote: string;
+  story_2_name: string;
+  story_2_pathway: string;
+  story_3_quote: string;
+  story_3_name: string;
+  story_3_pathway: string;
+
+  // Leadership cards
+  leadership_title: string;
+  leadership_description: string;
+  leader_1_role: string;
+  leader_1_focus: string;
+  leader_2_role: string;
+  leader_2_focus: string;
+  leader_3_role: string;
+  leader_3_focus: string;
+  leader_4_role: string;
+  leader_4_focus: string;
+
+  // Footer copy
+  footer_copy: string;
+
   updated_at: string;
   updated_by_name: string;
 }
