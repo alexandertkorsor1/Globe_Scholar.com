@@ -109,17 +109,17 @@ const RESPONSIBILITY_OPTIONS = [
 
 type AdminTab = 'kpis' | 'crm' | 'performance' | 'drilldown' | 'partnerships' | 'staff' | 'leave_approvals' | 'work_assignments' | 'visa_applications' | 'student_documents' | 'trash' | 'landing_cms';
 
-const ADMIN_TABS: Array<{ id: AdminTab; label: string }> = [
-  { id: 'kpis', label: 'Executive Dashboard' },
-  { id: 'crm', label: 'CRM Register' },
-  { id: 'performance', label: 'KPI Performance Tracker' },
-  { id: 'drilldown', label: 'Department Drill-Down' },
-  { id: 'work_assignments', label: 'Work Assignments' },
-  { id: 'partnerships', label: 'Partner Universities & Agreements' },
-  { id: 'staff', label: 'Staff Accounts & Department Members' },
-  { id: 'leave_approvals', label: 'Leave Requests & Approvals' },
-  { id: 'student_documents', label: 'Student Documents' },
-  { id: 'landing_cms', label: 'Landing Page CMS' },
+const ADMIN_TABS: Array<{ id: AdminTab; label: string; icon: React.ReactNode }> = [
+  { id: 'kpis', label: 'Executive Dashboard', icon: <LayoutDashboard size={14} /> },
+  { id: 'crm', label: 'CRM Register', icon: <Users size={14} /> },
+  { id: 'performance', label: 'KPI Performance Tracker', icon: <TrendingUp size={14} /> },
+  { id: 'drilldown', label: 'Department Drill-Down', icon: <Layers size={14} /> },
+  { id: 'work_assignments', label: 'Work Assignments', icon: <ClipboardList size={14} /> },
+  { id: 'partnerships', label: 'Partner Universities & Agreements', icon: <Building2 size={14} /> },
+  { id: 'staff', label: 'Staff Accounts & Department Members', icon: <Users2 size={14} /> },
+  { id: 'leave_approvals', label: 'Leave Requests & Approvals', icon: <Calendar size={14} /> },
+  { id: 'student_documents', label: 'Student Documents', icon: <FileText size={14} /> },
+  { id: 'landing_cms', label: 'Landing Page CMS', icon: <Settings size={14} /> },
 ];
 
 const emptyDepartmentMember: DepartmentMemberInput = {
@@ -828,16 +828,64 @@ export const AdminWorkspace: React.FC = () => {
         </div>
 
         {/* Tab Navigation */}
-        <div style={{ display: 'flex', gap: '8px', marginTop: '16px', borderTop: '1px solid #f3f4f6', paddingTop: '12px' }}>
-          {ADMIN_TABS.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`btn btn-sm ${activeTab === tab.id ? 'btn-primary' : 'btn-secondary'}`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          marginTop: '16px',
+          borderTop: '1px solid #e2e8f0',
+          paddingTop: '12px',
+          overflowX: 'auto',
+          paddingBottom: '4px',
+          scrollbarWidth: 'thin'
+        }}>
+          {ADMIN_TABS.map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '7px',
+                  height: '36px',
+                  padding: '0 14px',
+                  fontSize: '0.8rem',
+                  fontWeight: isActive ? 750 : 600,
+                  borderRadius: '8px',
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  border: isActive ? '1px solid #2563eb' : '1px solid #e2e8f0',
+                  background: isActive ? '#2563eb' : '#ffffff',
+                  color: isActive ? '#ffffff' : '#475569',
+                  boxShadow: isActive ? '0 2px 8px rgba(37, 99, 235, 0.22)' : 'none',
+                  flexShrink: 0
+                }}
+                onMouseEnter={e => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = '#f8fafc';
+                    e.currentTarget.style.color = '#0f172a';
+                    e.currentTarget.style.borderColor = '#cbd5e1';
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = '#ffffff';
+                    e.currentTarget.style.color = '#475569';
+                    e.currentTarget.style.borderColor = '#e2e8f0';
+                  }
+                }}
+              >
+                <span style={{ display: 'inline-flex', alignItems: 'center', opacity: isActive ? 1 : 0.85 }}>
+                  {tab.icon}
+                </span>
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
